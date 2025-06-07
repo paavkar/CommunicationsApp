@@ -1,3 +1,4 @@
+using CommunicationsApp.Models;
 using Microsoft.AspNetCore.Identity;
 
 namespace CommunicationsApp.Data
@@ -10,6 +11,9 @@ namespace CommunicationsApp.Data
         public string DisplayName { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty;
         public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
-    }
 
+        // Navigation properties
+        public List<Server> Servers { get; set; } = [];
+        public List<ServerProfile> ServerProfiles { get; set; } = [];
+    }
 }
