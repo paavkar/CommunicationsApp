@@ -7,6 +7,7 @@ namespace CommunicationsApp.Data
     public class ApplicationUser : IdentityUser
     {
         public string ProfilePictureUrl { get; set; } = string.Empty;
+        public string BannerUrl { get; set; } = string.Empty;
         public string Bio { get; set; } = string.Empty;
         public string DisplayName { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty;

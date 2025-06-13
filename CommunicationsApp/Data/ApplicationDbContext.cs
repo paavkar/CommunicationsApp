@@ -9,7 +9,6 @@ namespace CommunicationsApp.Data
     {
         public DbSet<Server> Servers { get; set; } = null!;
         public DbSet<Channel> Channels { get; set; } = null!;
-        public DbSet<ChatMessage> Messages { get; set; } = null!;
         public DbSet<ServerRole> ServerRoles { get; set; } = null!;
         public DbSet<ServerProfile> ServerProfiles { get; set; } = null!;
         public DbSet<UserServerRole> UserServerRoles { get; set; } = null!;
@@ -28,32 +27,6 @@ namespace CommunicationsApp.Data
                     .WithMany(s => s.Channels)         // a Server can have many Channels
                     .HasForeignKey(e => e.ServerId)    // foreign key on Channel
                     .OnDelete(DeleteBehavior.Cascade);
-            });
-
-            // CHATMESSAGE configuration: Each ChatMessage is tied to a Channel and a Server.
-            modelBuilder.Entity<ChatMessage>(entity =>
-            {
-                entity.HasKey(e => e.Id);
-
-                // Link ChatMessage to Channel via ChannelId.
-                entity
-                    .HasOne<Channel>()
-                    .WithMany(e => e.Messages)
-                    .HasForeignKey(e => e.ChannelId)
-                    .OnDelete(DeleteBehavior.Cascade);
-
-                // Link ChatMessage to Server via ServerId.
-                entity
-                    .HasOne<Server>()
-                    .WithMany(e => e.Messages)
-                    .HasForeignKey(e => e.ServerId)
-                    .OnDelete(DeleteBehavior.Cascade);
-            
-                entity
-                    .HasOne<ApplicationUser>()
-                    .WithMany()
-                    .HasForeignKey(e => e.SenderId)
-                    .OnDelete(DeleteBehavior.SetNull);
             });
 
             // SERVER configuration: The Server entity is the principal for Channels and ServerRoles.

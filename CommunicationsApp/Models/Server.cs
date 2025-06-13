@@ -10,6 +10,8 @@ namespace CommunicationsApp.Models
         public string Description { get; set; } = string.Empty;
         public string OwnerId { get; set; } = string.Empty;
         public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+        public string IconUrl { get; set; } = string.Empty;
+        public string BannerUrl { get; set; } = string.Empty;
 
         // Navigation properties
         public List<Channel> Channels { get; set; } = [];

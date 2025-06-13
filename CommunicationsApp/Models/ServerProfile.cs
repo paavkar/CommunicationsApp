@@ -4,6 +4,7 @@
     {
         public string Id { get; set; } = Guid.CreateVersion7().ToString();
         public string UserId { get; set; } = string.Empty;
+        public string UserName { get; set; } = string.Empty;
         public string ServerId { get; set; } = string.Empty;
         public string DisplayName { get; set; } = string.Empty;
         public string ProfilePictureUrl { get; set; } = string.Empty;

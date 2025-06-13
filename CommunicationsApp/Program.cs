@@ -7,6 +7,12 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddHttpClient("MyClient", options =>
+{
+    // Configure the HttpClient to use the base address of the application.
+    options.BaseAddress = new Uri("https://localhost:7074");
+});
+
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
