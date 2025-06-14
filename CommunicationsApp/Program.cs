@@ -1,17 +1,17 @@
+using Asp.Versioning;
 using CommunicationsApp.Components;
 using CommunicationsApp.Components.Account;
 using CommunicationsApp.Data;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.FluentUI.AspNetCore.Components;
+using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddHttpClient("MyClient", options =>
-{
-    // Configure the HttpClient to use the base address of the application.
-    options.BaseAddress = new Uri("https://localhost:7074");
-});
+builder.Services.AddHttpClient();
+builder.Services.AddFluentUIComponents();
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
@@ -39,6 +39,17 @@ builder.Services.AddIdentityCore<ApplicationUser>(options => options.SignIn.Requ
     .AddSignInManager()
     .AddDefaultTokenProviders();
 
+builder.Services.AddControllers();
+
+builder.Services.AddApiVersioning(options =>
+{
+    options.AssumeDefaultVersionWhenUnspecified = true;
+    options.DefaultApiVersion = new ApiVersion(1, 0);
+    options.ReportApiVersions = true;
+
+    options.ApiVersionReader = new UrlSegmentApiVersionReader();
+}).AddMvc();
+
 builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
 
 var app = builder.Build();
@@ -63,7 +74,11 @@ app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
+app.UseAuthentication();
+app.UseAuthorization();
+
 // Add additional endpoints required by the Identity /Account Razor components.
 app.MapAdditionalIdentityEndpoints();
+app.MapControllers();
 
 app.Run();

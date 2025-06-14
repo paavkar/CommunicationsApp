@@ -26,12 +26,7 @@ namespace CommunicationsApp.CosmosDb
             {
                 CosmosClient = new(account, key, new CosmosClientOptions()
                 {
-                    SerializerOptions = serializationOptions,
-                    HttpClientFactory = () => new HttpClient(new HttpClientHandler()
-                    {
-                        ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
-                    }),
-                    ConnectionMode = ConnectionMode.Gateway,
+                    SerializerOptions = serializationOptions
                 });
 
                 InitializeDatabase().GetAwaiter().GetResult();

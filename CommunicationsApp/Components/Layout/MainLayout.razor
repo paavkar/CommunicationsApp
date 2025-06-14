@@ -1,4 +1,5 @@
-﻿@inherits LayoutComponentBase
+﻿
+@inherits LayoutComponentBase
 
 <div class="page">
     <div class="sidebar">
@@ -21,3 +22,9 @@
     <a href="." class="reload">Reload</a>
     <span class="dismiss">🗙</span>
 </div>
+
+<FluentToastProvider Position="ToastPosition.TopRight" RemoveToastsOnNavigation="false" @rendermode=InteractiveServer />
+<FluentDialogProvider @rendermode=InteractiveServer />
+<FluentTooltipProvider @rendermode=InteractiveServer />
+<FluentMessageBarProvider @rendermode=InteractiveServer />
+<FluentMenuProvider @rendermode=InteractiveServer />

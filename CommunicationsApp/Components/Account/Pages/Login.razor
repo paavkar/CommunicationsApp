@@ -6,9 +6,11 @@
 @using CommunicationsApp.Data
 
 @inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<ApplicationUser> UserManager
 @inject ILogger<Login> Logger
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
+
 
 <PageTitle>Log in</PageTitle>
 
@@ -87,9 +89,23 @@
 
     public async Task LoginUser()
     {
+        ApplicationUser? user;
+        if (Input.Email.Contains('@'))
+        {
+            user = await UserManager.FindByEmailAsync(Input.Email);
+        }
+        else
+        {
+            user = await UserManager.FindByNameAsync(Input.Email);
+        }
+        if (user is null)
+        {
+            errorMessage = "Error: user not found.";
+            return;
+        }
         // This doesn't count login failures towards account lockout
         // To enable password failures to trigger account lockout, set lockoutOnFailure: true
-        var result = await SignInManager.PasswordSignInAsync(Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: false);
+        var result = await SignInManager.PasswordSignInAsync(user!, Input.Password, Input.RememberMe, lockoutOnFailure: false);
         if (result.Succeeded)
         {
             Logger.LogInformation("User logged in.");
@@ -97,6 +113,10 @@
         }
         else if (result.RequiresTwoFactor)
         {
+            // var queryParameters = new Dictionary<string, object?>() { ["returnUrl"] = ReturnUrl, ["rememberMe"] = Input.RememberMe };
+            // var uriWithoutQuery = NavigationManager.ToAbsoluteUri("Account/LoginWith2fa").GetLeftPart(UriPartial.Path);
+            // var newUri = NavigationManager.GetUriWithQueryParameters(uriWithoutQuery, queryParameters);
+            // NavigationManager.NavigateTo(newUri);
             RedirectManager.RedirectTo(
                 "Account/LoginWith2fa",
                 new() { ["returnUrl"] = ReturnUrl, ["rememberMe"] = Input.RememberMe });
@@ -104,7 +124,7 @@
         else if (result.IsLockedOut)
         {
             Logger.LogWarning("User account locked out.");
-            RedirectManager.RedirectTo("Account/Lockout");
+            NavigationManager.NavigateTo("Account/Lockout");
         }
         else
         {
@@ -115,7 +135,6 @@
     private sealed class InputModel
     {
         [Required]
-        [EmailAddress]
         public string Email { get; set; } = "";
 
         [Required]

@@ -12,9 +12,10 @@ namespace CommunicationsApp.Models
         public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
         public string IconUrl { get; set; } = string.Empty;
         public string BannerUrl { get; set; } = string.Empty;
+        public string ServerType { get; set; } = string.Empty;
 
         // Navigation properties
-        public List<Channel> Channels { get; set; } = [];
+        public List<ChannelClass> ChannelClasses { get; set; } = [];
         public List<ServerProfile> Members { get; set; } = [];
         public List<ServerRole> Roles { get; set; } = [];
         public List<ChatMessage> Messages { get; set; } = [];

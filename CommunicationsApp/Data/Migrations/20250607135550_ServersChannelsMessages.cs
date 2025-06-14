@@ -1,5 +1,6 @@
-﻿using System;
+﻿using CommunicationsApp.Models;
 using Microsoft.EntityFrameworkCore.Migrations;
+using System;
 
 #nullable disable
 
@@ -23,10 +24,31 @@ namespace CommunicationsApp.Migrations
                     CreatedAt = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false),
                     IconUrl = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     BannerUrl = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ServerType = table.Column<string>(type: "nvarchar(max)", nullable: false),
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Servers", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ChannelClasses",
+                columns: table => new
+                {
+                    Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    ServerId = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    IsPrivate = table.Column<bool>(type: "bit", nullable: false),
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ChannelClasses", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_ChannelClasses_Servers_ServerId",
+                        column: x => x.ServerId,
+                        principalTable: "Servers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -36,7 +58,10 @@ namespace CommunicationsApp.Migrations
                     Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     ServerId = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    ChannelClassId = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    IsPrivate = table.Column<bool>(type: "bit", nullable: false),
+                    OrderNumber = table.Column<int>(type: "int", nullable: false),
                     CreatedAt = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false)
                 },
                 constraints: table =>
@@ -46,6 +71,12 @@ namespace CommunicationsApp.Migrations
                         name: "FK_Channels_Servers_ServerId",
                         column: x => x.ServerId,
                         principalTable: "Servers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.NoAction);
+                    table.ForeignKey(
+                        name: "FK_Channels_ChannelClasses_ChannelClassId",
+                        column: x => x.ChannelClassId,
+                        principalTable: "ChannelClasses",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -134,9 +165,9 @@ namespace CommunicationsApp.Migrations
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_Channels_ServerId",
+                name: "IX_Channels_ChannelClassId",
                 table: "Channels",
-                column: "ServerId");
+                column: "ChannelClassId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ServerProfiles_ServerId",
@@ -168,13 +199,19 @@ namespace CommunicationsApp.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "Channels");
+                name: "UserServerRoles");
 
             migrationBuilder.DropTable(
                 name: "ServerRoles");
 
             migrationBuilder.DropTable(
                 name: "ServerProfiles");
+
+            migrationBuilder.DropTable(
+                name: "Channels");
+
+            migrationBuilder.DropTable(
+                name: "ChannelClasses");
 
             migrationBuilder.DropTable(
                 name: "Servers");

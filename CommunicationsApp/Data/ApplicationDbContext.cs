@@ -23,9 +23,9 @@ namespace CommunicationsApp.Data
                 entity.HasKey(e => e.Id);
 
                 entity
-                    .HasOne<Server>()                 // a Channel is related to one Server
-                    .WithMany(s => s.Channels)         // a Server can have many Channels
-                    .HasForeignKey(e => e.ServerId)    // foreign key on Channel
+                    .HasOne<ChannelClass>()                 // a Channel is related to one channel class
+                    .WithMany(s => s.Channels)         // a Channel class can have many Channels
+                    .HasForeignKey(e => e.ChannelClassId)    // foreign key on Channel
                     .OnDelete(DeleteBehavior.Cascade);
             });
 

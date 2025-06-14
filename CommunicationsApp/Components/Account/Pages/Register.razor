@@ -33,6 +33,16 @@
                 <ValidationMessage For="() => Input.Email" class="text-danger" />
             </div>
             <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.UserName" id="Input.UserName" class="form-control" autocomplete="username" aria-required="true" placeholder="username" />
+                <label for="Input.UserName">Username</label>
+                <ValidationMessage For="() => Input.UserName" class="text-danger" />
+            </div>
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.DisplayName" id="Input.DisplayName" class="form-control" autocomplete="username" aria-required="true" placeholder="display name" />
+                <label for="Input.DisplayName">Display Name</label>
+                <ValidationMessage For="() => Input.DisplayName" class="text-danger" />
+            </div>
+            <div class="form-floating mb-3">
                 <InputText type="password" @bind-Value="Input.Password" id="Input.Password" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
                 <label for="Input.Password">Password</label>
                 <ValidationMessage For="() => Input.Password" class="text-danger" />
@@ -68,8 +78,9 @@
     public async Task RegisterUser(EditContext editContext)
     {
         var user = CreateUser();
+        user.DisplayName = Input.DisplayName;
 
-        await UserStore.SetUserNameAsync(user, Input.Email, CancellationToken.None);
+        await UserStore.SetUserNameAsync(user, Input.UserName, CancellationToken.None);
         var emailStore = GetEmailStore();
         await emailStore.SetEmailAsync(user, Input.Email, CancellationToken.None);
         var result = await UserManager.CreateAsync(user, Input.Password);
@@ -93,13 +104,20 @@
 
         if (UserManager.Options.SignIn.RequireConfirmedAccount)
         {
+            // var navUrl = $"Account/RegisterConfirmation";
+            // var queryParameters = new Dictionary<string, object?>() { ["email"] = Input.Email, ["returnUrl"] = ReturnUrl };
+            // var uriWithoutQuery = NavigationManager.ToAbsoluteUri(navUrl).GetLeftPart(UriPartial.Path);
+            // var newUri = NavigationManager.GetUriWithQueryParameters(uriWithoutQuery, queryParameters);
+            // NavigationManager.NavigateTo(newUri);
+
             RedirectManager.RedirectTo(
                 "Account/RegisterConfirmation",
                 new() { ["email"] = Input.Email, ["returnUrl"] = ReturnUrl });
+                return;
         }
 
         await SignInManager.SignInAsync(user, isPersistent: false);
-        RedirectManager.RedirectTo(ReturnUrl);
+        NavigationManager.NavigateTo(ReturnUrl);
     }
 
     private ApplicationUser CreateUser()
@@ -130,6 +148,13 @@
         [EmailAddress]
         [Display(Name = "Email")]
         public string Email { get; set; } = "";
+
+        [Required]
+        [Display(Name = "UserName")]
+        public string UserName { get; set; } = "";
+        
+        [Display(Name = "DisplayName")]
+        public string DisplayName { get; set; } = "";
 
         [Required]
         [StringLength(100, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 6)]
