@@ -1,6 +1,7 @@
 ﻿@using CommunicationsApp.Data
 @using CommunicationsApp.Interfaces
 @using CommunicationsApp.Models
+@using static CommunicationsApp.Models.Enums
 @rendermode InteractiveServer
 
 @inject IServerService ServerService
@@ -20,7 +21,7 @@
             OwnerId = User.Id,
             InvitationCode = Guid.NewGuid().ToString(),
             Description = "This is a server",
-            ServerType = "Public",
+            ServerType = ServerType.Public,
             CreatedAt = DateTimeOffset.UtcNow
         };
         

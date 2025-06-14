@@ -1,4 +1,5 @@
 ﻿using CommunicationsApp.Data;
+using static CommunicationsApp.Models.Enums;
 
 namespace CommunicationsApp.Models
 {
@@ -12,7 +13,7 @@ namespace CommunicationsApp.Models
         public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
         public string IconUrl { get; set; } = string.Empty;
         public string BannerUrl { get; set; } = string.Empty;
-        public string ServerType { get; set; } = string.Empty;
+        public ServerType ServerType { get; set; } = ServerType.Public;
 
         // Navigation properties
         public List<ChannelClass> ChannelClasses { get; set; } = [];

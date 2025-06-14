@@ -24,7 +24,7 @@ namespace CommunicationsApp.Migrations
                     CreatedAt = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false),
                     IconUrl = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     BannerUrl = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    ServerType = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ServerType = table.Column<int>(type: "int", nullable: false),
                 },
                 constraints: table =>
                 {
