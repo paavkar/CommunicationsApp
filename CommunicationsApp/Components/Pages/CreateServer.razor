@@ -1,0 +1,37 @@
+﻿@using CommunicationsApp.Data
+@using CommunicationsApp.Interfaces
+@using CommunicationsApp.Models
+@rendermode InteractiveServer
+
+@inject IServerService ServerService
+
+<button class="btn btn-primary" @onclick="CreateServerAsync">Create Server</button>
+
+@code {
+    [Parameter]
+    public ApplicationUser User { get; set; }
+
+    public async Task CreateServerAsync()
+    {
+        Server server = new Server
+        {
+            Id = Guid.CreateVersion7().ToString(),
+            Name = "New Server",
+            OwnerId = User.Id,
+            InvitationCode = Guid.NewGuid().ToString(),
+            Description = "This is a server",
+            ServerType = "Public",
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+        
+        server = await ServerService.CreateServerAsync(server, User);
+        if (server != null)
+        {
+            Console.WriteLine($"Server created successfully: {server.Name}");
+        }
+        else
+        {
+            Console.WriteLine("Failed to create server.");
+        }
+    }
+}

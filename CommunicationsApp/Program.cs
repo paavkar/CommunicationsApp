@@ -2,6 +2,8 @@ using Asp.Versioning;
 using CommunicationsApp.Components;
 using CommunicationsApp.Components.Account;
 using CommunicationsApp.Data;
+using CommunicationsApp.Interfaces;
+using CommunicationsApp.Services;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -51,6 +53,8 @@ builder.Services.AddApiVersioning(options =>
 }).AddMvc();
 
 builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IServerService, ServerService>();
 
 var app = builder.Build();
 

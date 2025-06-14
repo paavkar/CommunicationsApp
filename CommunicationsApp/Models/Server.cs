@@ -4,7 +4,7 @@ namespace CommunicationsApp.Models
 {
     public class Server
     {
-        public string Id { get; set; } = Guid.CreateVersion7().ToString();
+        public string? Id { get; set; }
         public string Name { get; set; } = string.Empty;
         public string InvitationCode { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
@@ -19,5 +19,12 @@ namespace CommunicationsApp.Models
         public List<ServerProfile> Members { get; set; } = [];
         public List<ServerRole> Roles { get; set; } = [];
         public List<ChatMessage> Messages { get; set; } = [];
+
+        public override string ToString()
+        {
+            return $"Server [Id={Id ?? "null"}, Name={Name}, InvitationCode={InvitationCode}, " +
+                   $"Description={Description}, OwnerId={OwnerId}, CreatedAt={CreatedAt}, " +
+                   $"IconUrl={IconUrl}, BannerUrl={BannerUrl}, ServerType={ServerType}]";
+        }
     }
 }

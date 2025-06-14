@@ -2,8 +2,13 @@
 {
     public class ServerRole
     {
-        public string Id { get; set; } = Guid.CreateVersion7().ToString();
+        public string? Id { get; set; }
         public string ServerId { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
+
+        public override string ToString()
+        {
+            return $"ServerRole [Id={Id ?? "null"}, ServerId={ServerId}, Name={Name}]";
+        }
     }
 }

@@ -4,7 +4,7 @@ namespace CommunicationsApp.Models
 {
     public class Channel
     {
-        public string Id { get; set; } = Guid.CreateVersion7().ToString();
+        public string? Id { get; set; }
         public string Name { get; set; } = string.Empty;
         public string ServerId { get; set; } = string.Empty;
         public string ChannelClassId { get; set; } = string.Empty;
@@ -15,5 +15,12 @@ namespace CommunicationsApp.Models
 
         // Navigation properties
         public List<ChatMessage> Messages { get; set; } = [];
+
+        public override string ToString()
+        {
+            return $"Channel [Id={Id ?? "null"}, Name={Name}, ServerId={ServerId}, " +
+                   $"ChannelClassId={ChannelClassId}, Description={Description}, IsPrivate={IsPrivate}, " +
+                   $"OrderNumber={OrderNumber}, CreatedAt={CreatedAt}]";
+        }
     }
 }

@@ -6,7 +6,7 @@ namespace CommunicationsApp.Models
     public class ChatMessage
     {
         [JsonProperty(PropertyName = "id")]
-        public string Id { get; set; } = Guid.CreateVersion7().ToString();
+        public string? Id { get; set; }
         [JsonProperty(PropertyName = "content")]
         public string Content { get; set; } = string.Empty;
         [JsonProperty(PropertyName = "sentAt")]
@@ -34,5 +34,14 @@ namespace CommunicationsApp.Models
         [NotMapped]
         [JsonProperty(PropertyName = "reactions")]
         public Dictionary<string, List<ServerProfile>> Reactions { get; set; } = [];
+
+        public override string ToString()
+        {
+            var editedAtStr = EditedAt.HasValue ? EditedAt.Value.ToString() : "N/A";
+            var replyToId = ReplyTo?.Id ?? "None";
+            return $"ChatMessage [Id={Id ?? "null"}, Content={Content}, SentAt={SentAt}, IsEdited={IsEdited}, " +
+                   $"EditedAt={editedAtStr}, PartitionKey={PartitionKey}, Type={Type}, " +
+                   $"Channel={Channel?.Name ?? "null"}, Sender={Sender?.UserName ?? "null"}, ReplyToId={replyToId}]";
+        }
     }
 }
