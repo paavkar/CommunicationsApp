@@ -1,8 +1,5 @@
 ﻿@page "/"
-@using CommunicationsApp.Components.Account
-@using CommunicationsApp.Data
-@using CommunicationsApp.Interfaces
-@using Microsoft.AspNetCore.Authorization
+
 @inject IUserService UserService
 @inject IdentityUserAccessor UserAccessor
 
@@ -27,15 +24,22 @@ Welcome to your new app.
         if (User != null)
         {
             User = await UserService.GetUserByIdAsync(User.Id);
+            Console.WriteLine(User.Servers.Count);
             if (User.Servers.Any())
             {
-                Console.WriteLine(User.Servers[0].ToString());
+                foreach (var server in User.Servers)
+                {
+                    Console.WriteLine(server.ToString());
+                }
                 Console.WriteLine(User.Servers[0].ChannelClasses[0].ToString());
                 Console.WriteLine(User.Servers[0].ChannelClasses[0].Channels[0].ToString());
             }
             if (User.ServerProfiles.Any())
             {
-                Console.WriteLine(User.ServerProfiles[0].ToString());
+                foreach (var sp in User.ServerProfiles)
+                {
+                    Console.WriteLine(sp.ToString());
+                }
             }
         }
     }

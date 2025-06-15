@@ -3,10 +3,11 @@ using CommunicationsApp.Interfaces;
 using CommunicationsApp.Models;
 using Dapper;
 using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Caching.Hybrid;
 
 namespace CommunicationsApp.Services
 {
-    public class UserService(IConfiguration configuration) : IUserService
+    public class UserService(IConfiguration configuration, HybridCache cache) : IUserService
     {
         private SqlConnection GetConnection()
         {
@@ -15,6 +16,19 @@ namespace CommunicationsApp.Services
         }
 
         public async Task<ApplicationUser> GetUserByIdAsync(string userId)
+        {
+            var cachedUser = await cache.GetOrCreateAsync<ApplicationUser>(
+                $"user_{userId}",
+                factory: async entry =>
+                {
+                    return await GetUserFromDatabaseAsync(userId);
+                }
+            );
+
+            return cachedUser;
+        }
+
+        public async Task<ApplicationUser> GetUserFromDatabaseAsync(string userId)
         {
             var userDictionary = new Dictionary<string, ApplicationUser>();
             var getUserQuery = """
@@ -96,8 +110,7 @@ namespace CommunicationsApp.Services
                 new { userId = userId },
                 splitOn: "ServerProfileId,UserServerRoleUserId,ServerRoleId,ServerId,ChannelClassId,ChannelId"
             );
-
-            var userWithAllData = userDictionary.Values.FirstOrDefault();
+            var userWithAllData = userDictionary.Distinct().FirstOrDefault().Value;
 
             return userWithAllData;
         }

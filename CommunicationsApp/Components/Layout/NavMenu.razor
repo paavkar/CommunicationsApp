@@ -2,6 +2,9 @@
 
 @rendermode InteractiveServer
 @inject NavigationManager NavigationManager
+@inject IUserService UserService
+@inject AuthenticationStateProvider ASP
+@inject IdentityUserAccessor UserAccessor
 
 <div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
@@ -21,6 +24,18 @@
 
         <AuthorizeView>
             <Authorized>
+                @if (User != null && User.Servers.Any())
+                {
+                    foreach (var server in User.Servers)
+                    {
+                        <div class="nav-item px-3">
+                            <NavLink class="nav-link" href="@($"Server/{server.Id}")">
+                                <span class="bi bi-person-fill-nav-menu" aria-hidden="true"></span> @server.Name
+                            </NavLink>
+                        </div>
+                    }
+                }
+)
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="Account/Manage">
                         <span class="bi bi-person-fill-nav-menu" aria-hidden="true"></span> @context.User.Identity?.Name
@@ -54,11 +69,23 @@
 
 @code {
     private string? currentUrl;
+    public ApplicationUser? User { get; set; }
 
     protected override void OnInitialized()
     {
         currentUrl = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
         NavigationManager.LocationChanged += OnLocationChanged;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        var authState = await ASP.GetAuthenticationStateAsync();
+        User = await UserAccessor.GetRequiredUserFromPrincipalAsync(authState.User);
+
+        if (User != null)
+        {
+            User = await UserService.GetUserByIdAsync(User.Id);
+        }
     }
 
     private void OnLocationChanged(object? sender, LocationChangedEventArgs e)

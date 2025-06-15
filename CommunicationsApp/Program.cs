@@ -7,6 +7,7 @@ using CommunicationsApp.Services;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.FluentUI.AspNetCore.Components;
 using System.Security.Claims;
 
@@ -14,6 +15,14 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddHttpClient();
 builder.Services.AddFluentUIComponents();
+builder.Services.AddHybridCache(options =>
+{
+    options.DefaultEntryOptions = new HybridCacheEntryOptions
+    {
+        Expiration = TimeSpan.FromMinutes(10),
+        LocalCacheExpiration = TimeSpan.FromMinutes(30)
+    };
+});
 
 // Add services to the container.
 builder.Services.AddRazorComponents()

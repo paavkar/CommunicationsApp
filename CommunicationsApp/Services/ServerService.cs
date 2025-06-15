@@ -53,12 +53,13 @@ namespace CommunicationsApp.Services
                     Id = Guid.CreateVersion7().ToString(),
                     Name = "text channels",
                     ServerId = server.Id!,
+                    OrderNumber = 1,
                     IsPrivate = false
                 };
 
                 var channelClassQuery = """
-                    INSERT INTO ChannelClasses (Id, Name, ServerId, IsPrivate)
-                    VALUES (@Id, @Name, @ServerId, @IsPrivate)
+                    INSERT INTO ChannelClasses (Id, Name, ServerId, IsPrivate, OrderNumber)
+                    VALUES (@Id, @Name, @ServerId, @IsPrivate, @OrderNumber)
                     """;
                 rowsAffected = await connection.ExecuteAsync(channelClassQuery, channelClass, transaction);
 

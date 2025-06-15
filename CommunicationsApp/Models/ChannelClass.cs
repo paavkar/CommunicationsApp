@@ -6,6 +6,7 @@
         public string ServerId { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public bool IsPrivate { get; set; } = false;
+        public int OrderNumber { get; set; }
 
         // Navigation properties
         public List<Channel> Channels { get; set; } = [];
