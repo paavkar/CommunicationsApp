@@ -1,4 +1,7 @@
-﻿@inject IServerService ServerService
+﻿@rendermode InteractiveServer
+
+@inject IServerService ServerService
+@inject IJSRuntime JS
 
 @if (Server != null && Server.ChannelClasses.Any())
 {
@@ -10,7 +13,7 @@
                     @foreach (var channel in channelClass.Channels)
                     {
                         <div class="nav-item px-3">
-                            <NavLink class="nav-link" href="@($"servers/{Server.Id}/{channel.Id}")">
+                            <NavLink class="nav-link" href="@($"channels/{Server.Id}/{channel.Id}")">
                                 @channel.Name
                             </NavLink>
                         </div>
@@ -23,13 +26,19 @@
 @code {
     [Parameter]
     public string? ServerId { get; set; }
+    public string? UserId { get; set; }
     public Server? Server { get; set; }
 
-    protected override async Task OnParametersSetAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!string.IsNullOrEmpty(ServerId))
+        if (firstRender)
         {
-            Server = await ServerService.GetServerByIdAsync(ServerId);
+            UserId = await JS.InvokeAsync<string>("localStorageHelper.getItem", "userId");
+            if (!string.IsNullOrEmpty(ServerId) && !string.IsNullOrEmpty(UserId))
+            {
+                Server = await ServerService.GetServerByIdAsync(ServerId, UserId);
+                StateHasChanged();
+            }
         }
     }
 }

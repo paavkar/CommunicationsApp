@@ -5,6 +5,7 @@
 @inject IUserService UserService
 @inject AuthenticationStateProvider ASP
 @inject IdentityUserAccessor UserAccessor
+@inject IJSRuntime JS
 
 <div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
@@ -86,11 +87,12 @@
         {
             var authState = await ASP.GetAuthenticationStateAsync();
             User = await UserAccessor.GetRequiredUserFromPrincipalAsync(authState.User);
-            StateHasChanged();
 
             if (User != null)
             {
                 User = await UserService.GetUserByIdAsync(User.Id);
+                await JS.InvokeVoidAsync("localStorageHelper.setItem", "userId", User.Id);
+                StateHasChanged();
             }
         }
     }

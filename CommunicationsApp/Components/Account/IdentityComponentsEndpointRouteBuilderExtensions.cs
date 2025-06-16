@@ -8,7 +8,9 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Primitives;
+using Microsoft.JSInterop;
 
 namespace Microsoft.AspNetCore.Routing
 {
@@ -40,12 +42,16 @@ namespace Microsoft.AspNetCore.Routing
                 return TypedResults.Challenge(properties, [provider]);
             });
 
-            accountGroup.MapPost("/Logout", async (
+            accountGroup.MapPost("/Logout", async(
                 ClaimsPrincipal user,
-                [FromServices] SignInManager<ApplicationUser> signInManager
+                [FromServices] SignInManager < ApplicationUser > signInManager,
+                [FromServices] HybridCache cache,
+                [FromServices] IJSRuntime jsRuntime
                 /*[FromForm] string returnUrl*/) =>
             {
                 await signInManager.SignOutAsync();
+                await cache.RemoveAsync($"user_{signInManager.UserManager.GetUserId(user)}");
+                //await jsRuntime.InvokeVoidAsync("localStorageHelper.clear");
                 return TypedResults.LocalRedirect($"~/");
             });
 

@@ -2,9 +2,6 @@
 @layout CommunicationsApp.Components.Layout.MainLayout
 
 @inject NavigationManager NavigationManager
-@inject IUserService UserService
-@inject AuthenticationStateProvider ASP
-@inject IdentityUserAccessor UserAccessor
 
 <div>
     <div class="row">
@@ -19,7 +16,6 @@
 
 @code {
     private string? currentUrl;
-    public ApplicationUser? User { get; set; }
     public string? ServerId { get; set; }
 
     protected override void OnInitialized()
@@ -29,17 +25,6 @@
         ServerId = serverAndChannelId.Split('/')[0];
 
         NavigationManager.LocationChanged += OnLocationChanged;
-    }
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        var authState = await ASP.GetAuthenticationStateAsync();
-        User = await UserAccessor.GetRequiredUserFromPrincipalAsync(authState.User);
-
-        if (User != null)
-        {
-            User = await UserService.GetUserByIdAsync(User.Id);
-        }
     }
 
     private void OnLocationChanged(object? sender, LocationChangedEventArgs e)

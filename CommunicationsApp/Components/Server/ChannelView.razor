@@ -1,5 +1,8 @@
 ﻿@page "/channels/{ServerId}/{ChannelId}"
+@rendermode InteractiveServer
+
 @inject IServerService ServerService
+@inject IJSRuntime JS
 
 @if (Server != null)
 {
@@ -42,13 +45,31 @@
     public string? ChannelId { get; set; }
     public Server? Server { get; set; }
     public Channel? Channel { get; set; }
+    public ChatMessage NewMessage { get; set; } = new();
+    public string? UserId { get; set; }
 
-    protected override async Task OnParametersSetAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!string.IsNullOrEmpty(ChannelId) && !string.IsNullOrEmpty(ServerId))
+        if (firstRender)
         {
-            Server = await ServerService.GetServerByIdAsync(ServerId);
-            Channel = Server?.ChannelClasses.SelectMany(cc => cc.Channels).FirstOrDefault(c => c.Id == ChannelId);
+            if (!string.IsNullOrEmpty(ChannelId) && !string.IsNullOrEmpty(ServerId))
+            {
+                UserId = await JS.InvokeAsync<string>("localStorageHelper.getItem", "userId");
+                Server = await ServerService.GetServerByIdAsync(ServerId, UserId);
+                if (Server == null)
+                {
+                    return;
+                }
+                Channel = Server?.ChannelClasses.SelectMany(cc => cc.Channels).FirstOrDefault(c => c.Id == ChannelId);
+                if (Channel == null)
+                {
+                    return;
+                }
+                NewMessage.Channel = Channel;
+                NewMessage.Sender = Server!.Members.FirstOrDefault(m => m.UserId == UserId)!;
+                NewMessage.PartitionKey = $"ChatMessage-{Server.Id}";
+                StateHasChanged();
+            }
         }
     }
 }

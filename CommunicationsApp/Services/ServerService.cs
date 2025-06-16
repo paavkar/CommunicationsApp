@@ -93,7 +93,7 @@ namespace CommunicationsApp.Services
             }
         }
 
-        public async Task<Server?> GetServerByIdAsync(string serverId)
+        public async Task<Server?> GetServerByIdAsync(string serverId, string userId)
         {
             var serverDictionary = new Dictionary<string, Server>();
             var getServerQuery = """
@@ -111,6 +111,7 @@ namespace CommunicationsApp.Services
                 LEFT JOIN Channels c ON c.ChannelClassId = cc.Id
                 LEFT JOIN ServerProfiles sp ON sp.ServerId = s.Id
                 WHERE s.Id = @serverId
+                AND sp.UserId = @userId
                 """;
             using var connection = GetConnection();
             var serverDataResult = await connection.QueryAsync<Server, ServerRole, UserServerRole, ChannelClass, Channel, ServerProfile, Server>(
@@ -164,7 +165,7 @@ namespace CommunicationsApp.Services
                     }
                     return currentServer;
                 },
-                new { serverId },
+                new { serverId, userId },
                 splitOn: "ServerRoleId,UserMemberRoleId,ChannelClassId,ChannelId,ServerProfileId"
             );
             var serverWithAllData = serverDictionary.Distinct().FirstOrDefault().Value;

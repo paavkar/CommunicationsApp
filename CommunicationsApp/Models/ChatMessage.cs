@@ -10,7 +10,7 @@ namespace CommunicationsApp.Models
         [JsonProperty(PropertyName = "content")]
         public string Content { get; set; } = string.Empty;
         [JsonProperty(PropertyName = "sentAt")]
-        public DateTimeOffset SentAt { get; set; } = DateTimeOffset.UtcNow;
+        public DateTimeOffset SentAt { get; set; }
         [JsonProperty(PropertyName = "isEdited")]
         public bool IsEdited { get; set; } = false;
         [JsonProperty(PropertyName = "editedAt")]
