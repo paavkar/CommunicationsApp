@@ -1,0 +1,54 @@
+﻿@page "/channels/{ServerId}/{ChannelId}"
+@inject IServerService ServerService
+
+@if (Server != null)
+{
+    <PageTitle>CA | #@Channel?.Name | @Server.Name</PageTitle>
+    <div style="display: flex;
+                flex-grow: 1;
+                position: sticky;
+                top: 4em;
+                background: green;
+                height: 3em;
+                width: 100%;
+                align-items: center;
+                ">
+        <span style="margin-left: 1em;">
+            #@Channel!.Name @Channel!.Description
+        </span>
+    </div>
+    
+    if (!Channel!.Messages.Any())
+    {
+        <div style="margin-top: 1em;">
+        <span style="margin-left: 1em;">No messages in the channel @Channel.Name</span>
+        <hr />
+
+        </div>
+    }
+    foreach (var message in Channel!.Messages)
+    {
+        <div class="message">
+            <strong>@message.Sender.DisplayName:</strong> @message.Content
+        </div>
+        <br />
+    }
+}
+
+@code {
+    [Parameter]
+    public string? ServerId { get; set; }
+    [Parameter]
+    public string? ChannelId { get; set; }
+    public Server? Server { get; set; }
+    public Channel? Channel { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!string.IsNullOrEmpty(ChannelId) && !string.IsNullOrEmpty(ServerId))
+        {
+            Server = await ServerService.GetServerByIdAsync(ServerId);
+            Channel = Server?.ChannelClasses.SelectMany(cc => cc.Channels).FirstOrDefault(c => c.Id == ChannelId);
+        }
+    }
+}

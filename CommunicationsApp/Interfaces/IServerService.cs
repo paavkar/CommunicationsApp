@@ -6,5 +6,6 @@ namespace CommunicationsApp.Interfaces
     public interface IServerService
     {
         Task<Server> CreateServerAsync(Server server, ApplicationUser user);
+        Task<Server?> GetServerByIdAsync(string serverId);
     }
 }

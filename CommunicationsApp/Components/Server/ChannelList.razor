@@ -1,0 +1,35 @@
+﻿@inject IServerService ServerService
+
+@if (Server != null && Server.ChannelClasses.Any())
+{
+    <nav class="nav flex-column">
+        @foreach (var channelClass in Server.ChannelClasses)
+        {
+            <div>
+                <h4>@channelClass.Name</h4>
+                    @foreach (var channel in channelClass.Channels)
+                    {
+                        <div class="nav-item px-3">
+                            <NavLink class="nav-link" href="@($"servers/{Server.Id}/{channel.Id}")">
+                                @channel.Name
+                            </NavLink>
+                        </div>
+                    }
+            </div>
+        }
+    </nav>
+}
+
+@code {
+    [Parameter]
+    public string? ServerId { get; set; }
+    public Server? Server { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!string.IsNullOrEmpty(ServerId))
+        {
+            Server = await ServerService.GetServerByIdAsync(ServerId);
+        }
+    }
+}

@@ -28,7 +28,7 @@ namespace CommunicationsApp.Services
             return cachedUser;
         }
 
-        public async Task<ApplicationUser> GetUserFromDatabaseAsync(string userId)
+        public async Task<ApplicationUser> GetUserFromDatabaseAsync(string userId, bool refreshCache = false)
         {
             var userDictionary = new Dictionary<string, ApplicationUser>();
             var getUserQuery = """
@@ -107,10 +107,17 @@ namespace CommunicationsApp.Services
 
                     return currentUser;
                 },
-                new { userId = userId },
+                new { userId },
                 splitOn: "ServerProfileId,UserServerRoleUserId,ServerRoleId,ServerId,ChannelClassId,ChannelId"
             );
             var userWithAllData = userDictionary.Distinct().FirstOrDefault().Value;
+
+            if (refreshCache)
+            {
+                await cache.SetAsync(
+                key: $"user_{userId}",
+                value: userWithAllData);
+            }
 
             return userWithAllData;
         }

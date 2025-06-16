@@ -29,7 +29,10 @@
                     foreach (var server in User.Servers)
                     {
                         <div class="nav-item px-3">
-                            <NavLink class="nav-link" href="@($"Server/{server.Id}")">
+                            <NavLink 
+                                class="nav-link" 
+                                href="@($"channels/{server.Id}/{server.ChannelClasses.First().Channels.First().Id}")"
+                            >
                                 <span class="bi bi-person-fill-nav-menu" aria-hidden="true"></span> @server.Name
                             </NavLink>
                         </div>
@@ -79,12 +82,16 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        var authState = await ASP.GetAuthenticationStateAsync();
-        User = await UserAccessor.GetRequiredUserFromPrincipalAsync(authState.User);
-
-        if (User != null)
+        if (firstRender)
         {
-            User = await UserService.GetUserByIdAsync(User.Id);
+            var authState = await ASP.GetAuthenticationStateAsync();
+            User = await UserAccessor.GetRequiredUserFromPrincipalAsync(authState.User);
+            StateHasChanged();
+
+            if (User != null)
+            {
+                User = await UserService.GetUserByIdAsync(User.Id);
+            }
         }
     }
 

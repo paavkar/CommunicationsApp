@@ -92,5 +92,84 @@ namespace CommunicationsApp.Services
                 return null!;
             }
         }
+
+        public async Task<Server?> GetServerByIdAsync(string serverId)
+        {
+            var serverDictionary = new Dictionary<string, Server>();
+            var getServerQuery = """
+                SELECT 
+                    s.*,
+                    sr.Id AS ServerRoleId, sr.*,
+                    usr.RoleId AS UserMemberRoleId, usr.*,
+                    cc.Id AS ChannelClassId, cc.*,
+                    c.Id AS ChannelId, c.*,
+                    sp.Id AS ServerProfileId, sp.*
+                FROM Servers s
+                LEFT JOIN ServerRoles sr ON sr.ServerId = s.Id
+                LEFT JOIN UserServerRoles usr ON usr.ServerId = s.Id AND usr.RoleId = sr.Id
+                LEFT JOIN ChannelClasses cc ON cc.ServerId = s.Id
+                LEFT JOIN Channels c ON c.ChannelClassId = cc.Id
+                LEFT JOIN ServerProfiles sp ON sp.ServerId = s.Id
+                WHERE s.Id = @serverId
+                """;
+            using var connection = GetConnection();
+            var serverDataResult = await connection.QueryAsync<Server, ServerRole, UserServerRole, ChannelClass, Channel, ServerProfile, Server>(
+                getServerQuery,
+                (server, role, userServerRole, channelClass, channel, member) =>
+                {
+                    if (!serverDictionary.TryGetValue(server.Id!, out var currentServer))
+                    {
+                        currentServer = server;
+
+                        currentServer.Roles ??= [];
+                        currentServer.ChannelClasses ??= [];
+                        currentServer.Members ??= [];
+                        serverDictionary.Add(currentServer.Id!, currentServer);
+                    }
+
+                    if (role != null && !string.IsNullOrEmpty(role.Id) && currentServer.Roles.All(r => r.Id != role.Id))
+                    {
+                        currentServer.Roles.Add(role);
+                    }
+
+                    if (channelClass != null && !string.IsNullOrEmpty(channelClass.Id))
+                    {
+                        var existingChannelClass = currentServer.ChannelClasses.FirstOrDefault(cc => cc.Id == channelClass.Id);
+                        if (existingChannelClass == null)
+                        {
+                            existingChannelClass = channelClass;
+                            existingChannelClass.Channels ??= [];
+                            currentServer.ChannelClasses.Add(existingChannelClass);
+                        }
+                        if (channel != null && !string.IsNullOrEmpty(channel.Id) &&
+                            existingChannelClass.Channels.All(ch => ch.Id != channel.Id))
+                        {
+                            existingChannelClass.Channels.Add(channel);
+                        }
+                    }
+
+                    if (member != null && !string.IsNullOrEmpty(member.Id) &&
+                        currentServer.Members.All(m => m.Id != member.Id))
+                    {
+                        member.Roles ??= [];
+                        if (member.Id == userServerRole.UserId && userServerRole.RoleId != null)
+                        {
+                            var roleToAdd = currentServer.Roles.FirstOrDefault(r => r.Id == userServerRole.RoleId);
+                            if (roleToAdd != null && !member.Roles.Any(r => r.Id == roleToAdd.Id))
+                            {
+                                member.Roles.Add(roleToAdd);
+                            }
+                        }
+                        currentServer.Members.Add(member);
+                    }
+                    return currentServer;
+                },
+                new { serverId },
+                splitOn: "ServerRoleId,UserMemberRoleId,ChannelClassId,ChannelId,ServerProfileId"
+            );
+            var serverWithAllData = serverDictionary.Distinct().FirstOrDefault().Value;
+
+            return serverWithAllData ?? null;
+        }
     }
 }
