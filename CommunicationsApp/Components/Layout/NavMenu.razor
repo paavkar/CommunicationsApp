@@ -3,9 +3,12 @@
 @rendermode InteractiveServer
 @inject NavigationManager NavigationManager
 @inject IUserService UserService
+@inject IServerService ServerService
 @inject AuthenticationStateProvider ASP
 @inject IdentityUserAccessor UserAccessor
 @inject IJSRuntime JS
+@inject ChatHubService ChatHubService
+@inject UnreadService UnreadService
 
 <div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
@@ -74,11 +77,23 @@
 @code {
     private string? currentUrl;
     public ApplicationUser? User { get; set; }
+    private HubConnection? HubConnection;
+    public string? ActiveChannelId { get; set; }
 
     protected override void OnInitialized()
     {
+        ChatHubService.ChannelMessageReceived += OnChannelMessageReceived;
         currentUrl = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
         NavigationManager.LocationChanged += OnLocationChanged;
+        var serverAndChannelId = currentUrl.Substring(currentUrl.IndexOf('/') + 1).Split('/');
+        if (serverAndChannelId.Length > 1)
+        {
+            ActiveChannelId = serverAndChannelId[1];
+        }
+        else
+        {
+            ActiveChannelId = null;
+        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -92,10 +107,56 @@
             {
                 User = await UserService.GetUserByIdAsync(User.Id);
                 await JS.InvokeVoidAsync("localStorageHelper.setItem", "userId", User.Id);
+
+                await ChatHubService.StartAsync();
+
+                foreach (var server in User.Servers)
+                {
+                    foreach (var channelClass in server.ChannelClasses)
+                    {
+                        foreach (var channel in channelClass.Channels)
+                        {
+                            await ChatHubService.JoinChannelAsync(channel.Id!);
+                        }
+                    }
+                }
+
                 StateHasChanged();
             }
         }
     }
+
+    private async void OnChannelMessageReceived(string serverId, string channelId, ChatMessage message)
+    {
+        // Find the correct server from your User.
+        var server = User.Servers.FirstOrDefault(s => s.Id == serverId);
+        if (server != null)
+        {
+            // Update the channel model
+            var channel = server.ChannelClasses
+                                .SelectMany(cc => cc.Channels)
+                                .FirstOrDefault(c => c.Id == channelId);
+            if (channel != null)
+            {
+                channel.Messages.Add(message);
+            }
+
+            // Optionally also update a separate list of messages at the server level.
+            server.Messages.Add(message);
+
+            // Update any caches if needed.
+            await UserService.UpdateCacheAsync(User.Id, User);
+            await ServerService.UpdateCacheAsync(serverId, User.Id, server);
+
+            if (channelId != ActiveChannelId)
+            {
+                UnreadService.IncrementUnreadCount(channelId);
+            }
+
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
 
     private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
     {
@@ -106,6 +167,6 @@
     public void Dispose()
     {
         NavigationManager.LocationChanged -= OnLocationChanged;
+        ChatHubService.ChannelMessageReceived -= OnChannelMessageReceived;
     }
 }
-

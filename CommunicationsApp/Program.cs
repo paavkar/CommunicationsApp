@@ -67,6 +67,8 @@ builder.Services.AddScoped<CosmosDbFactory>();
 builder.Services.AddScoped<ICosmosDbService, CosmosDbService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IServerService, ServerService>();
+builder.Services.AddScoped<ChatHubService>();
+builder.Services.AddScoped<UnreadService>();
 
 var app = builder.Build();
 
@@ -96,5 +98,7 @@ app.UseAuthorization();
 // Add additional endpoints required by the Identity /Account Razor components.
 app.MapAdditionalIdentityEndpoints();
 app.MapControllers();
+
+app.MapHub<CommunicationsApp.Hubs.ChatHub>("/chathub");
 
 app.Run();

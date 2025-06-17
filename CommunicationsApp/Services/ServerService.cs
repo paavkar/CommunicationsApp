@@ -3,10 +3,11 @@ using CommunicationsApp.Models;
 using Microsoft.Data.SqlClient;
 using Dapper;
 using CommunicationsApp.Data;
+using Microsoft.Extensions.Caching.Hybrid;
 
 namespace CommunicationsApp.Services
 {
-    public class ServerService(IConfiguration configuration) : IServerService
+    public class ServerService(IConfiguration configuration, HybridCache cache) : IServerService
     {
         private SqlConnection GetConnection()
         {
@@ -27,8 +28,9 @@ namespace CommunicationsApp.Services
             {
                 var rowsAffected = await connection.ExecuteAsync(insertServerQuery, server, transaction);
 
-                
-                var serverProfile = new {
+
+                var serverProfile = new
+                {
                     Id = Guid.CreateVersion7().ToString(),
                     UserId = user.Id,
                     user.UserName,
@@ -41,7 +43,7 @@ namespace CommunicationsApp.Services
                     user.Status,
                     user.Bio
                 };
-                
+
                 var insertServerProfileQuery = """
                     INSERT INTO ServerProfiles (Id, UserId, UserName, ServerId, DisplayName, ProfilePictureUrl, BannerUrl, CreatedAt, JoinedAt, Status, Bio)
                     VALUES (@Id, @UserId, @UserName, @ServerId, @DisplayName, @ProfilePictureUrl, @BannerUrl, @CreatedAt, @JoinedAt, @Status, @Bio)
@@ -95,9 +97,22 @@ namespace CommunicationsApp.Services
 
         public async Task<Server?> GetServerByIdAsync(string serverId, string userId)
         {
+            var cachedServer = await cache.GetOrCreateAsync<Server>(
+                $"server_{serverId}_{userId}",
+                factory: async entry =>
+                {
+                    return await GetServerFromDatabaseAsync(serverId, userId);
+                }
+            );
+
+            return cachedServer;
+        }
+
+        public async Task<Server?> GetServerFromDatabaseAsync(string serverId, string userId)
+        {
             var serverDictionary = new Dictionary<string, Server>();
             var getServerQuery = """
-                SELECT 
+                SELECT
                     s.*,
                     sr.Id AS ServerRoleId, sr.*,
                     usr.RoleId AS UserMemberRoleId, usr.*,
@@ -145,6 +160,7 @@ namespace CommunicationsApp.Services
                         if (channel != null && !string.IsNullOrEmpty(channel.Id) &&
                             existingChannelClass.Channels.All(ch => ch.Id != channel.Id))
                         {
+                            channel.Messages ??= [];
                             existingChannelClass.Channels.Add(channel);
                         }
                     }
@@ -171,6 +187,12 @@ namespace CommunicationsApp.Services
             var serverWithAllData = serverDictionary.Distinct().FirstOrDefault().Value;
 
             return serverWithAllData ?? null;
+        }
+
+        public async Task<Server> UpdateCacheAsync(string serverId, string userId, Server server)
+        {
+            await cache.SetAsync($"server_{serverId}_{userId}", server);
+            return server;
         }
     }
 }

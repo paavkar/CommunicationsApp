@@ -99,6 +99,7 @@ namespace CommunicationsApp.Services
                             {
                                 if (currentCC.Channels.All(x => x.Id != c.Id))
                                 {
+                                    c.Messages ??= [];
                                     currentCC.Channels.Add(c);
                                 }
                             }
@@ -120,6 +121,16 @@ namespace CommunicationsApp.Services
             }
 
             return userWithAllData;
+        }
+
+        public async Task<ApplicationUser> UpdateCacheAsync(string userId, ApplicationUser user)
+        {
+            if (user == null || string.IsNullOrEmpty(userId))
+            {
+                return null!;
+            }
+            await cache.SetAsync($"user_{userId}", user);
+            return user;
         }
     }
 }

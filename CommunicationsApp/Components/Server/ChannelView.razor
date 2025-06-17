@@ -1,10 +1,18 @@
-﻿@page "/channels/{ServerId}/{ChannelId}"
+﻿@implements IDisposable
+@page "/channels/{ServerId}/{ChannelId}"
 @rendermode InteractiveServer
 
 @inject IServerService ServerService
 @inject IJSRuntime JS
+@inject ChatHubService ChatHubService
+@inject UnreadService UnreadService
 
-@if (Server is not null && Channel is not null)
+@if (UserId is not null &&
+    ServerId is not null &&
+    ChannelId is not null &&
+    Server is not null &&
+    Channel is not null &&
+    Channel.Messages is not null)
 {
     <PageTitle>CA | #@Channel.Name | @Server.Name</PageTitle>
     <FluentStack 
@@ -30,19 +38,19 @@
         <FluentStack Orientation="Orientation.Vertical" Style="flex-grow: 1;">
             @foreach (var message in Channel!.Messages)
             {
-                    <FluentStack>
-                        <FluentPersona
-                            ImageUrl="@message.Sender.ProfilePictureUrl"
-                            Size="PersonaSize.Size32"
-                            Presence="PersonaPresence.Online"></FluentPersona>
-                        <FluentStack Orientation="Orientation.Vertical">
-                            <FluentStack>
-                                <FluentLabel>@message.Sender.DisplayName</FluentLabel>
-                                <FluentLabel>@message.SentAt</FluentLabel>
-                            </FluentStack>
-                            <FluentLabel>@message.Content</FluentLabel>
+                <FluentStack>
+                    <FluentPersona
+                        ImageUrl="@message.Sender.ProfilePictureUrl"
+                        Size="PersonaSize.Size32"
+                        Presence="PersonaPresence.Online"></FluentPersona>
+                    <FluentStack Orientation="Orientation.Vertical">
+                        <FluentStack>
+                            <FluentLabel>@message.Sender.DisplayName</FluentLabel>
+                            <FluentLabel>@message.SentAt</FluentLabel>
                         </FluentStack>
+                        <FluentLabel>@message.Content</FluentLabel>
                     </FluentStack>
+                </FluentStack>
             }
         </FluentStack>
     </FluentStack>
@@ -51,7 +59,8 @@
         <FluentTextArea @bind-Value="NewMessage.Content"
                          Placeholder="Type your message here..."
                          Style="width: 100%;" Maxlength="400" />
-        <FluentButton Style="position: absolute; right: 0.5em; bottom: 1em; background: transparent; border: none;">
+        <FluentButton OnClick="SendMessageAsync"
+            Style="position: absolute; right: 0.5em; bottom: 1em; background: transparent; border: none;">
             <FluentIcon Value="@(new Size20.Send())" />
         </FluentButton>
     </FluentStack>
@@ -67,29 +76,70 @@
     public ChatMessage NewMessage { get; set; } = new();
     public string? UserId { get; set; }
 
+    protected override void OnInitialized()
+    {
+        ChatHubService.ChannelMessageReceived += OnChannelMessageReceived;
+        if (!string.IsNullOrEmpty(ChannelId))
+        {
+            UnreadService.ClearUnreadCount(ChannelId);
+        }
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            if (!string.IsNullOrEmpty(ChannelId) && !string.IsNullOrEmpty(ServerId))
+            if (string.IsNullOrEmpty(ServerId) || string.IsNullOrEmpty(ChannelId))
             {
-                UserId = await JS.InvokeAsync<string>("localStorageHelper.getItem", "userId");
-                Server = await ServerService.GetServerByIdAsync(ServerId, UserId);
-                if (Server == null)
-                {
-                    return;
-                }
-                Channel = Server?.ChannelClasses.SelectMany(cc => cc.Channels).FirstOrDefault(c => c.Id == ChannelId);
-                if (Channel == null)
-                {
-                    return;
-                }
-                NewMessage.Channel = Channel;
-                NewMessage.Sender = Server!.Members.FirstOrDefault(m => m.UserId == UserId)!;
-                NewMessage.PartitionKey = $"ChatMessage-{Server.Id}";
+                return;
             }
+            UserId = await JS.InvokeAsync<string>("localStorageHelper.getItem", "userId");
+            Server = await ServerService.GetServerByIdAsync(ServerId, UserId);
+            if (Server == null)
+            {
+                return;
+            }
+            Channel = Server?.ChannelClasses.SelectMany(cc => cc.Channels).FirstOrDefault(c => c.Id == ChannelId);
+            if (Channel == null)
+            {
+                return;
+            }
+            Channel.Messages ??= [];
 
+            NewMessage.Channel = Channel;
+            NewMessage.Sender = Server!.Members.FirstOrDefault(m => m.UserId == UserId)!;
+            NewMessage.PartitionKey = $"ChatMessage-{Server.Id}";
+
+            
             StateHasChanged();
         }
+    }
+
+    private async void OnChannelMessageReceived(string serverId, string channelId, ChatMessage message)
+    {
+        // Only update if the message is for the currently viewed channel.
+        if (Channel != null && channelId == Channel.Id)
+        {
+            Channel.Messages.Add(message);
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task SendMessageAsync()
+    {
+        if (string.IsNullOrWhiteSpace(NewMessage.Content))
+            return;
+        if (string.IsNullOrEmpty(ServerId) || string.IsNullOrEmpty(ChannelId) || Channel == null)
+            return;
+        NewMessage.SentAt = DateTimeOffset.UtcNow;
+
+        await ChatHubService.SendMessageAsync(ServerId, ChannelId, NewMessage);
+
+        NewMessage.Content = string.Empty;
+    }
+
+    public void Dispose()
+    {
+        ChatHubService.ChannelMessageReceived -= OnChannelMessageReceived;
     }
 }

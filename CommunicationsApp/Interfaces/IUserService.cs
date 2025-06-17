@@ -6,5 +6,6 @@ namespace CommunicationsApp.Interfaces
     {
         Task<ApplicationUser> GetUserByIdAsync(string userId);
         Task<ApplicationUser> GetUserFromDatabaseAsync(string userId, bool refreshCache = false);
+        Task<ApplicationUser> UpdateCacheAsync(string userId, ApplicationUser user);
     }
 }

@@ -2,6 +2,7 @@
 
 @inject IServerService ServerService
 @inject IJSRuntime JS
+@inject UnreadService UnreadService
 
 @if (Server != null && Server.ChannelClasses.Any())
 {
@@ -28,7 +29,11 @@
                     @foreach (var channel in channelClass.Channels)
                     {
                         <FluentNavLink Href="@($"channels/{Server.Id}/{channel.Id}")">
-                                @channel.Name
+                            @channel.Name
+                            @if (UnreadService.GetUnreadCount(channel.Id) > 0)
+                            {
+                                <span class="badge">@UnreadService.GetUnreadCount(channel.Id)</span>
+                            }
                         </FluentNavLink>
                     }
                 </FluentNavGroup>
