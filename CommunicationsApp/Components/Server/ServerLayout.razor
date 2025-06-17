@@ -3,16 +3,21 @@
 
 @inject NavigationManager NavigationManager
 
-<div>
-    <div class="row">
-        <div class="col-lg-3" style="border-right: solid; border-width: 0.1em; height: 100vh;">
+<FluentStack Id="ServerLayoutOuterVertical" Orientation="Orientation.Vertical" 
+    Style="flex-grow: 1; overflow: hidden;">
+    <FluentStack Id="ServerLayoutOuterHorizontal" HorizontalGap="0" Style="flex-grow: 1; overflow: hidden;">
+        <FluentStack Id="ServerLayoutChannelList" Orientation="Orientation.Vertical"
+                     Style="align-self: stretch; flex-grow: 1; width: 30em; overflow-y: auto;">
             <ChannelList ServerId="@ServerId" />
-        </div>
-        <div class="col-lg-9" style="padding-left: 0em; padding-right: 0em;">
-            @Body
-        </div>
-    </div>
-</div>
+        </FluentStack>
+        <FluentBodyContent>
+            <FluentStack Orientation="Orientation.Vertical" Class="content"
+                Style="border-left: solid; border-width: 0.1em; overflow-y: auto;">
+                @Body
+            </FluentStack>
+        </FluentBodyContent>
+    </FluentStack>
+</FluentStack>
 
 @code {
     private string? currentUrl;

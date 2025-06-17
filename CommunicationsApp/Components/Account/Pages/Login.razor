@@ -13,8 +13,11 @@
 
 <PageTitle>Log in</PageTitle>
 
+<FluentStack Orientation="Orientation.Vertical" Style="margin-left: 1em;">
+
+
 <h1>Log in</h1>
-<div class="row">
+<FluentStack>
     <div class="col-lg-6">
         <section>
             <StatusMessage Message="@errorMessage" />
@@ -63,7 +66,8 @@
             <ExternalLoginPicker />
         </section>
     </div>
-</div>
+</FluentStack>
+</FluentStack>
 
 @code {
     private string? errorMessage;

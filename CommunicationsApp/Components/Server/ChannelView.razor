@@ -4,38 +4,57 @@
 @inject IServerService ServerService
 @inject IJSRuntime JS
 
-@if (Server != null)
+@if (Server is not null && Channel is not null)
 {
-    <PageTitle>CA | #@Channel?.Name | @Server.Name</PageTitle>
-    <div style="display: flex;
-                flex-grow: 1;
-                position: sticky;
-                top: 4em;
+    <PageTitle>CA | #@Channel.Name | @Server.Name</PageTitle>
+    <FluentStack 
+        Style="position: sticky;
+                top: 0em;
+                min-height: 4em;
                 background: green;
-                height: 3em;
-                width: 100%;
-                align-items: center;
-                ">
-        <span style="margin-left: 1em;">
+                align-items: center;">
+        <FluentLabel style="margin-left: 1em;">
             #@Channel!.Name @Channel!.Description
-        </span>
-    </div>
+        </FluentLabel>
+    </FluentStack>
     
-    if (!Channel!.Messages.Any())
-    {
-        <div style="margin-top: 1em;">
-        <span style="margin-left: 1em;">No messages in the channel @Channel.Name</span>
-        <hr />
+    <FluentStack Orientation="Orientation.Vertical" Style="flex-grow: 1;">
+        @if (!Channel!.Messages.Any())
+        {
+            <div style="margin-top: 1em; width: 100%;">
+                <span style="margin-left: 1em;">No messages in the channel @Channel.Name</span>
+                <hr />
 
-        </div>
-    }
-    foreach (var message in Channel!.Messages)
-    {
-        <div class="message">
-            <strong>@message.Sender.DisplayName:</strong> @message.Content
-        </div>
-        <br />
-    }
+            </div>
+        }
+        <FluentStack Orientation="Orientation.Vertical" Style="flex-grow: 1;">
+            @foreach (var message in Channel!.Messages)
+            {
+                    <FluentStack>
+                        <FluentPersona
+                            ImageUrl="@message.Sender.ProfilePictureUrl"
+                            Size="PersonaSize.Size32"
+                            Presence="PersonaPresence.Online"></FluentPersona>
+                        <FluentStack Orientation="Orientation.Vertical">
+                            <FluentStack>
+                                <FluentLabel>@message.Sender.DisplayName</FluentLabel>
+                                <FluentLabel>@message.SentAt</FluentLabel>
+                            </FluentStack>
+                            <FluentLabel>@message.Content</FluentLabel>
+                        </FluentStack>
+                    </FluentStack>
+            }
+        </FluentStack>
+    </FluentStack>
+    <FluentStack Style="height: 5em; position: relative; width: 100%;">
+
+        <FluentTextArea @bind-Value="NewMessage.Content"
+                         Placeholder="Type your message here..."
+                         Style="width: 100%;" Maxlength="400" />
+        <FluentButton Style="position: absolute; right: 0.5em; bottom: 1em; background: transparent; border: none;">
+            <FluentIcon Value="@(new Size20.Send())" />
+        </FluentButton>
+    </FluentStack>
 }
 
 @code {
@@ -68,8 +87,9 @@
                 NewMessage.Channel = Channel;
                 NewMessage.Sender = Server!.Members.FirstOrDefault(m => m.UserId == UserId)!;
                 NewMessage.PartitionKey = $"ChatMessage-{Server.Id}";
-                StateHasChanged();
             }
+
+            StateHasChanged();
         }
     }
 }

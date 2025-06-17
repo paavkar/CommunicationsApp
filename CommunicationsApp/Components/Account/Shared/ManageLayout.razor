@@ -1,17 +1,16 @@
 ﻿@inherits LayoutComponentBase
 @layout CommunicationsApp.Components.Layout.MainLayout
 
-<h1>Manage your account</h1>
 
-<div>
+<FluentStack Orientation="Orientation.Vertical" Style="margin-left: 1em;">
+    <h1>Manage your account</h1>
     <h2>Change your account settings</h2>
-    <hr />
-    <div class="row">
+    <FluentStack>
         <div class="col-lg-3">
             <ManageNavMenu />
         </div>
         <div class="col-lg-9">
             @Body
         </div>
-    </div>
-</div>
+    </FluentStack>
+</FluentStack>

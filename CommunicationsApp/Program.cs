@@ -1,6 +1,7 @@
 using Asp.Versioning;
 using CommunicationsApp.Components;
 using CommunicationsApp.Components.Account;
+using CommunicationsApp.CosmosDb;
 using CommunicationsApp.Data;
 using CommunicationsApp.Interfaces;
 using CommunicationsApp.Services;
@@ -62,6 +63,8 @@ builder.Services.AddApiVersioning(options =>
 }).AddMvc();
 
 builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
+builder.Services.AddScoped<CosmosDbFactory>();
+builder.Services.AddScoped<ICosmosDbService, CosmosDbService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IServerService, ServerService>();
 
