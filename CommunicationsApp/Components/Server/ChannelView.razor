@@ -87,13 +87,13 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        UserId = await JS.InvokeAsync<string>("localStorageHelper.getItem", "userId");
         if (firstRender)
         {
             if (string.IsNullOrEmpty(ServerId) || string.IsNullOrEmpty(ChannelId))
             {
                 return;
             }
-            UserId = await JS.InvokeAsync<string>("localStorageHelper.getItem", "userId");
             Server = await ServerService.GetServerByIdAsync(ServerId, UserId);
             if (Server == null)
             {
@@ -106,11 +106,6 @@
             }
             Channel.Messages ??= [];
 
-            NewMessage.Channel = Channel;
-            NewMessage.Sender = Server!.Members.FirstOrDefault(m => m.UserId == UserId)!;
-            NewMessage.PartitionKey = $"ChatMessage-{Server.Id}";
-
-            
             StateHasChanged();
         }
     }
@@ -131,11 +126,16 @@
             return;
         if (string.IsNullOrEmpty(ServerId) || string.IsNullOrEmpty(ChannelId) || Channel == null)
             return;
+
+        NewMessage.Id = Guid.CreateVersion7().ToString();
         NewMessage.SentAt = DateTimeOffset.UtcNow;
+        NewMessage.PartitionKey = $"ChatMessage-{ServerId}";
+        NewMessage.Channel = Channel;
+        NewMessage.Sender = Server!.Members.FirstOrDefault(m => m.UserId == UserId)!;
 
         await ChatHubService.SendMessageAsync(ServerId, ChannelId, NewMessage);
 
-        NewMessage.Content = string.Empty;
+        NewMessage = new();
     }
 
     public void Dispose()

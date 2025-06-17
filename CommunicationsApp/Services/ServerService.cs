@@ -186,6 +186,23 @@ namespace CommunicationsApp.Services
             );
             var serverWithAllData = serverDictionary.Distinct().FirstOrDefault().Value;
 
+            var serverProfileQuery = """
+                SELECT * FROM ServerProfiles WHERE ServerId = @serverId
+                """;
+
+            var profile = connection.Query<ServerProfile>(serverProfileQuery, new { serverId }); 
+            foreach (var sp in profile)
+            {
+                if (serverWithAllData != null && serverWithAllData.Members != null)
+                {
+                    var existingProfile = serverWithAllData.Members.FirstOrDefault(x => x.Id == sp.Id);
+                    if (existingProfile == null)
+                    {
+                        serverWithAllData.Members.Add(sp);
+                    }
+                }
+            }
+
             return serverWithAllData ?? null;
         }
 

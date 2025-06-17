@@ -113,11 +113,24 @@ namespace CommunicationsApp.Services
             );
             var userWithAllData = userDictionary.Distinct().FirstOrDefault().Value;
 
-            if (refreshCache)
+            var serverProfileQuery = """
+                SELECT * FROM ServerProfiles WHERE ServerId = @serverId
+                """;
+
+            foreach (var server in userWithAllData.Servers)
             {
-                await cache.SetAsync(
-                key: $"user_{userId}",
-                value: userWithAllData);
+                var profile = connection.Query<ServerProfile>(serverProfileQuery, new { serverId = server.Id });
+                foreach (var sp in profile)
+                {
+                    if (server != null && server.Members != null)
+                    {
+                        var existingProfile = server.Members.FirstOrDefault(x => x.Id == sp.Id);
+                        if (existingProfile == null)
+                        {
+                            server.Members.Add(sp);
+                        }
+                    }
+                }
             }
 
             return userWithAllData;

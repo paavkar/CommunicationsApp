@@ -128,11 +128,9 @@
 
     private async void OnChannelMessageReceived(string serverId, string channelId, ChatMessage message)
     {
-        // Find the correct server from your User.
         var server = User.Servers.FirstOrDefault(s => s.Id == serverId);
         if (server != null)
         {
-            // Update the channel model
             var channel = server.ChannelClasses
                                 .SelectMany(cc => cc.Channels)
                                 .FirstOrDefault(c => c.Id == channelId);
@@ -141,10 +139,8 @@
                 channel.Messages.Add(message);
             }
 
-            // Optionally also update a separate list of messages at the server level.
             server.Messages.Add(message);
 
-            // Update any caches if needed.
             await UserService.UpdateCacheAsync(User.Id, User);
             await ServerService.UpdateCacheAsync(serverId, User.Id, server);
 
@@ -156,7 +152,6 @@
             await InvokeAsync(StateHasChanged);
         }
     }
-
 
     private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
     {
