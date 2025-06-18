@@ -7,55 +7,62 @@
 @inject ChatHubService ChatHubService
 @inject UnreadService UnreadService
 
-@if (UserId is not null &&
-    ServerId is not null &&
-    ChannelId is not null &&
-    Server is not null &&
-    Channel is not null &&
-    Channel.Messages is not null)
+@if (Server is not null && Channel is not null)
 {
-    <PageTitle>CA | #@Channel.Name | @Server.Name</PageTitle>
-    <FluentStack 
+    <PageTitle>@TitleString</PageTitle>
+    <FluentStack HorizontalGap="4"
         Style="position: sticky;
                 top: 0em;
                 min-height: 4em;
                 background: green;
                 align-items: center;">
-        <FluentLabel style="margin-left: 1em;">
-            #@Channel!.Name @Channel!.Description
+        <FluentLabel Style="margin-left: 0.5em; font-size: 1.8em;">#</FluentLabel>
+        <FluentLabel Weight="FontWeight.Bold">
+            @Channel!.Name
         </FluentLabel>
+        <FluentLabel>•</FluentLabel>
+        <FluentLabel Style="font-size: 0.9em;">@Channel!.Description</FluentLabel>
     </FluentStack>
     
     <FluentStack Orientation="Orientation.Vertical" Style="flex-grow: 1;">
-        @if (!Channel!.Messages.Any())
-        {
-            <div style="margin-top: 1em; width: 100%;">
-                <span style="margin-left: 1em;">No messages in the channel @Channel.Name</span>
-                <hr />
-
-            </div>
-        }
+        <FluentStack Orientation="Orientation.Vertical" HorizontalAlignment="HorizontalAlignment.Center">
+            <FluentLabel Weight="FontWeight.Bold"
+                Typo="Typography.Subject"
+                Alignment="HorizontalAlignment.Center">
+                Welcome to channel #@Channel.Name!
+            </FluentLabel>
+            <FluentLabel>
+                This is where the fun begins
+            </FluentLabel>
+        </FluentStack>
         <FluentStack Orientation="Orientation.Vertical" Style="flex-grow: 1;">
             @foreach (var message in Channel!.Messages)
             {
                 <FluentStack>
-                    <FluentPersona
-                        ImageUrl="@message.Sender.ProfilePictureUrl"
-                        Size="PersonaSize.Size32"
-                        Presence="PersonaPresence.Online"></FluentPersona>
-                    <FluentStack Orientation="Orientation.Vertical">
+                    <FluentCard>
                         <FluentStack>
-                            <FluentLabel>@message.Sender.DisplayName</FluentLabel>
-                            <FluentLabel>@message.SentAt</FluentLabel>
+                            <FluentPersona Image="@message.Sender.ProfilePictureUrl"
+                                           ImageSize="50px"
+                                           Status="PresenceStatus.Available">
+                            </FluentPersona>
+                            <FluentStack Orientation="Orientation.Vertical">
+                                <FluentStack>
+                                    <FluentLabel Weight="FontWeight.Bold" Style="font-size: 1.1em;">
+                                        @message.Sender.DisplayName
+                                    </FluentLabel>
+                                    <FluentLabel Style="font-size: 0.9em;">
+                                        @message.SentAt.AddHours(TimeZoneOffset).ToString("dd.MM.yyy HH:mm")
+                                    </FluentLabel>
+                                </FluentStack>
+                                <FluentLabel>@message.Content</FluentLabel>
+                            </FluentStack>
                         </FluentStack>
-                        <FluentLabel>@message.Content</FluentLabel>
-                    </FluentStack>
+                    </FluentCard>
                 </FluentStack>
             }
         </FluentStack>
     </FluentStack>
     <FluentStack Style="height: 5em; position: relative; width: 100%;">
-
         <FluentTextArea @bind-Value="NewMessage.Content"
                          Placeholder="Type your message here..."
                          Style="width: 100%;" Maxlength="400" />
@@ -75,6 +82,8 @@
     public Channel? Channel { get; set; }
     public ChatMessage NewMessage { get; set; } = new();
     public string? UserId { get; set; }
+    public int TimeZoneOffset { get; set; }
+    public string TitleString { get; set; } = string.Empty;
 
     protected override void OnInitialized()
     {
@@ -88,6 +97,7 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         UserId = await JS.InvokeAsync<string>("localStorageHelper.getItem", "userId");
+        TimeZoneOffset = await JS.InvokeAsync<int>("timeZoneHelper.getTimeZone");
         if (firstRender)
         {
             if (string.IsNullOrEmpty(ServerId) || string.IsNullOrEmpty(ChannelId))
@@ -104,6 +114,7 @@
             {
                 return;
             }
+            TitleString = $"CA | #{Channel.Name} | {Server.Name}";
             Channel.Messages ??= [];
 
             StateHasChanged();

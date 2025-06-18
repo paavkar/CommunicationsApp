@@ -142,7 +142,7 @@
             server.Messages.Add(message);
 
             await UserService.UpdateCacheAsync(User.Id, User);
-            await ServerService.UpdateCacheAsync(serverId, User.Id, server);
+            await ServerService.UpdateCacheAsync(serverId, server);
 
             if (channelId != ActiveChannelId)
             {

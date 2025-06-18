@@ -233,10 +233,13 @@ namespace CommunicationsApp.Services
             return serverWithAllData ?? null;
         }
 
-        public async Task<Server> UpdateCacheAsync(string serverId, string userId, Server server)
+        public async Task UpdateCacheAsync(string serverId, Server server)
         {
+            if (server == null || string.IsNullOrEmpty(serverId))
+            {
+                return;
+            }
             await cache.SetAsync($"server_{serverId}", server);
-            return server;
         }
     }
 }

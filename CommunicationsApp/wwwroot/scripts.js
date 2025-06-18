@@ -3,3 +3,10 @@
     getItem: (key) => localStorage.getItem(key),
     clear: () => localStorage.clear(),
 };
+
+window.timeZoneHelper = {
+    getTimeZone: () => {
+        const offsetHours = new Date().getTimezoneOffset()/-60;
+        return offsetHours;
+    }
+};

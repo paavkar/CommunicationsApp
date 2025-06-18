@@ -35,6 +35,22 @@ fluent-text-area::part(control) {
     padding-right: 3em;
 }
 
+#btnOpenServerMenu::part(control) {
+    justify-content: space-between;
+}
+
+#btnOpenServerMenu::part(content) {
+    order: 0;
+}
+
+#btnOpenServerMenu::part(start) {
+    order: 1;
+}
+
+#btnOpenServerMenu::part(end) {
+    order: 2;
+}
+
 
 h1:focus {
     outline: none;

@@ -8,6 +8,6 @@ namespace CommunicationsApp.Interfaces
         Task<Server> CreateServerAsync(Server server, ApplicationUser user);
         Task<Server?> GetServerByIdAsync(string serverId, string userId);
         Task<Server?> GetServerFromDatabaseAsync(string serverId, string userId);
-        Task<Server> UpdateCacheAsync(string serverId, string userId, Server server);
+        Task UpdateCacheAsync(string serverId, Server server);
     }
 }
