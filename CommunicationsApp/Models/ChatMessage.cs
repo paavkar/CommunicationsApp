@@ -34,6 +34,8 @@ namespace CommunicationsApp.Models
         [NotMapped]
         [JsonProperty(PropertyName = "reactions")]
         public Dictionary<string, List<ServerProfile>> Reactions { get; set; } = [];
+        [JsonProperty(PropertyName = "mentions")]
+        public List<ServerProfile> Mentions { get; set; } = [];
 
         public override string ToString()
         {

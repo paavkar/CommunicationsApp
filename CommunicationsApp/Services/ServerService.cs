@@ -98,7 +98,7 @@ namespace CommunicationsApp.Services
         public async Task<Server?> GetServerByIdAsync(string serverId, string userId)
         {
             var cachedServer = await cache.GetOrCreateAsync<Server>(
-                $"server_{serverId}_{userId}",
+                $"server_{serverId}",
                 factory: async entry =>
                 {
                     return await GetServerFromDatabaseAsync(serverId, userId);
@@ -129,7 +129,7 @@ namespace CommunicationsApp.Services
                 AND sp.UserId = @userId
                 """;
             using var connection = GetConnection();
-            var serverDataResult = await connection.QueryAsync<Server, ServerRole, UserServerRole, ChannelClass, Channel, ServerProfile, Server>(
+            await connection.QueryAsync<Server, ServerRole, UserServerRole, ChannelClass, Channel, ServerProfile, Server>(
                 getServerQuery,
                 (server, role, userServerRole, channelClass, channel, member) =>
                 {
@@ -187,18 +187,45 @@ namespace CommunicationsApp.Services
             var serverWithAllData = serverDictionary.Distinct().FirstOrDefault().Value;
 
             var serverProfileQuery = """
-                SELECT * FROM ServerProfiles WHERE ServerId = @serverId
+                SELECT sp.*, sr.Id AS ServerRoleId, sr.*
+                FROM ServerProfiles sp
+                LEFT JOIN UserServerRoles usr ON usr.ServerId = sp.ServerId AND usr.UserId = sp.UserId
+                LEFT JOIN ServerRoles sr ON sr.Id = usr.RoleId
+                WHERE sp.ServerId = @serverId
                 """;
 
-            var profile = connection.Query<ServerProfile>(serverProfileQuery, new { serverId }); 
-            foreach (var sp in profile)
+            var memberDictionary = new Dictionary<string, ServerProfile>();
+
+            await connection.QueryAsync<ServerProfile, ServerRole, ServerProfile>(
+                serverProfileQuery,
+                (serverProfile, role) =>
+                {
+                    if (!memberDictionary.TryGetValue(serverProfile.Id!, out var member))
+                    {
+                        member = serverProfile;
+
+                        member.Roles ??= [];
+                        memberDictionary.Add(member.Id!, member);
+                    }
+
+                    if (role != null && !string.IsNullOrEmpty(role.Id) && member.Roles.All(r => r.Id != role.Id))
+                    {
+                        member.Roles.Add(role);
+                    }
+                    return member;
+                },
+                new { serverId },
+                splitOn: "ServerRoleId"
+            );
+            var profiles = memberDictionary.Distinct();
+            foreach (var sp in profiles)
             {
                 if (serverWithAllData != null && serverWithAllData.Members != null)
                 {
-                    var existingProfile = serverWithAllData.Members.FirstOrDefault(x => x.Id == sp.Id);
+                    var existingProfile = serverWithAllData.Members.FirstOrDefault(x => x.Id == sp.Value.Id);
                     if (existingProfile == null)
                     {
-                        serverWithAllData.Members.Add(sp);
+                        serverWithAllData.Members.Add(sp.Value);
                     }
                 }
             }
@@ -208,7 +235,7 @@ namespace CommunicationsApp.Services
 
         public async Task<Server> UpdateCacheAsync(string serverId, string userId, Server server)
         {
-            await cache.SetAsync($"server_{serverId}_{userId}", server);
+            await cache.SetAsync($"server_{serverId}", server);
             return server;
         }
     }

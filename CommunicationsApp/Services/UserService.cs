@@ -50,7 +50,7 @@ namespace CommunicationsApp.Services
                 WHERE u.Id = @userId
                 """;
             using var connection = GetConnection();
-            var result = await connection.QueryAsync<ApplicationUser, ServerProfile, UserServerRole, ServerRole, Server, ChannelClass, Channel, ApplicationUser>(
+            await connection.QueryAsync<ApplicationUser, ServerProfile, UserServerRole, ServerRole, Server, ChannelClass, Channel, ApplicationUser>(
                 getUserQuery,
                 (appUser, sp, usr, sr, s, cc, c) =>
                 {
@@ -112,24 +112,50 @@ namespace CommunicationsApp.Services
                 splitOn: "ServerProfileId,UserServerRoleUserId,ServerRoleId,ServerId,ChannelClassId,ChannelId"
             );
             var userWithAllData = userDictionary.Distinct().FirstOrDefault().Value;
+            var serverIds = userWithAllData.Servers.Select(s => s.Id).ToList();
 
             var serverProfileQuery = """
-                SELECT * FROM ServerProfiles WHERE ServerId = @serverId
+                SELECT sp.*, sr.Id AS ServerRoleId, sr.*
+                FROM ServerProfiles sp
+                LEFT JOIN UserServerRoles usr ON usr.ServerId = sp.ServerId AND usr.UserId = sp.UserId
+                LEFT JOIN ServerRoles sr ON sr.Id = usr.RoleId
+                WHERE sp.ServerId IN @serverIds
                 """;
+
+            
+            var memberDictionary = new Dictionary<string, ServerProfile>();
+
+            await connection.QueryAsync<ServerProfile, ServerRole, ServerProfile>(
+                serverProfileQuery,
+                (serverProfile, role) =>
+                {
+                    if (!memberDictionary.TryGetValue(serverProfile.Id!, out var member))
+                    {
+                        member = serverProfile;
+                        member.Roles ??= [];
+                        memberDictionary.Add(member.Id!, member);
+                    }
+
+                    if (role != null && !string.IsNullOrEmpty(role.Id) && member.Roles.All(r => r.Id != role.Id))
+                    {
+                        member.Roles.Add(role);
+                    }
+                    return member;
+                },
+                new { serverIds },
+                splitOn: "ServerRoleId"
+            );
+            var groupedProfiles = memberDictionary.Values
+                .GroupBy(sp => sp.ServerId)
+                .ToDictionary(g => g.Key, g => g.ToList());
 
             foreach (var server in userWithAllData.Servers)
             {
-                var profile = connection.Query<ServerProfile>(serverProfileQuery, new { serverId = server.Id });
-                foreach (var sp in profile)
+                server.Members ??= [];
+
+                if (groupedProfiles.TryGetValue(server.Id!, out var profiles))
                 {
-                    if (server != null && server.Members != null)
-                    {
-                        var existingProfile = server.Members.FirstOrDefault(x => x.Id == sp.Id);
-                        if (existingProfile == null)
-                        {
-                            server.Members.Add(sp);
-                        }
-                    }
+                    server.Members.AddRange(profiles);
                 }
             }
 
