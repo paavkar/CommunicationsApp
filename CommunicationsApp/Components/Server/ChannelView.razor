@@ -17,63 +17,121 @@
                 min-height: 4em;
                 background: green;
                 align-items: center;
-                z-index: 1;">
-        <FluentLabel Style="margin-left: 0.5em; font-size: 1.8em;">#</FluentLabel>
-        <FluentLabel Weight="FontWeight.Bold">
-            @Channel!.Name
-        </FluentLabel>
-        <FluentLabel>•</FluentLabel>
-        <FluentLabel Style="font-size: 0.9em;">@Channel!.Description</FluentLabel>
+                z-index: 1;
+                justify-content: space-between;">
+        <FluentStack HorizontalGap="4">
+            <FluentLabel Style="margin-left: 0.5em; font-size: 1.8em;">#</FluentLabel>
+            <FluentLabel Weight="FontWeight.Bold">
+                @Channel!.Name
+            </FluentLabel>
+            <FluentLabel>•</FluentLabel>
+            <FluentLabel Style="font-size: 0.9em;">@Channel!.Description</FluentLabel>
+        </FluentStack>
+            <FluentButton BackgroundColor="rgba(0,0,0,0)"
+                          OnClick="@(() => DisplayMemberList = !DisplayMemberList)"
+                          Style="justify-self: flex-end;">
+                <FluentIcon Value="@(new Size24.PeopleCommunity())" Slot="start" />
+            </FluentButton>
     </FluentStack>
     
-    <FluentStack Orientation="Orientation.Vertical" Style="flex-grow: 1;">
-        <FluentStack Orientation="Orientation.Vertical" HorizontalAlignment="HorizontalAlignment.Center">
-            <FluentLabel Weight="FontWeight.Bold"
-                Typo="Typography.Subject"
-                Alignment="HorizontalAlignment.Center">
-                Welcome to channel #@Channel.Name!
-            </FluentLabel>
-            <FluentLabel>
-                This is where the fun begins
-            </FluentLabel>
-        </FluentStack>
-        <FluentStack Orientation="Orientation.Vertical" Style="flex-grow: 1;">
-            @foreach (var message in Channel!.Messages)
-            {
-                <FluentStack>
-                    <FluentCard Style="border-radius: 0;">
-                        <FluentStack>
-                            <FluentPersona Image="@message.Sender.ProfilePictureUrl"
-                                           ImageSize="50px"
-                                           Status="PresenceStatus.Available">
-                            </FluentPersona>
-                            <FluentStack Orientation="Orientation.Vertical">
-                                <FluentStack>
-                                    <FluentLabel Weight="FontWeight.Bold" Style="font-size: 1.1em;">
-                                        @message.Sender.DisplayName
-                                    </FluentLabel>
-                                    <FluentLabel Style="font-size: 0.9em;">
-                                        @message.SentAt.AddHours(TimeZoneOffset).ToString("dd.MM.yyy HH:mm")
+    <FluentStack Style="flex-grow: 1; overflow: hidden;">
+        <FluentStack Orientation="Orientation.Vertical"
+                Style="flex-grow: 1;
+                        height: 100%;
+                        border-right: solid;
+                        border-width: 0.1em;
+                        overflow-y: auto;">
+            <FluentStack Orientation="Orientation.Vertical" 
+                HorizontalAlignment="HorizontalAlignment.Center"
+                Style="margin-top: 1em;">
+                <FluentLabel Weight="FontWeight.Bold"
+                             Typo="Typography.Subject"
+                             Alignment="HorizontalAlignment.Center">
+                    Welcome to channel #@Channel.Name!
+                </FluentLabel>
+                <FluentLabel>
+                    This is where the fun begins
+                </FluentLabel>
+            </FluentStack>
+            <FluentStack Orientation="Orientation.Vertical" Style="flex-grow: 1;">
+                @foreach (var message in Channel!.Messages)
+                {
+                    <FluentStack>
+                        <FluentCard Style="border-radius: 0;">
+                            <FluentStack>
+                                <FluentPersona Image="@message.Sender.ProfilePictureUrl"
+                                               ImageSize="50px"
+                                               Status="PresenceStatus.Available">
+                                </FluentPersona>
+                                <FluentStack Orientation="Orientation.Vertical">
+                                    <FluentStack>
+                                        <FluentLabel Weight="FontWeight.Bold" Style="font-size: 1.1em;">
+                                            @message.Sender.DisplayName
+                                        </FluentLabel>
+                                        <FluentLabel Style="font-size: 0.9em;">
+                                            @message.SentAt.AddHours(TimeZoneOffset).ToString("dd.MM.yyy HH:mm")
+                                        </FluentLabel>
+                                    </FluentStack>
+                                    <FluentLabel Style="white-space: pre-wrap;">
+                                        @message.Content
                                     </FluentLabel>
                                 </FluentStack>
-                                <FluentLabel>@message.Content</FluentLabel>
                             </FluentStack>
-                        </FluentStack>
-                    </FluentCard>
-                </FluentStack>
-            }
+                        </FluentCard>
+                    </FluentStack>
+                }
+            </FluentStack>
+            <FluentStack  
+                        Style="height: 5em;
+                                position: relative;
+                                width: 100%;
+                                position: sticky;
+                                bottom: 0;
+                                background: white;
+                                align-self: end;">
+                <FluentTextArea @bind-Value="NewMessage.Content"
+                                Placeholder="Type your message here..."
+                                Style="width: 100%;"
+                                Id="channelMessageTextArea"
+                                Maxlength="400" />
+                <FluentButton OnClick="SendMessageAsync"
+                              Style="position: absolute; right: 0.5em; bottom: 1em; background: transparent; border: none;">
+                    <FluentIcon Value="@(new Size20.Send())" />
+                </FluentButton>
+            </FluentStack>
         </FluentStack>
-    </FluentStack>
-    <FluentStack Style="height: 5em; position: relative; width: 100%; position: sticky; bottom: 0;">
-        <FluentTextArea @bind-Value="NewMessage.Content"
-                         Placeholder="Type your message here..."
-                         Style="width: 100%;" 
-                         Id="channelMessageTextArea"
-                         Maxlength="400" />
-        <FluentButton OnClick="SendMessageAsync"
-            Style="position: absolute; right: 0.5em; bottom: 1em; background: transparent; border: none;">
-            <FluentIcon Value="@(new Size20.Send())" />
-        </FluentButton>
+        @if (DisplayMemberList)
+        {
+            <FluentStack Orientation="Orientation.Vertical"
+                Style="height: 100%; width: 30em; overflow-y: auto; margin-top: 1em;">
+                @foreach (var member in Server.Members)
+                {
+                    <FluentStack HorizontalAlignment="HorizontalAlignment.Left">
+                        <FluentPersona Image="@member.ProfilePictureUrl"
+                                       ImageSize="50px"
+                                       Status="PresenceStatus.Available">
+                        </FluentPersona>
+                        <FluentStack Orientation="Orientation.Vertical">
+
+                            <FluentLabel Style="font-size: 1.1em;">
+                                @member.DisplayName 
+                                @if (member.UserId == Server.OwnerId)
+                                {                                
+                                    <FluentIcon Id="serverOwner" Value="@(new Size20.Crown())" />
+                                    <FluentTooltip Anchor="serverOwner">
+                                        Server owner
+                                    </FluentTooltip>
+                                }
+                            </FluentLabel>
+                            <FluentLabel>
+                                @member.Status
+                            </FluentLabel>
+                        </FluentStack>
+                        
+                    </FluentStack>
+                }
+            </FluentStack>
+        }
     </FluentStack>
 }
 
@@ -88,6 +146,7 @@
     public string? UserId { get; set; }
     public int TimeZoneOffset { get; set; }
     public string TitleString { get; set; } = string.Empty;
+    public bool DisplayMemberList = false;
 
     protected override void OnInitialized()
     {

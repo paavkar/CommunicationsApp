@@ -3,19 +3,17 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
+using System.Text;
+using System.Text.Json;
 
 namespace CommunicationsApp.Services
 {
-    public class ChatHubService : IAsyncDisposable
+    public class ChatHubService(
+        NavigationManager navigationManager,
+        ILogger<ChatHubService> logger) : IAsyncDisposable
     {
-        private readonly NavigationManager NavigationManager;
         public HubConnection HubConnection { get; private set; }
         public event Action<string, string, ChatMessage>? ChannelMessageReceived;
-
-        public ChatHubService(NavigationManager navigationManager)
-        {
-            NavigationManager = navigationManager;
-        }
 
         private void EnsureHubConnection()
         {
@@ -23,7 +21,7 @@ namespace CommunicationsApp.Services
             {
                 HubConnection = new HubConnectionBuilder()
                   .WithUrl(
-                    NavigationManager.ToAbsoluteUri("/chathub"),
+                    navigationManager.ToAbsoluteUri("/chathub"),
                     opts => {
                         opts.Transports = HttpTransportType.WebSockets;
                         opts.SkipNegotiation = true;
@@ -69,17 +67,19 @@ namespace CommunicationsApp.Services
             }
             try
             {
+                var messageSize = Encoding.UTF8.GetByteCount(JsonSerializer.Serialize(message));
+                logger.LogInformation("Received message of size {messageSize} B.", messageSize);
                 await HubConnection.InvokeAsync("SendMessageToChannel", serverId, channelId, message);
                 return new { Succeeded = true };
             }
             catch (HubException hubEx)
             {
-                Console.Error.WriteLine($"SignalR hub error: {hubEx.Message}");
+                logger.LogError(hubEx, "SignalR hub error");
                 return new { Succeeded = false, ErrorMessage = hubEx.Message };
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine($"General SignalR error: {ex.Message}");
+                logger.LogError(ex, "General error while sending message");
                 return new { Succeeded = false, ErrorMessage = ex.Message };
             }
         }

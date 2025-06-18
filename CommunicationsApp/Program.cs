@@ -14,6 +14,12 @@ using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Logging.ClearProviders();
+builder.Logging
+       .AddConsole()
+       .AddDebug();
+
+
 builder.Services.AddHttpClient();
 builder.Services.AddFluentUIComponents();
 builder.Services.AddHybridCache(options =>
