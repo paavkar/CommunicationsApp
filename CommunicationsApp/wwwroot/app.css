@@ -31,8 +31,9 @@ a, .btn-link {
     height: 100%;
 }
 
-fluent-text-area::part(control) {
+#channelMessageTextArea::part(control) {
     padding-right: 3em;
+    border-radius: 0;
 }
 
 #btnOpenServerMenu::part(control) {

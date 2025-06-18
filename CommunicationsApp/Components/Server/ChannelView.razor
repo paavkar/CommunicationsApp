@@ -6,6 +6,7 @@
 @inject IJSRuntime JS
 @inject ChatHubService ChatHubService
 @inject UnreadService UnreadService
+@inject IToastService ToastService
 
 @if (Server is not null && Channel is not null)
 {
@@ -15,7 +16,8 @@
                 top: 0em;
                 min-height: 4em;
                 background: green;
-                align-items: center;">
+                align-items: center;
+                z-index: 1;">
         <FluentLabel Style="margin-left: 0.5em; font-size: 1.8em;">#</FluentLabel>
         <FluentLabel Weight="FontWeight.Bold">
             @Channel!.Name
@@ -39,7 +41,7 @@
             @foreach (var message in Channel!.Messages)
             {
                 <FluentStack>
-                    <FluentCard>
+                    <FluentCard Style="border-radius: 0;">
                         <FluentStack>
                             <FluentPersona Image="@message.Sender.ProfilePictureUrl"
                                            ImageSize="50px"
@@ -62,10 +64,12 @@
             }
         </FluentStack>
     </FluentStack>
-    <FluentStack Style="height: 5em; position: relative; width: 100%;">
+    <FluentStack Style="height: 5em; position: relative; width: 100%; position: sticky; bottom: 0;">
         <FluentTextArea @bind-Value="NewMessage.Content"
                          Placeholder="Type your message here..."
-                         Style="width: 100%;" Maxlength="400" />
+                         Style="width: 100%;" 
+                         Id="channelMessageTextArea"
+                         Maxlength="400" />
         <FluentButton OnClick="SendMessageAsync"
             Style="position: absolute; right: 0.5em; bottom: 1em; background: transparent; border: none;">
             <FluentIcon Value="@(new Size20.Send())" />
@@ -123,7 +127,6 @@
 
     private async void OnChannelMessageReceived(string serverId, string channelId, ChatMessage message)
     {
-        // Only update if the message is for the currently viewed channel.
         if (Channel != null && channelId == Channel.Id)
         {
             Channel.Messages.Add(message);
@@ -141,10 +144,25 @@
         NewMessage.Id = Guid.CreateVersion7().ToString();
         NewMessage.SentAt = DateTimeOffset.UtcNow;
         NewMessage.PartitionKey = $"ChatMessage-{ServerId}";
-        NewMessage.Channel = Channel;
+        NewMessage.Channel = new () {
+            Id = ChannelId,
+            Name = Channel.Name,
+            ServerId = Channel.ServerId,
+            ChannelClassId = Channel.ChannelClassId,
+            Description = Channel.Description,
+            IsPrivate = Channel.IsPrivate,
+            OrderNumber = Channel.OrderNumber,
+            CreatedAt = Channel.CreatedAt,
+        };
         NewMessage.Sender = Server!.Members.FirstOrDefault(m => m.UserId == UserId)!;
 
-        await ChatHubService.SendMessageAsync(ServerId, ChannelId, NewMessage);
+        var result = await ChatHubService.SendMessageAsync(ServerId, ChannelId, NewMessage);
+
+        if (!result.Succeeded)
+        {
+            ToastService.ShowError("There was an error sending the message. Try again later.");
+            Console.WriteLine(result.ErrorMessage);
+        }
 
         NewMessage = new();
     }

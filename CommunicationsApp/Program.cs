@@ -28,7 +28,8 @@ builder.Services.AddHybridCache(options =>
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
-
+// in Startup.ConfigureServices
+builder.Services.AddSignalR(options => options.EnableDetailedErrors = true);
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<IdentityUserAccessor>();
 builder.Services.AddScoped<IdentityRedirectManager>();

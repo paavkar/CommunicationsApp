@@ -82,7 +82,6 @@
 
     protected override void OnInitialized()
     {
-        ChatHubService.ChannelMessageReceived += OnChannelMessageReceived;
         currentUrl = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
         NavigationManager.LocationChanged += OnLocationChanged;
         var serverAndChannelId = currentUrl.Substring(currentUrl.IndexOf('/') + 1).Split('/');
@@ -96,6 +95,12 @@
         }
     }
 
+    protected override async Task OnInitializedAsync()
+    {
+        await ChatHubService.StartAsync();
+        ChatHubService.ChannelMessageReceived += OnChannelMessageReceived;
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -107,8 +112,6 @@
             {
                 User = await UserService.GetUserByIdAsync(User.Id);
                 await JS.InvokeVoidAsync("localStorageHelper.setItem", "userId", User.Id);
-
-                await ChatHubService.StartAsync();
 
                 foreach (var server in User.Servers)
                 {
@@ -128,7 +131,7 @@
 
     private async void OnChannelMessageReceived(string serverId, string channelId, ChatMessage message)
     {
-        var server = User.Servers.FirstOrDefault(s => s.Id == serverId);
+        var server = await ServerService.GetServerByIdAsync(serverId, User.Id);
         if (server != null)
         {
             var channel = server.ChannelClasses
@@ -138,10 +141,6 @@
             {
                 channel.Messages.Add(message);
             }
-
-            server.Messages.Add(message);
-
-            await UserService.UpdateCacheAsync(User.Id, User);
             await ServerService.UpdateCacheAsync(serverId, server);
 
             if (channelId != ActiveChannelId)

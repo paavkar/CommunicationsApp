@@ -19,7 +19,6 @@ namespace CommunicationsApp.Models
         public List<ChannelClass> ChannelClasses { get; set; } = [];
         public List<ServerProfile> Members { get; set; } = [];
         public List<ServerRole> Roles { get; set; } = [];
-        public List<ChatMessage> Messages { get; set; } = [];
 
         public override string ToString()
         {

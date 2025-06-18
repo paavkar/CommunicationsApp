@@ -1,5 +1,7 @@
 ﻿using CommunicationsApp.Models;
 using Microsoft.AspNetCore.SignalR;
+using System.Text;
+using System.Text.Json;
 
 namespace CommunicationsApp.Hubs
 {
@@ -13,11 +15,9 @@ namespace CommunicationsApp.Hubs
 
         public Task SendMessageToChannel(string serverId, string channelId, ChatMessage message)
         {
-            Clients.Group(channelId)
+            return Clients.Group(channelId)
                       .SendAsync("ReceiveChannelMessage",
                                  serverId, channelId, message);
-            return Task.CompletedTask;
         }
-
     }
 }

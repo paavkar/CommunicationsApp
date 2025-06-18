@@ -1,31 +1,35 @@
 ﻿using CommunicationsApp.Models;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Http.Connections;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
 
 namespace CommunicationsApp.Services
 {
     public class ChatHubService : IAsyncDisposable
     {
-        private readonly NavigationManager _navigationManager;
+        private readonly NavigationManager NavigationManager;
         public HubConnection HubConnection { get; private set; }
         public event Action<string, string, ChatMessage>? ChannelMessageReceived;
 
         public ChatHubService(NavigationManager navigationManager)
         {
-            _navigationManager = navigationManager;
+            NavigationManager = navigationManager;
         }
 
         private void EnsureHubConnection()
         {
-            // Only create the HubConnection if it hasn't been created already.
             if (HubConnection == null)
             {
-                // This code now runs "just-in-time" when a component
-                // actually needs the connection, at which point NavigationManager is ready.
                 HubConnection = new HubConnectionBuilder()
-                    .WithUrl(_navigationManager.ToAbsoluteUri("/chathub"))
-                    .WithAutomaticReconnect()
-                    .Build();
+                  .WithUrl(
+                    NavigationManager.ToAbsoluteUri("/chathub"),
+                    opts => {
+                        opts.Transports = HttpTransportType.WebSockets;
+                        opts.SkipNegotiation = true;
+                    })
+                  .WithAutomaticReconnect()
+                  .Build();
 
                 HubConnection.On<string, string, ChatMessage>(
                     "ReceiveChannelMessage",
@@ -56,14 +60,28 @@ namespace CommunicationsApp.Services
             await HubConnection.SendAsync("JoinChannel", channelId);
         }
 
-        public async Task SendMessageAsync(string serverId, string channelId, ChatMessage message)
+        public async Task<dynamic> SendMessageAsync(string serverId, string channelId, ChatMessage message)
         {
             EnsureHubConnection();
             if (HubConnection.State != HubConnectionState.Connected)
             {
-                return;
+                return null!;
             }
-            await HubConnection.SendAsync("SendMessageToChannel", serverId, channelId, message);
+            try
+            {
+                await HubConnection.InvokeAsync("SendMessageToChannel", serverId, channelId, message);
+                return new { Succeeded = true };
+            }
+            catch (HubException hubEx)
+            {
+                Console.Error.WriteLine($"SignalR hub error: {hubEx.Message}");
+                return new { Succeeded = false, ErrorMessage = hubEx.Message };
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"General SignalR error: {ex.Message}");
+                return new { Succeeded = false, ErrorMessage = ex.Message };
+            }
         }
 
         public async ValueTask DisposeAsync()
@@ -73,6 +91,5 @@ namespace CommunicationsApp.Services
                 await HubConnection.DisposeAsync();
             }
         }
-
     }
 }
