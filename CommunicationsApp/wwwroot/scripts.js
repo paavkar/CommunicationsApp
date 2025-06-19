@@ -10,3 +10,9 @@ window.timeZoneHelper = {
         return offsetHours;
     }
 };
+
+window.titleHelper = {
+    setTitle: (title) => {
+        document.title = title;
+    }
+};

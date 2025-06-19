@@ -4,47 +4,56 @@
 @inject IJSRuntime JS
 @inject UnreadService UnreadService
 
-@if (Server != null && Server.ChannelClasses.Any())
+@if (LoadingState.IsLoading)
 {
-        <FluentStack Id="ChannelListServerActions" Style="position: sticky; top: 0em; z-index: 6;">
-            <FluentCard Style="padding: 0em; height: 4em;">
-                <FluentButton Id="btnOpenServerMenu"
-                        Style="width: 100%; height: 100%; justify-content: left;"
-                        Appearance="Appearance.Stealth"
-                        OnClick="@(() => OpenServerMenu = !OpenServerMenu)"
-                          IconEnd="@(!OpenServerMenu ? new Size20.ChevronDown() : new Size20.Dismiss())">
-                    @Server.Name
-                </FluentButton>
-                <FluentMenu UseMenuService="true"
-                        @bind-Open="OpenServerMenu"
-                        Anchor="btnOpenServerMenu"
-                        VerticalThreshold="170"
-                        HorizontalPosition="HorizontalPosition.Center">
-                    <FluentMenuItem>Server-specific items here</FluentMenuItem>
-                </FluentMenu>
-            </FluentCard>
-        </FluentStack>
-
-    <FluentStack Orientation="Orientation.Vertical" Id="ChannelListChannels"
-                 Style="width: 100%; flex-grow: 1;">
-        <FluentNavMenu @bind-Expanded="@ChannelClassesExpanded">
-            @foreach (var channelClass in Server.ChannelClasses)
-            {
-                <FluentNavGroup Title="@channelClass.Name" Expanded="true">
-                    @foreach (var channel in channelClass.Channels)
-                    {
-                        <FluentNavLink Href="@($"channels/{Server.Id}/{channel.Id}")">
-                            @channel.Name
-                            @if (UnreadService.GetUnreadCount(channel.Id) > 0)
-                            {
-                                <span class="badge">@UnreadService.GetUnreadCount(channel.Id)</span>
-                            }
-                        </FluentNavLink>
-                    }
-                </FluentNavGroup>
-            }
-        </FluentNavMenu>
+    <FluentStack Style="width: 100%; height: 100%; justify-content: center; align-items: center;">
+        <FluentProgressRing></FluentProgressRing>
     </FluentStack>
+}
+else
+{
+    if (Server != null && Server.ChannelClasses.Any())
+    {
+            <FluentStack Id="ChannelListServerActions" Style="position: sticky; top: 0em; z-index: 6;">
+                <FluentCard Style="padding: 0em; height: 4em;">
+                    <FluentButton Id="btnOpenServerMenu"
+                            Style="width: 100%; height: 100%; justify-content: left;"
+                            Appearance="Appearance.Stealth"
+                            OnClick="@(() => OpenServerMenu = !OpenServerMenu)"
+                              IconEnd="@(!OpenServerMenu ? new Size20.ChevronDown() : new Size20.Dismiss())">
+                        @Server.Name
+                    </FluentButton>
+                    <FluentMenu UseMenuService="true"
+                            @bind-Open="OpenServerMenu"
+                            Anchor="btnOpenServerMenu"
+                            VerticalThreshold="170"
+                            HorizontalPosition="HorizontalPosition.Center">
+                        <FluentMenuItem>Server-specific items here</FluentMenuItem>
+                    </FluentMenu>
+                </FluentCard>
+            </FluentStack>
+
+        <FluentStack Orientation="Orientation.Vertical" Id="ChannelListChannels"
+                     Style="width: 100%; flex-grow: 1;">
+            <FluentNavMenu @bind-Expanded="@ChannelClassesExpanded">
+                @foreach (var channelClass in Server.ChannelClasses)
+                {
+                    <FluentNavGroup Title="@channelClass.Name" Expanded="true">
+                        @foreach (var channel in channelClass.Channels)
+                        {
+                            <FluentNavLink Href="@($"channels/{Server.Id}/{channel.Id}")">
+                                @channel.Name
+                                @if (UnreadService.GetUnreadCount(channel.Id) > 0)
+                                {
+                                    <span class="badge">@UnreadService.GetUnreadCount(channel.Id)</span>
+                                }
+                            </FluentNavLink>
+                        }
+                    </FluentNavGroup>
+                }
+            </FluentNavMenu>
+        </FluentStack>
+    }
 }
 
 @code {
@@ -54,6 +63,7 @@
     public Server? Server { get; set; }
     public bool OpenServerMenu = false;
     public bool ChannelClassesExpanded = true;
+    public LoadingState LoadingState { get; set; } = new();
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -63,6 +73,7 @@
             if (!string.IsNullOrEmpty(ServerId) && !string.IsNullOrEmpty(UserId))
             {
                 Server = await ServerService.GetServerByIdAsync(ServerId, UserId);
+                LoadingState.IsLoading = false;
                 StateHasChanged();
             }
         }

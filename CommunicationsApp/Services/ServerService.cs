@@ -104,8 +104,15 @@ namespace CommunicationsApp.Services
                     return await GetServerFromDatabaseAsync(serverId, userId);
                 }
             );
-
-            return cachedServer;
+            if (cachedServer is null)
+            {
+                await cache.RemoveAsync($"server_{serverId}");
+                return null;
+            }
+            else
+            {
+                return cachedServer.Members.All(m => m.UserId != userId) ? null : cachedServer;
+            }
         }
 
         public async Task<Server?> GetServerFromDatabaseAsync(string serverId, string userId)

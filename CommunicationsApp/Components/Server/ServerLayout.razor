@@ -3,6 +3,8 @@
 
 @inject NavigationManager NavigationManager
 
+@attribute [Authorize]
+
 <FluentStack Id="ServerLayoutOuterVertical" Orientation="Orientation.Vertical" 
     Style="flex-grow: 1; overflow: hidden;">
     <FluentStack Id="ServerLayoutOuterHorizontal" HorizontalGap="0" Style="flex-grow: 1; overflow: hidden;">
@@ -22,11 +24,12 @@
 @code {
     private string? currentUrl;
     public string? ServerId { get; set; }
+    public LoadingState LoadingState { get; set; } = new();
 
     protected override void OnInitialized()
     {
         currentUrl = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
-        var serverAndChannelId = currentUrl.Substring(currentUrl.IndexOf('/') + 1 );
+        var serverAndChannelId = currentUrl.Substring(currentUrl.IndexOf('/') + 1);
         ServerId = serverAndChannelId.Split('/')[0];
 
         NavigationManager.LocationChanged += OnLocationChanged;
