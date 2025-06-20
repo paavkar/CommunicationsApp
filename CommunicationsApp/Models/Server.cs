@@ -10,7 +10,7 @@ namespace CommunicationsApp.Models
         public string InvitationCode { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public string OwnerId { get; set; } = string.Empty;
-        public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+        public DateTimeOffset CreatedAt { get; set; }
         public string IconUrl { get; set; } = string.Empty;
         public string BannerUrl { get; set; } = string.Empty;
         public ServerType ServerType { get; set; } = ServerType.Public;

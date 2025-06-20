@@ -75,7 +75,6 @@ builder.Services.AddScoped<ICosmosDbService, CosmosDbService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IServerService, ServerService>();
 builder.Services.AddScoped<ChatHubService>();
-builder.Services.AddScoped<UnreadService>();
 
 var app = builder.Build();
 

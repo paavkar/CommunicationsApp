@@ -5,7 +5,6 @@
 @inject IServerService ServerService
 @inject IJSRuntime JS
 @inject ChatHubService ChatHubService
-@inject UnreadService UnreadService
 @inject IToastService ToastService
 @inject NavigationManager NavigationManager
 
@@ -162,10 +161,6 @@ if (Server is not null &&
     protected override void OnInitialized()
     {
         ChatHubService.ChannelMessageReceived += OnChannelMessageReceived;
-        if (!string.IsNullOrEmpty(ChannelId))
-        {
-            UnreadService.ClearUnreadCount(ChannelId);
-        }
     }
 
     protected override async Task OnInitializedAsync()

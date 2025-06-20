@@ -14,6 +14,7 @@ namespace CommunicationsApp.Services
     {
         public HubConnection HubConnection { get; private set; }
         public event Action<string, string, ChatMessage>? ChannelMessageReceived;
+        public event Action<string, string>? DataReady;
 
         private void EnsureHubConnection()
         {
@@ -29,19 +30,26 @@ namespace CommunicationsApp.Services
                   .WithAutomaticReconnect()
                   .Build();
 
+                Console.WriteLine($"[ChatHubService] New HubConnection instance hash: {HubConnection.GetHashCode()}");
+
                 HubConnection.On<string, string, ChatMessage>(
                     "ReceiveChannelMessage",
                     (serverId, channelId, message) =>
                     {
                         ChannelMessageReceived?.Invoke(serverId, channelId, message);
                     });
+
+                HubConnection.On<string, string>("DataReady", (contextId, dataType) =>
+                {
+                    Console.WriteLine($"On: {contextId}");
+                    DataReady?.Invoke(contextId, dataType);
+                });
             }
         }
 
         public async Task StartAsync()
         {
             EnsureHubConnection();
-
             if (HubConnection.State == HubConnectionState.Disconnected)
             {
                 await HubConnection.StartAsync();
@@ -82,6 +90,16 @@ namespace CommunicationsApp.Services
                 logger.LogError(ex, "General error while sending message");
                 return new { Succeeded = false, ErrorMessage = ex.Message };
             }
+        }
+
+        public async Task NotifyDataReadyAsync(string contextId, string dataType)
+        {
+            EnsureHubConnection();
+            if (HubConnection.State != HubConnectionState.Connected)
+            {
+                return;
+            }
+            await HubConnection.InvokeAsync("NotifyDataReady", contextId, dataType);
         }
 
         public async ValueTask DisposeAsync()

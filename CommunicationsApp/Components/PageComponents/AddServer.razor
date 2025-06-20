@@ -1,0 +1,21 @@
+﻿@rendermode InteractiveServer
+@inject IDialogService DialogService
+
+<FluentButton Id="btnAddServer" OnClick="@OpenAddServerModal" Style="width: 2em; margin: 0 auto;"
+    BackgroundColor="rgba(0,0,0,0)">
+    <FluentIcon Value="@(new Size28.Add())" />
+    <FluentTooltip Anchor="btnAddServer">
+        Add server
+    </FluentTooltip>
+</FluentButton>
+
+@code {
+    private async void OpenAddServerModal()
+    {
+        var dialog = await DialogService.ShowDialogAsync<AddServerModal>(new DialogParameters()
+        {
+            Height = "20em",
+        });
+        
+    }
+}

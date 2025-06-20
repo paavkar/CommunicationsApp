@@ -162,13 +162,13 @@ namespace CommunicationsApp.Services
             return userWithAllData;
         }
 
-        public async Task UpdateCacheAsync(string userId, ApplicationUser user)
+        public async Task UpdateCacheAsync(ApplicationUser user)
         {
-            if (user == null || string.IsNullOrEmpty(userId))
+            if (user == null || string.IsNullOrEmpty(user.Id))
             {
                 return;
             }
-            await cache.SetAsync($"user_{userId}", user);
+            await cache.SetAsync($"user_{user.Id}", user);
         }
     }
 }

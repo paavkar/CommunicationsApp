@@ -1,0 +1,81 @@
+﻿@implements IDialogContentComponent
+@inject IDialogService DialogService
+@inject IJSRuntime JS
+
+@* Header *@
+<FluentDialogHeader>
+    <FluentStack VerticalAlignment="VerticalAlignment.Center">
+        @* <FluentIcon Value="@(new Size20.Crown())" /> *@
+        <FluentLabel Typo="Typography.PaneHeader">
+            Create own server
+        </FluentLabel>
+    </FluentStack>
+</FluentDialogHeader>
+
+@* Footer *@
+<FluentDialogFooter>
+    <FluentStack Orientation="Orientation.Vertical">
+        <FluentLabel>
+            Do you already have an invitation?
+        </FluentLabel>
+        <FluentButton OnClick="@OpenJoinServerModal">
+            Join server
+        </FluentButton>
+    </FluentStack>
+</FluentDialogFooter>
+
+@* Body *@
+<FluentDialogBody>
+    <FluentStack Orientation="Orientation.Vertical" Style="overflow-y: auto">
+        <FluentButton OnClick="@OpenNewServerModal" Style="width: 10em;">
+            <FluentIcon Value="@(new Size20.Add())" />
+            Create own
+        </FluentButton>
+    </FluentStack>
+</FluentDialogBody>
+
+@code {
+    [CascadingParameter]
+    public FluentDialog Dialog { get; set; } = default!;
+    private string UserId { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            UserId = await JS.InvokeAsync<string>("localStorageHelper.getItem", "userId");
+        }
+    }
+
+    private async void OpenNewServerModal()
+    {
+        var id = Guid.CreateVersion7();
+        var code = Convert.ToBase64String(id.ToByteArray())
+            .Replace("=", "")
+            .Replace("/", "")
+            .Replace("+", "");
+        var newServer = new Server
+        {
+            Id = id.ToString(),
+            Name = "",
+            OwnerId = UserId,
+            InvitationCode = code,
+            ServerType = ServerType.Public
+        };
+        var dialog = await DialogService.ShowDialogAsync<NewServerModal>(newServer, new DialogParameters()
+        {
+            Title = "Create New Server",
+            Height = "25em",
+        });
+        await Dialog.CloseAsync();
+    }
+
+    private async void OpenJoinServerModal()
+    {
+        // var dialog = await DialogService.ShowDialogAsync<JoinServerModal>(null, new DialogParameters
+        // {
+        //     Title = "Join Server",
+        //     Height = "15em",
+        // });
+    }
+}

@@ -2,7 +2,6 @@
 
 @inject IServerService ServerService
 @inject IJSRuntime JS
-@inject UnreadService UnreadService
 
 @if (LoadingState.IsLoading)
 {
@@ -43,10 +42,6 @@ else
                         {
                             <FluentNavLink Href="@($"channels/{Server.Id}/{channel.Id}")">
                                 @channel.Name
-                                @if (UnreadService.GetUnreadCount(channel.Id) > 0)
-                                {
-                                    <span class="badge">@UnreadService.GetUnreadCount(channel.Id)</span>
-                                }
                             </FluentNavLink>
                         }
                     </FluentNavGroup>

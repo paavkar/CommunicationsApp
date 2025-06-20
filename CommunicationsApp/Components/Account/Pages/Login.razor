@@ -14,9 +14,9 @@
 <PageTitle>Log in</PageTitle>
 
 <FluentStack Orientation="Orientation.Vertical" 
-    Style="margin: 0 auto; width: 30em;">
-    <h1>Log in</h1>
-    <FluentStack Orientation="Orientation.Vertical">
+    Style="width: 100%; overflow-y: auto;">
+    <FluentStack Orientation="Orientation.Vertical" Style="margin: 0 auto; width: 30em;">
+        <FluentLabel Typo="Typography.H1" Style="align-self: center;">Log in</FluentLabel>
         <section>
             <StatusMessage Message="@errorMessage" />
             <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">

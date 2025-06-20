@@ -17,6 +17,7 @@ namespace CommunicationsApp.Services
 
         public async Task<Server> CreateServerAsync(Server server, ApplicationUser user)
         {
+            server.CreatedAt = DateTimeOffset.UtcNow;
             var insertServerQuery = """
                 INSERT INTO Servers (Id, Name, InvitationCode, Description, OwnerId, CreatedAt, IconUrl, BannerUrl, ServerType)
                 VALUES (@Id, @Name, @InvitationCode, @Description, @OwnerId, @CreatedAt, @IconUrl, @BannerUrl, @ServerType)
@@ -28,21 +29,23 @@ namespace CommunicationsApp.Services
             {
                 var rowsAffected = await connection.ExecuteAsync(insertServerQuery, server, transaction);
 
-
-                var serverProfile = new
+                ServerProfile serverProfile = new()
                 {
                     Id = Guid.CreateVersion7().ToString(),
                     UserId = user.Id,
-                    user.UserName,
+                    UserName = user.UserName,
                     ServerId = server.Id,
-                    user.DisplayName,
-                    user.ProfilePictureUrl,
-                    user.BannerUrl,
-                    user.CreatedAt,
+                    DisplayName = user.DisplayName,
+                    ProfilePictureUrl = user.ProfilePictureUrl,
+                    BannerUrl = user.BannerUrl,
+                    CreatedAt = user.CreatedAt,
                     JoinedAt = DateTimeOffset.UtcNow,
-                    user.Status,
-                    user.Bio
+                    Status = user.Status,
+                    Bio = user.Bio
                 };
+
+                server.Members ??= [];
+                server.Members.Add(serverProfile);
 
                 var insertServerProfileQuery = """
                     INSERT INTO ServerProfiles (Id, UserId, UserName, ServerId, DisplayName, ProfilePictureUrl, BannerUrl, CreatedAt, JoinedAt, Status, Bio)
@@ -50,7 +53,7 @@ namespace CommunicationsApp.Services
                     """;
                 rowsAffected = await connection.ExecuteAsync(insertServerProfileQuery, serverProfile, transaction);
 
-                ChannelClass channelClass = new ChannelClass
+                ChannelClass channelClass = new()
                 {
                     Id = Guid.CreateVersion7().ToString(),
                     Name = "text channels",
@@ -58,6 +61,9 @@ namespace CommunicationsApp.Services
                     OrderNumber = 1,
                     IsPrivate = false
                 };
+
+                server.ChannelClasses ??= [];
+                server.ChannelClasses.Add(channelClass);
 
                 var channelClassQuery = """
                     INSERT INTO ChannelClasses (Id, Name, ServerId, IsPrivate, OrderNumber)
@@ -67,7 +73,7 @@ namespace CommunicationsApp.Services
 
                 if (rowsAffected > 0)
                 {
-                    var defaultChannel = new Channel
+                    Channel defaultChannel = new()
                     {
                         Id = Guid.CreateVersion7().ToString(),
                         Name = "general",
@@ -77,6 +83,9 @@ namespace CommunicationsApp.Services
                         IsPrivate = false,
                         OrderNumber = 1
                     };
+                    channelClass.Channels ??= [];
+                    channelClass.Channels.Add(defaultChannel);
+
                     var defaultChannelQuery = """
                         INSERT INTO Channels (Id, Name, ServerId, ChannelClassId, Description, IsPrivate, OrderNumber, CreatedAt)
                         VALUES (@Id, @Name, @ServerId, @ChannelClassId, @Description, @IsPrivate, @OrderNumber, @CreatedAt)

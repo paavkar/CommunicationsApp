@@ -1,0 +1,72 @@
+﻿@implements IDialogContentComponent<Server>
+@inject IdentityUserAccessor UserAccessor
+@inject AuthenticationStateProvider ASP
+@inject IUserService UserService
+@inject IServerService ServerService
+@inject NavigationManager NavigationManager
+
+@* Header *@
+<FluentDialogHeader>
+    <FluentStack VerticalAlignment="VerticalAlignment.Center">
+        @* <FluentIcon Value="@(new Size20.Crown())" /> *@
+        <FluentLabel Typo="Typography.PaneHeader">
+            @Dialog.Instance.Parameters.Title
+        </FluentLabel>
+    </FluentStack>
+</FluentDialogHeader>
+
+@* Footer *@
+<FluentDialogFooter>
+    <FluentButton Appearance="Appearance.Accent" OnClick="@SaveAsync">Save</FluentButton>
+    <FluentButton Appearance="Appearance.Neutral" OnClick="@CancelAsync">Cancel</FluentButton>
+</FluentDialogFooter>
+
+@* Body *@
+<FluentDialogBody>
+    <FluentStack Orientation="Orientation.Vertical" Style="overflow-y: auto; height: 15em;">
+        <FluentTextField @bind-Value="Content.Name" 
+                         Placeholder="Server Name" Style="width: 100%;" Label="Server name" />
+        <FluentTextArea @bind-Value="Content.Description"
+                         Placeholder="Server description" Style="width: 100%;" Rows="4"
+                         Label="(Optional) Server description" />
+    </FluentStack>
+</FluentDialogBody>
+
+@code {
+    [Parameter]
+    public Server Content { get; set; } = default!;
+    [CascadingParameter]
+    public FluentDialog Dialog { get; set; } = default!;
+    private ApplicationUser User { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await ASP.GetAuthenticationStateAsync();
+        User = await UserAccessor.GetRequiredUserFromPrincipalAsync(authState.User);
+        User = await UserService.GetUserByIdAsync(User.Id);
+    }
+
+    private async Task SaveAsync()
+    {
+        var createdServer = await ServerService.CreateServerAsync(Content, User);
+
+        if (createdServer is not null && createdServer.Members.Count > 0)
+        {
+            await Dialog.CloseAsync(Content);
+            User.ServerProfiles.Add(createdServer.Members.FirstOrDefault(mp => mp.UserId == User.Id)!);
+            User.Servers.Add(createdServer);
+
+            await UserService.UpdateCacheAsync(User);
+
+            var firstChannel = createdServer.ChannelClasses.FirstOrDefault()?.Channels.FirstOrDefault();
+            
+            var navUrl = $"channels/{createdServer.Id}/{firstChannel?.Id}";
+            NavigationManager.NavigateTo(navUrl, forceLoad: true);
+        }
+    }
+
+    private async Task CancelAsync()
+    {
+        await Dialog.CancelAsync();
+    }
+}
