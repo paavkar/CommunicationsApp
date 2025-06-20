@@ -33,7 +33,10 @@ a, .btn-link {
 
 #channelMessageTextArea::part(control) {
     padding-right: 3em;
-    border-radius: 0;
+    border-radius: 0.7em;
+    border: solid 1px;
+    margin-left: 1em;
+    margin-right: 1em;
 }
 
 #btnOpenServerMenu::part(control) {

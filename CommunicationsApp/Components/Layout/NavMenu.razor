@@ -45,20 +45,7 @@
                         }
                         <AddServer />
                     </FluentStack>
-                
                 </Authorized>
-                <NotAuthorized>
-                    <div class="nav-item px-3">
-                        <NavLink class="nav-link" href="Account/Register">
-                            <span class="bi bi-person-nav-menu" aria-hidden="true"></span> Register
-                        </NavLink>
-                    </div>
-                    <div class="nav-item px-3">
-                        <NavLink class="nav-link" href="Account/Login">
-                            <span class="bi bi-person-badge-nav-menu" aria-hidden="true"></span> Login
-                        </NavLink>
-                    </div>
-                </NotAuthorized>
             </AuthorizeView>
         </nav>
         <FluentStack Orientation="Orientation.Vertical" Style="overflow-y: auto; height: 100%;">
@@ -71,7 +58,7 @@
     <AuthorizeView>
         <Authorized>
             <FluentStack Style="position: sticky; bottom: 0; z-index: 10;">
-                <FluentCard Height="5em" Width="24.4em" Style="padding: 10px; margin: 0 0.4em 0.4em">
+                <FluentCard Height="5em" Width="25.4em" Style="padding: 10px; margin: 0 0.4em 0.4em">
                     <FluentStack>
                             <FluentPersona Image="@(!string.IsNullOrEmpty(User?.ProfilePictureUrl)
                                                     ? User.ProfilePictureUrl

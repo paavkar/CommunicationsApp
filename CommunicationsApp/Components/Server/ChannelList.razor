@@ -62,15 +62,12 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        Console.WriteLine($"ChannelList: {ServerId}");
-            UserId = await JS.InvokeAsync<string>("localStorageHelper.getItem", "userId");
-            if (!string.IsNullOrEmpty(ServerId) && !string.IsNullOrEmpty(UserId))
-            {
-                Server = await ServerService.GetServerByIdAsync(ServerId, UserId);
-                Console.WriteLine(Server.Id);
-                LoadingState.IsLoading = false;
-                StateHasChanged();
-            }
-        
+        UserId = await JS.InvokeAsync<string>("localStorageHelper.getItem", "userId");
+        if (!string.IsNullOrEmpty(ServerId) && !string.IsNullOrEmpty(UserId))
+        {
+            Server = await ServerService.GetServerByIdAsync(ServerId, UserId);
+            LoadingState.IsLoading = false;
+            StateHasChanged();
+        }
     }
 }
