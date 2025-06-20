@@ -1,4 +1,4 @@
-﻿@rendermode InteractiveServer
+﻿@rendermode @(new InteractiveServerRenderMode(prerender: false))
 
 @inject IServerService ServerService
 @inject IJSRuntime JS
@@ -14,7 +14,7 @@ else
     if (Server != null && Server.ChannelClasses.Any())
     {
             <FluentStack Id="ChannelListServerActions" Style="position: sticky; top: 0em; z-index: 6;">
-                <FluentCard Style="padding: 0em; height: 4em;">
+                <FluentCard Style="padding: 0em; height: 4em; border-radius: 0;">
                     <FluentButton Id="btnOpenServerMenu"
                             Style="width: 100%; height: 100%; justify-content: left;"
                             Appearance="Appearance.Stealth"
@@ -33,7 +33,7 @@ else
             </FluentStack>
 
         <FluentStack Orientation="Orientation.Vertical" Id="ChannelListChannels"
-                     Style="width: 100%; flex-grow: 1;">
+                     Style="width: 100%; flex-grow: 1; height: 100%; overflow-y: auto;">
             <FluentNavMenu @bind-Expanded="@ChannelClassesExpanded">
                 @foreach (var channelClass in Server.ChannelClasses)
                 {
@@ -60,17 +60,17 @@ else
     public bool ChannelClassesExpanded = true;
     public LoadingState LoadingState { get; set; } = new();
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override async Task OnInitializedAsync()
     {
-        if (firstRender)
-        {
+        Console.WriteLine($"ChannelList: {ServerId}");
             UserId = await JS.InvokeAsync<string>("localStorageHelper.getItem", "userId");
             if (!string.IsNullOrEmpty(ServerId) && !string.IsNullOrEmpty(UserId))
             {
                 Server = await ServerService.GetServerByIdAsync(ServerId, UserId);
+                Console.WriteLine(Server.Id);
                 LoadingState.IsLoading = false;
                 StateHasChanged();
             }
-        }
+        
     }
 }

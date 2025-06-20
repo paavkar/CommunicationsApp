@@ -52,6 +52,9 @@ a, .btn-link {
     order: 2;
 }
 
+#homeLink::part(control) {
+    border: none;
+}
 
 h1:focus {
     outline: none;

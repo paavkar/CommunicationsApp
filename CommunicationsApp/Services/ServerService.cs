@@ -1,8 +1,9 @@
-﻿using CommunicationsApp.Interfaces;
+﻿using CommunicationsApp.Data;
+using CommunicationsApp.Interfaces;
 using CommunicationsApp.Models;
-using Microsoft.Data.SqlClient;
 using Dapper;
-using CommunicationsApp.Data;
+using Microsoft.Azure.Cosmos;
+using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Caching.Hybrid;
 
 namespace CommunicationsApp.Services
@@ -126,7 +127,6 @@ namespace CommunicationsApp.Services
 
         public async Task<Server?> GetServerFromDatabaseAsync(string serverId, string userId)
         {
-            var serverDictionary = new Dictionary<string, Server>();
             var getServerQuery = """
                 SELECT
                     s.*,
@@ -144,9 +144,97 @@ namespace CommunicationsApp.Services
                 WHERE s.Id = @serverId
                 AND sp.UserId = @userId
                 """;
+            var server = await GetServerFromDatabaseAsync(getServerQuery, new { serverId, userId });
+            if (server is null)
+            {
+                return null;
+            }
+
+            var serverProfileQuery = """
+                SELECT sp.*, sr.Id AS ServerRoleId, sr.*
+                FROM ServerProfiles sp
+                LEFT JOIN UserServerRoles usr ON usr.ServerId = sp.ServerId AND usr.UserId = sp.UserId
+                LEFT JOIN ServerRoles sr ON sr.Id = usr.RoleId
+                WHERE sp.ServerId = @serverId
+                """;
+
+            server = await GetServerWithMembersAsync(serverProfileQuery, new { serverId = server.Id }, server);
+
+            return server ?? null;
+        }
+
+        public async Task<dynamic> JoinServerByInvitationCode(string code, ApplicationUser user)
+        {
+            var serverDictionary = new Dictionary<string, Server>();
+            var getServerQuery = """
+                SELECT
+                    s.*,
+                    sr.Id AS ServerRoleId, sr.*,
+                    usr.RoleId AS UserMemberRoleId, usr.*,
+                    cc.Id AS ChannelClassId, cc.*,
+                    c.Id AS ChannelId, c.*,
+                    sp.Id AS ServerProfileId, sp.*
+                FROM Servers s
+                LEFT JOIN ServerRoles sr ON sr.ServerId = s.Id
+                LEFT JOIN UserServerRoles usr ON usr.ServerId = s.Id AND usr.RoleId = sr.Id
+                LEFT JOIN ChannelClasses cc ON cc.ServerId = s.Id
+                LEFT JOIN Channels c ON c.ChannelClassId = cc.Id
+                LEFT JOIN ServerProfiles sp ON sp.ServerId = s.Id
+                WHERE s.InvitationCode = @code
+                """;
+            var server = await GetServerFromDatabaseAsync(getServerQuery, new { code });
+            
+            if (server is null)
+            {
+                return new { Succeeded = false, ErrorMessage = "There no server associated with given invitation." };
+            }
+
+            ServerProfile serverProfile = new()
+            {
+                Id = Guid.CreateVersion7().ToString(),
+                UserId = user.Id,
+                UserName = user.UserName,
+                ServerId = server.Id,
+                DisplayName = user.DisplayName,
+                ProfilePictureUrl = user.ProfilePictureUrl,
+                BannerUrl = user.BannerUrl,
+                CreatedAt = user.CreatedAt,
+                JoinedAt = DateTimeOffset.UtcNow,
+                Status = user.Status,
+                Bio = user.Bio
+            };
+
+            var insertServerProfileQuery = """
+                INSERT INTO ServerProfiles (Id, UserId, UserName, ServerId, DisplayName, ProfilePictureUrl, BannerUrl, CreatedAt, JoinedAt, Status, Bio)
+                VALUES (@Id, @UserId, @UserName, @ServerId, @DisplayName, @ProfilePictureUrl, @BannerUrl, @CreatedAt, @JoinedAt, @Status, @Bio)
+                """;
+            using var connection = GetConnection();
+            var rowsAffected = await connection.ExecuteAsync(insertServerProfileQuery, serverProfile);
+            if (rowsAffected <= 0)
+            {
+                return new { Succeeded = false, ErrorMessage = "Failed to join server." };
+            }
+        
+
+            var serverProfileQuery = """
+                SELECT sp.*, sr.Id AS ServerRoleId, sr.*
+                FROM ServerProfiles sp
+                LEFT JOIN UserServerRoles usr ON usr.ServerId = sp.ServerId AND usr.UserId = sp.UserId
+                LEFT JOIN ServerRoles sr ON sr.Id = usr.RoleId
+                WHERE sp.ServerId = @serverId
+                """;
+
+            server = await GetServerWithMembersAsync(serverProfileQuery, new { serverId = server.Id }, server);
+
+            return new { Succeeded = true, Server = server };
+        }
+
+        public async Task<Server?> GetServerFromDatabaseAsync(string sql, object queryParameters)
+        {
+            var serverDictionary = new Dictionary<string, Server>();
             using var connection = GetConnection();
             await connection.QueryAsync<Server, ServerRole, UserServerRole, ChannelClass, Channel, ServerProfile, Server>(
-                getServerQuery,
+                sql,
                 (server, role, userServerRole, channelClass, channel, member) =>
                 {
                     if (!serverDictionary.TryGetValue(server.Id!, out var currentServer))
@@ -197,23 +285,21 @@ namespace CommunicationsApp.Services
                     }
                     return currentServer;
                 },
-                new { serverId, userId },
+                queryParameters,
                 splitOn: "ServerRoleId,UserMemberRoleId,ChannelClassId,ChannelId,ServerProfileId"
             );
             var serverWithAllData = serverDictionary.Distinct().FirstOrDefault().Value;
 
-            var serverProfileQuery = """
-                SELECT sp.*, sr.Id AS ServerRoleId, sr.*
-                FROM ServerProfiles sp
-                LEFT JOIN UserServerRoles usr ON usr.ServerId = sp.ServerId AND usr.UserId = sp.UserId
-                LEFT JOIN ServerRoles sr ON sr.Id = usr.RoleId
-                WHERE sp.ServerId = @serverId
-                """;
+            return serverWithAllData ?? null;
+        }
 
+        public async Task<Server> GetServerWithMembersAsync(string sql, object queryParameters, Server server)
+        {
             var memberDictionary = new Dictionary<string, ServerProfile>();
 
+            using var connection = GetConnection();
             await connection.QueryAsync<ServerProfile, ServerRole, ServerProfile>(
-                serverProfileQuery,
+                sql,
                 (serverProfile, role) =>
                 {
                     if (!memberDictionary.TryGetValue(serverProfile.Id!, out var member))
@@ -230,23 +316,23 @@ namespace CommunicationsApp.Services
                     }
                     return member;
                 },
-                new { serverId },
+                queryParameters,
                 splitOn: "ServerRoleId"
             );
             var profiles = memberDictionary.Distinct();
             foreach (var sp in profiles)
             {
-                if (serverWithAllData != null && serverWithAllData.Members != null)
+                if (server != null && server.Members != null)
                 {
-                    var existingProfile = serverWithAllData.Members.FirstOrDefault(x => x.Id == sp.Value.Id);
+                    var existingProfile = server.Members.FirstOrDefault(x => x.Id == sp.Value.Id);
                     if (existingProfile == null)
                     {
-                        serverWithAllData.Members.Add(sp.Value);
+                        server.Members.Add(sp.Value);
                     }
                 }
             }
 
-            return serverWithAllData ?? null;
+            return server;
         }
 
         public async Task UpdateCacheAsync(string serverId, Server server)

@@ -67,7 +67,9 @@ if (Server is not null &&
                         <FluentStack>
                             <FluentCard Style="border-radius: 0;">
                                 <FluentStack>
-                                    <FluentPersona Image="@message.Sender.ProfilePictureUrl"
+                                    <FluentPersona Image="@(!string.IsNullOrEmpty(message.Sender.ProfilePictureUrl)
+                                                            ? message.Sender.ProfilePictureUrl
+                                                            : new Size48.Person().ToDataUri(size: "25px", color: "white"))"
                                                    ImageSize="50px"
                                                    Status="PresenceStatus.Available">
                                     </FluentPersona>
@@ -115,7 +117,9 @@ if (Server is not null &&
                     @foreach (var member in Server.Members)
                     {
                         <FluentStack HorizontalAlignment="HorizontalAlignment.Left">
-                            <FluentPersona Image="@member.ProfilePictureUrl"
+                            <FluentPersona Image="@(!string.IsNullOrEmpty(member.ProfilePictureUrl) 
+                                                    ? member.ProfilePictureUrl
+                                                    : new Size48.Person().ToDataUri(size: "25px", color: "white"))"
                                            ImageSize="50px"
                                            Status="PresenceStatus.Available">
                             </FluentPersona>

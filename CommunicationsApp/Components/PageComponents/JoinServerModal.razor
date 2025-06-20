@@ -1,0 +1,53 @@
+﻿@implements IDialogContentComponent
+@inject NavigationManager NavigationManager
+@inject IdentityUserAccessor UserAccessor
+@inject AuthenticationStateProvider ASP
+@inject IServerService ServerService
+@inject IUserService UserService
+
+@* Header *@
+<FluentDialogHeader>
+    <FluentStack VerticalAlignment="VerticalAlignment.Center">
+        @* <FluentIcon Value="@(new Size20.Crown())" /> *@
+        <FluentLabel Typo="Typography.PaneHeader">
+            Create own server
+        </FluentLabel>
+    </FluentStack>
+</FluentDialogHeader>
+
+@* Footer *@
+<FluentDialogFooter>
+    <FluentStack Orientation="Orientation.Vertical">
+        <FluentButton OnClick="@SaveAsync">
+            Join server
+        </FluentButton>
+    </FluentStack>
+</FluentDialogFooter>
+
+@* Body *@
+<FluentDialogBody>
+    <FluentStack Orientation="Orientation.Vertical" Style="overflow-y: auto">
+        <FluentTextField @bind-Value="InvitationCode" Placeholder="Server invitation link or code"
+            Label="Server invitation"/>
+    </FluentStack>
+</FluentDialogBody>
+
+@code {
+    [CascadingParameter]
+    public FluentDialog Dialog { get; set; } = default!;
+    private string InvitationCode { get; set; } = string.Empty;
+    private ApplicationUser User { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await ASP.GetAuthenticationStateAsync();
+        User = await UserAccessor.GetRequiredUserFromPrincipalAsync(authState.User);
+        User = await UserService.GetUserByIdAsync(User.Id);
+    }
+
+    private async Task SaveAsync()
+    {
+
+        await Dialog.CloseAsync();
+    }
+}

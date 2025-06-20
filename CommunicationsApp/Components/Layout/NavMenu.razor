@@ -1,4 +1,5 @@
 ﻿@implements IDisposable
+@using CommunicationsApp.Components.Server
 
 @rendermode @(new InteractiveServerRenderMode(prerender: false))
 @inject NavigationManager NavigationManager
@@ -11,74 +12,95 @@
 
 <input type="checkbox" title="Navigation menu" class="navbar-toggler" />
 
-<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
-    <nav class="nav flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
-            </NavLink>
-        </div>
-
-        <AuthorizeView>
-            <Authorized>
-                <FluentStack Orientation="Orientation.Vertical" VerticalGap="0">
-                    @if (User != null && User.Servers.Any())
-                    {
-                        foreach (var server in User.Servers)
+<FluentStack Orientation="Orientation.Vertical" Style="width: 30em; height: 100%; overflow: hidden;" VerticalGap="0">
+    <FluentStack Style="width: 100%; flex-grow: 1; overflow: hidden; height: 100%;" HorizontalGap="0"
+        onclick="document.querySelector('.navbar-toggler').click()">
+        <nav class="nav flex-column overflow-x-hidden w-25" style="overflow-y: auto; height: 100%; border-right: solid 0.1em;">
+            <AuthorizeView>
+                <Authorized>
+                    <FluentStack Orientation="Orientation.Vertical" Style="flex-grow: 1; overflow-y: auto;">
+                        @if (User != null && User.Servers.Any())
                         {
-                            <div class="nav-item px-3">
-                                <NavLink class="nav-link"
-                                            href="@($"channels/{server.Id}/{server.ChannelClasses.First().Channels.First().Id}")">
-                                    <span class="bi bi-person-fill-nav-menu" aria-hidden="true"></span> @server.Name
-                                </NavLink>
-                            </div>
+                            foreach (var server in User.Servers)
+                            {
+                                <FluentButton BackgroundColor="rgba(0,0,0,0)" Style="margin: 0 auto;" Id="btnServerButton"
+                                    Title="@server.Name"
+                                    OnClick="@(() => NavigationManager.NavigateTo($"channels/{server.Id}/{server.ChannelClasses.First().Channels.First().Id}"))">
+                                    @if (!string.IsNullOrEmpty(server.IconUrl))
+                                    {
+                                        <img src="@server.IconUrl" alt="@server.Name" width="50" />
+                                    }
+                                    else
+                                    {
+                                        <FluentLabel>
+                                            @(
+                                                string.Concat(server.Name
+                                                  .Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)
+                                                  .Select(word => char.ToUpper(word[0])))
+                                            )
+                                        </FluentLabel>
+                                    }
+                                </FluentButton>
+                            }
                         }
-                    }
-
-                    <AddServer />
-                    
+                        <AddServer />
+                    </FluentStack>
+                
+                </Authorized>
+                <NotAuthorized>
                     <div class="nav-item px-3">
-                        <NavLink class="nav-link" href="Account/Manage">
-                            <span class="bi bi-person-fill-nav-menu" aria-hidden="true"></span> @context.User.Identity?.Name
+                        <NavLink class="nav-link" href="Account/Register">
+                            <span class="bi bi-person-nav-menu" aria-hidden="true"></span> Register
                         </NavLink>
                     </div>
                     <div class="nav-item px-3">
-                        <form action="Account/Logout" method="post">
-                            <AntiforgeryToken />
-                            <input type="hidden" name="ReturnUrl" value="@currentUrl" />
-                            <button type="submit" class="nav-link">
-                                <span class="bi bi-arrow-bar-left-nav-menu" aria-hidden="true"></span> Logout
-                            </button>
-                        </form>
+                        <NavLink class="nav-link" href="Account/Login">
+                            <span class="bi bi-person-badge-nav-menu" aria-hidden="true"></span> Login
+                        </NavLink>
                     </div>
-                </FluentStack>
-                
-            </Authorized>
-            <NotAuthorized>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="Account/Register">
-                        <span class="bi bi-person-nav-menu" aria-hidden="true"></span> Register
-                    </NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="Account/Login">
-                        <span class="bi bi-person-badge-nav-menu" aria-hidden="true"></span> Login
-                    </NavLink>
-                </div>
-            </NotAuthorized>
-        </AuthorizeView>
-    </nav>
-</div>
+                </NotAuthorized>
+            </AuthorizeView>
+        </nav>
+        <FluentStack Orientation="Orientation.Vertical" Style="overflow-y: auto; height: 100%;">
+            @if (ChannelView)
+            {
+                <ChannelList @key="@ServerId" ServerId="@ServerId" />
+            }
+        </FluentStack>
+    </FluentStack>
+    <AuthorizeView>
+        <Authorized>
+            <FluentStack Style="position: sticky; bottom: 0; z-index: 10;">
+                <FluentCard Height="5em" Width="24.4em" Style="padding: 10px; margin: 0 0.4em 0.4em">
+                    <FluentStack>
+                            <FluentPersona Image="@(!string.IsNullOrEmpty(User?.ProfilePictureUrl)
+                                                    ? User.ProfilePictureUrl
+                                                    : new Size48.Person().ToDataUri(size: "25px", color: "white"))"
+                                            ImageSize="50px"
+                                            Status="PresenceStatus.Available">
+                            </FluentPersona>
+                            <FluentStack Orientation="Orientation.Vertical">
+                                <FluentLabel>@User?.DisplayName</FluentLabel>
+                                <FluentLabel>@User?.Status</FluentLabel>
+                            </FluentStack>
+                    </FluentStack>
+                </FluentCard>
+            </FluentStack>
+        </Authorized>
+    </AuthorizeView>
+</FluentStack>
+
 
 @code {
     private string? currentUrl;
     public ApplicationUser? User { get; set; }
+    public bool ChannelView { get; set; }
+    public string ServerId { get; set; }
 
     protected override void OnInitialized()
     {
         currentUrl = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
         NavigationManager.LocationChanged += OnLocationChanged;
-        var serverAndChannelId = currentUrl.Substring(currentUrl.IndexOf('/') + 1).Split('/');
     }
 
     protected override async Task OnInitializedAsync()
@@ -132,6 +154,16 @@
     private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
     {
         currentUrl = NavigationManager.ToBaseRelativePath(e.Location);
+        var serverAndChannelId = currentUrl.Substring(currentUrl.IndexOf('/') + 1).Split('/');
+        if (serverAndChannelId.Length > 1)
+        {
+            ChannelView = true;
+            ServerId = serverAndChannelId[0];
+        }
+        else
+        {
+            ChannelView = false;
+        }
         StateHasChanged();
     }
 
