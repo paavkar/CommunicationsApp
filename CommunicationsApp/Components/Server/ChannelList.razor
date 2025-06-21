@@ -1,7 +1,7 @@
-﻿@rendermode @(new InteractiveServerRenderMode(prerender: false))
+﻿@rendermode InteractiveServer
 
+@inject AuthenticationStateProvider ASP
 @inject IServerService ServerService
-@inject IJSRuntime JS
 
 @if (LoadingState.IsLoading)
 {
@@ -62,12 +62,12 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        UserId = await JS.InvokeAsync<string>("localStorageHelper.getItem", "userId");
+        var authState = await ASP.GetAuthenticationStateAsync();
+        var UserId = authState.User.Claims.Where(c => c.Type.Contains("nameidentifier")).First().Value;
         if (!string.IsNullOrEmpty(ServerId) && !string.IsNullOrEmpty(UserId))
         {
             Server = await ServerService.GetServerByIdAsync(ServerId, UserId);
             LoadingState.IsLoading = false;
-            StateHasChanged();
         }
     }
 }

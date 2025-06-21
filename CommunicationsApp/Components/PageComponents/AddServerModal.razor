@@ -1,6 +1,6 @@
 ﻿@implements IDialogContentComponent
 @inject IDialogService DialogService
-@inject IJSRuntime JS
+@inject AuthenticationStateProvider ASP
 
 @* Header *@
 <FluentDialogHeader>
@@ -39,12 +39,10 @@
     public FluentDialog Dialog { get; set; } = default!;
     private string UserId { get; set; }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override async Task OnInitializedAsync()
     {
-        if (firstRender)
-        {
-            UserId = await JS.InvokeAsync<string>("localStorageHelper.getItem", "userId");
-        }
+        var authState = await ASP.GetAuthenticationStateAsync();
+        UserId = authState.User.Claims.Where(c => c.Type.Contains("nameidentifier")).First().Value;
     }
 
     private async void OpenNewServerModal()

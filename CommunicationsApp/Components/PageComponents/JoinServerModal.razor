@@ -41,8 +41,8 @@
     protected override async Task OnInitializedAsync()
     {
         var authState = await ASP.GetAuthenticationStateAsync();
-        User = await UserAccessor.GetRequiredUserFromPrincipalAsync(authState.User);
-        User = await UserService.GetUserByIdAsync(User.Id);
+        var UserId = authState.User.Claims.Where(c => c.Type.Contains("nameidentifier")).First().Value;
+        User = await UserService.GetUserByIdAsync(UserId);
     }
 
     private async Task SaveAsync()

@@ -2,11 +2,12 @@
 @page "/channels/{ServerId}/{ChannelId}"
 @rendermode @(new InteractiveServerRenderMode(prerender: false))
 
-@inject IServerService ServerService
-@inject IJSRuntime JS
-@inject ChatHubService ChatHubService
-@inject IToastService ToastService
 @inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider ASP
+@inject ChatHubService ChatHubService
+@inject IServerService ServerService
+@inject IToastService ToastService
+@inject IJSRuntime JS
 
 @if (LoadingState.IsLoading)
 {
@@ -160,7 +161,8 @@ if (Server is not null &&
 
     protected override async Task OnInitializedAsync()
     {
-        UserId = await JS.InvokeAsync<string>("localStorageHelper.getItem", "userId");
+        var authState = await ASP.GetAuthenticationStateAsync();
+        UserId = authState.User.Claims.Where(c => c.Type.Contains("nameidentifier")).First().Value;
         TimeZoneOffset = await JS.InvokeAsync<int>("timeZoneHelper.getTimeZone");
         if (string.IsNullOrEmpty(ServerId) || string.IsNullOrEmpty(ChannelId))
         {
@@ -201,7 +203,6 @@ if (Server is not null &&
             return;
         if (string.IsNullOrEmpty(ServerId) || string.IsNullOrEmpty(ChannelId) || Channel == null)
             return;
-
         NewMessage.Id = Guid.CreateVersion7().ToString();
         NewMessage.SentAt = DateTimeOffset.UtcNow;
         NewMessage.PartitionKey = $"ChatMessage-{ServerId}";
@@ -223,6 +224,7 @@ if (Server is not null &&
         {
             ToastService.ShowError("There was an error sending the message. Try again later.");
             Console.WriteLine(result.ErrorMessage);
+            return;
         }
 
         NewMessage = new();
