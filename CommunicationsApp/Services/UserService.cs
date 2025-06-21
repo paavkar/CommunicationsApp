@@ -111,8 +111,16 @@ namespace CommunicationsApp.Services
                 new { userId },
                 splitOn: "ServerProfileId,UserServerRoleUserId,ServerRoleId,ServerId,ChannelClassId,ChannelId"
             );
-            var userWithAllData = userDictionary.Distinct().FirstOrDefault().Value;
+            var userWithAllData = userDictionary.FirstOrDefault().Value;
             var serverIds = userWithAllData.Servers.Select(s => s.Id).ToList();
+            foreach (var server in userWithAllData.Servers)
+            {
+                server.ChannelClasses = [.. server.ChannelClasses.OrderBy(cc => cc.OrderNumber)];
+                foreach (var channelClass in server.ChannelClasses)
+                {
+                    channelClass.Channels = [.. channelClass.Channels.OrderBy(c => c.OrderNumber)];
+                }
+            }
 
             var serverProfileQuery = """
                 SELECT sp.*, sr.Id AS ServerRoleId, sr.*
@@ -121,7 +129,6 @@ namespace CommunicationsApp.Services
                 LEFT JOIN ServerRoles sr ON sr.Id = usr.RoleId
                 WHERE sp.ServerId IN @serverIds
                 """;
-
             
             var memberDictionary = new Dictionary<string, ServerProfile>();
 

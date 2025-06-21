@@ -13,7 +13,8 @@
 
         public override string ToString()
         {
-            return $"ChannelClass [Id={Id ?? "null"}, ServerId={ServerId}, Name={Name}, IsPrivate={IsPrivate}]";
+            return $"ChannelClass [Id={Id ?? "null"}, ServerId={ServerId}, Name={Name}, IsPrivate={IsPrivate}, " +
+                $"OrderNumber={OrderNumber}]";
         }
     }
 }

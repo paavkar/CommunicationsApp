@@ -45,6 +45,34 @@ namespace CommunicationsApp.Services
                     Bio = user.Bio
                 };
 
+                ServerRole serverRole = new()
+                {
+                    Id = Guid.CreateVersion7().ToString(),
+                    Name = "owner",
+                    ServerId = server.Id,
+                };
+
+                var insertServerRoleQuery = """
+                    INSERT INTO ServerRoles (Id, Name, ServerId)
+                    VALUES (@Id, @Name, @ServerId)
+                    """;
+                rowsAffected = await connection.ExecuteAsync(insertServerRoleQuery, serverRole, transaction);
+
+                UserServerRole userServerRole = new()
+                {
+                    UserId = user.Id,
+                    ServerId = server.Id,
+                    RoleId = serverRole.Id
+                };
+
+                var insertUserServerRoleQuery = """
+                    INSERT INTO UserServerRoles (UserId, ServerId, RoleId)
+                    VALUES (@UserId, @ServerId, @RoleId)
+                    """;
+                rowsAffected = await connection.ExecuteAsync(insertUserServerRoleQuery, userServerRole, transaction);
+                serverProfile.Roles ??= [];
+                serverProfile.Roles.Add(serverRole);
+
                 server.Members ??= [];
                 server.Members.Add(serverProfile);
 
@@ -244,7 +272,6 @@ namespace CommunicationsApp.Services
                         currentServer.Roles ??= [];
                         currentServer.ChannelClasses ??= [];
                         currentServer.Members ??= [];
-                        serverDictionary.Add(currentServer.Id!, currentServer);
                     }
 
                     if (role != null && !string.IsNullOrEmpty(role.Id) && currentServer.Roles.All(r => r.Id != role.Id))
@@ -269,11 +296,11 @@ namespace CommunicationsApp.Services
                         }
                     }
 
-                    if (member != null && !string.IsNullOrEmpty(member.Id) &&
-                        currentServer.Members.All(m => m.Id != member.Id))
+                    if (member != null && !string.IsNullOrEmpty(member.Id))
                     {
                         member.Roles ??= [];
-                        if (member.Id == userServerRole.UserId && userServerRole.RoleId != null)
+                        member = currentServer.Members.FirstOrDefault(m => m.Id == member.Id) ?? member;
+                        if (userServerRole.RoleId != null)
                         {
                             var roleToAdd = currentServer.Roles.FirstOrDefault(r => r.Id == userServerRole.RoleId);
                             if (roleToAdd != null && !member.Roles.Any(r => r.Id == roleToAdd.Id))
@@ -281,14 +308,28 @@ namespace CommunicationsApp.Services
                                 member.Roles.Add(roleToAdd);
                             }
                         }
-                        currentServer.Members.Add(member);
+                        if (currentServer.Members.All(m => m.Id != member.Id))
+                        {
+                            currentServer.Members.Add(member);
+                        }
+                    }
+
+                    if (!serverDictionary.ContainsKey(currentServer.Id))
+                    {
+                        serverDictionary.Add(currentServer.Id!, currentServer);
                     }
                     return currentServer;
                 },
                 queryParameters,
                 splitOn: "ServerRoleId,UserMemberRoleId,ChannelClassId,ChannelId,ServerProfileId"
             );
-            var serverWithAllData = serverDictionary.Distinct().FirstOrDefault().Value;
+            var serverWithAllData = serverDictionary.FirstOrDefault().Value;
+
+            serverWithAllData.ChannelClasses = [.. serverWithAllData.ChannelClasses.OrderBy(cc => cc.OrderNumber)];
+            foreach (var channelClass in serverWithAllData.ChannelClasses)
+            {
+                channelClass.Channels = [.. channelClass.Channels.OrderBy(c => c.OrderNumber)];
+            }
 
             return serverWithAllData ?? null;
         }
@@ -307,20 +348,18 @@ namespace CommunicationsApp.Services
                         member = serverProfile;
 
                         member.Roles ??= [];
+                        if (role != null && !string.IsNullOrEmpty(role.Id) && member.Roles.All(r => r.Id != role.Id))
+                        {
+                            member.Roles.Add(role);
+                        }
                         memberDictionary.Add(member.Id!, member);
-                    }
-
-                    if (role != null && !string.IsNullOrEmpty(role.Id) && member.Roles.All(r => r.Id != role.Id))
-                    {
-                        member.Roles.Add(role);
                     }
                     return member;
                 },
                 queryParameters,
                 splitOn: "ServerRoleId"
             );
-            var profiles = memberDictionary.Distinct();
-            foreach (var sp in profiles)
+            foreach (var sp in memberDictionary)
             {
                 if (server != null && server.Members != null)
                 {
