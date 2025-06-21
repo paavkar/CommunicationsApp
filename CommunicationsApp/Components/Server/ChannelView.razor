@@ -117,7 +117,8 @@ if (Server is not null &&
                                                Status="PresenceStatus.Available">
                                 </FluentPersona>
                                 <FluentStack Orientation="Orientation.Vertical">
-                                    <FluentLabel Style="font-size: 1.1em;">
+                                    <FluentLabel Style="font-size: 1.1em;" Color="Color.Custom"
+                                        CustomColor="@(member.Roles.First().HexColour)">
                                         @member.DisplayName
                                         @if (member.UserId == Server.OwnerId)
                                         {
@@ -127,9 +128,7 @@ if (Server is not null &&
                                             </FluentTooltip>
                                         }
                                     </FluentLabel>
-                                    <FluentLabel>
-                                        @member.Status
-                                    </FluentLabel>
+                                    <FluentLabel>@member.Status</FluentLabel>
                                 </FluentStack>
                             </FluentStack>
                         }

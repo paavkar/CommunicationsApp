@@ -50,11 +50,13 @@ namespace CommunicationsApp.Services
                     Id = Guid.CreateVersion7().ToString(),
                     Name = "owner",
                     ServerId = server.Id,
+                    HexColour = "",
+                    Hierarchy = 1
                 };
 
                 var insertServerRoleQuery = """
-                    INSERT INTO ServerRoles (Id, Name, ServerId)
-                    VALUES (@Id, @Name, @ServerId)
+                    INSERT INTO ServerRoles (Id, Name, ServerId, HexColour, Hierarchy)
+                    VALUES (@Id, @Name, @ServerId, @HexColour, @Hierarchy)
                     """;
                 rowsAffected = await connection.ExecuteAsync(insertServerRoleQuery, serverRole, transaction);
 
@@ -330,6 +332,10 @@ namespace CommunicationsApp.Services
             {
                 channelClass.Channels = [.. channelClass.Channels.OrderBy(c => c.OrderNumber)];
             }
+            foreach (var member in serverWithAllData.Members)
+            {
+                member.Roles = [.. member.Roles.OrderBy(r => r.Hierarchy)];
+            }
 
             return serverWithAllData ?? null;
         }
@@ -348,11 +354,11 @@ namespace CommunicationsApp.Services
                         member = serverProfile;
 
                         member.Roles ??= [];
-                        if (role != null && !string.IsNullOrEmpty(role.Id) && member.Roles.All(r => r.Id != role.Id))
-                        {
-                            member.Roles.Add(role);
-                        }
                         memberDictionary.Add(member.Id!, member);
+                    }
+                    if (role != null && !string.IsNullOrEmpty(role.Id) && member.Roles.All(r => r.Id != role.Id))
+                    {
+                        member.Roles.Add(role);
                     }
                     return member;
                 },
@@ -361,12 +367,14 @@ namespace CommunicationsApp.Services
             );
             foreach (var sp in memberDictionary)
             {
+                var member = sp.Value;
+                member.Roles = [.. member.Roles.OrderBy(r => r.Hierarchy)];
                 if (server != null && server.Members != null)
                 {
-                    var existingProfile = server.Members.FirstOrDefault(x => x.Id == sp.Value.Id);
+                    var existingProfile = server.Members.FirstOrDefault(x => x.Id == member.Id);
                     if (existingProfile == null)
                     {
-                        server.Members.Add(sp.Value);
+                        server.Members.Add(member);
                     }
                 }
             }
