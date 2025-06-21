@@ -13,27 +13,27 @@ else
 {
     if (Server != null && Server.ChannelClasses.Any())
     {
-            <FluentStack Id="ChannelListServerActions" Style="position: sticky; top: 0em; z-index: 6;">
-                <FluentCard Style="padding: 0em; height: 4em; border-radius: 0;">
-                    <FluentButton Id="btnOpenServerMenu"
-                            Style="width: 100%; height: 100%; justify-content: left;"
-                            Appearance="Appearance.Stealth"
-                            OnClick="@(() => OpenServerMenu = !OpenServerMenu)"
-                              IconEnd="@(!OpenServerMenu ? new Size20.ChevronDown() : new Size20.Dismiss())">
-                        @Server.Name
-                    </FluentButton>
-                    <FluentMenu UseMenuService="true"
-                            @bind-Open="OpenServerMenu"
-                            Anchor="btnOpenServerMenu"
-                            VerticalThreshold="170"
-                            HorizontalPosition="HorizontalPosition.Center">
-                        <FluentMenuItem>Server-specific items here</FluentMenuItem>
-                    </FluentMenu>
-                </FluentCard>
-            </FluentStack>
+        <FluentStack Id="ChannelListServerActions" Style="position: sticky; top: 0em; z-index: 6;">
+            <FluentCard Style="padding: 0em; height: 4em; border-radius: 0;">
+                <FluentButton Id="btnOpenServerMenu"
+                        Style="width: 100%; height: 100%; justify-content: left;"
+                        Appearance="Appearance.Stealth"
+                        OnClick="@(() => OpenServerMenu = !OpenServerMenu)"
+                            IconEnd="@(!OpenServerMenu ? new Size20.ChevronDown() : new Size20.Dismiss())">
+                    @Server.Name
+                </FluentButton>
+                <FluentMenu UseMenuService="true"
+                        @bind-Open="OpenServerMenu"
+                        Anchor="btnOpenServerMenu"
+                        VerticalThreshold="170"
+                        HorizontalPosition="HorizontalPosition.Center">
+                    <FluentMenuItem>Server-specific items here</FluentMenuItem>
+                </FluentMenu>
+            </FluentCard>
+        </FluentStack>
 
         <FluentStack Orientation="Orientation.Vertical" Id="ChannelListChannels"
-                     Style="width: 100%; flex-grow: 1; height: 100%; overflow-y: auto;">
+                     Style="width: 100%; flex-grow: 1; height: 100%; overflow-y: auto; scrollbar-width: thin;">
             <FluentNavMenu @bind-Expanded="@ChannelClassesExpanded">
                 @foreach (var channelClass in Server.ChannelClasses)
                 {

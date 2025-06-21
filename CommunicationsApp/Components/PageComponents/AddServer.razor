@@ -1,13 +1,17 @@
 ﻿@rendermode InteractiveServer
 @inject IDialogService DialogService
 
-<FluentButton Id="btnAddServer" OnClick="@OpenAddServerModal" Style="width: 2em; margin: 0 auto;"
-    BackgroundColor="rgba(0,0,0,0)">
-    <FluentIcon Value="@(new Size28.Add())" />
-    <FluentTooltip Anchor="btnAddServer">
+<FluentCard Id="addServerCard" Style="display: flex; padding: 0; height: 3.5em; width: 3.5em; margin: 0 auto;
+                                      justify-content: center;">
+    <FluentTooltip Anchor="btnAddServer" Position="TooltipPosition.Right">
         Add server
     </FluentTooltip>
-</FluentButton>
+    <FluentButton Id="btnAddServer" OnClick="@OpenAddServerModal" 
+        Style="width: 2em; margin: 0 auto; align-self: center;"
+                  BackgroundColor="rgba(0,0,0,0)">
+        <FluentIcon Id="addServerIcon" Value="@(new Size28.Add())" />
+    </FluentButton>
+</FluentCard>
 
 @code {
     private async void OpenAddServerModal()
@@ -16,6 +20,5 @@
         {
             Height = "20em",
         });
-        
     }
 }
