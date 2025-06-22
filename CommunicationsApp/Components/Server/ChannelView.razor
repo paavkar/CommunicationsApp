@@ -17,8 +17,7 @@
 }
 else
 {
-if (Server is not null &&
-    Channel is not null)
+    if (Server is not null && Channel is not null)
     {
         <FluentStack HorizontalGap="4"
             Style="position: sticky;
@@ -36,22 +35,26 @@ if (Server is not null &&
                 <FluentLabel>•</FluentLabel>
                 <FluentLabel Style="font-size: 0.9em;">@Channel!.Description</FluentLabel>
             </FluentStack>
-                <FluentButton BackgroundColor="rgba(0,0,0,0)" Title="@(DisplayMemberList ? "Hide member list": "Display member list")"
-                              OnClick="@(() => DisplayMemberList = !DisplayMemberList)"
-                              Style="justify-self: flex-end;">
+            <FluentButton BackgroundColor="rgba(0,0,0,0)" Id="btnDisplayMemberList"
+                                OnClick="@(() => DisplayMemberList = !DisplayMemberList)"
+                                Style="justify-self: flex-end;">
                     <FluentIcon Value="@(new Size24.PeopleCommunity())" Slot="start" />
+                    <FluentTooltip Anchor="btnDisplayMemberList" Position="TooltipPosition.Left">
+                        @(DisplayMemberList ? "Hide member list" : "Display member list")
+                    </FluentTooltip>
                 </FluentButton>
         </FluentStack>
     
         <FluentStack Style="flex-grow: 1; overflow: hidden; width: 100%;" HorizontalGap="0">
             <FluentStack Orientation="Orientation.Vertical" Style="flex-grow: 1; height: 100%;" VerticalGap="0">
-                <FluentStack Orientation="Orientation.Vertical" Style="height: 100%; overflow-y: auto;">
+                <FluentStack Orientation="Orientation.Vertical" Style="height: 100%; overflow-y: auto;" 
+                    Id="channelMessageView">
                     <FluentStack Orientation="Orientation.Vertical"
-                                 HorizontalAlignment="HorizontalAlignment.Center"
-                                 Style="margin-top: 1em;">
+                                    HorizontalAlignment="HorizontalAlignment.Center"
+                                    Style="margin-top: 1em;">
                         <FluentLabel Weight="FontWeight.Bold"
-                                     Typo="Typography.Subject"
-                                     Alignment="HorizontalAlignment.Center">
+                                        Typo="Typography.Subject"
+                                        Alignment="HorizontalAlignment.Center">
                             Welcome to channel #@Channel.Name!
                         </FluentLabel>
                         <FluentLabel>
@@ -67,8 +70,8 @@ if (Server is not null &&
                                         <FluentPersona Image="@(!string.IsNullOrEmpty(message.Sender.ProfilePictureUrl)
                                                                 ? message.Sender.ProfilePictureUrl
                                                                 : new Size48.Person().ToDataUri(size: "25px", color: "white"))"
-                                                       ImageSize="50px"
-                                                       Status="PresenceStatus.Available">
+                                                        ImageSize="50px"
+                                                        Status="PresenceStatus.Available">
                                         </FluentPersona>
                                         <FluentStack Orientation="Orientation.Vertical" VerticalGap="0">
                                             <FluentStack>
@@ -87,6 +90,7 @@ if (Server is not null &&
                                 </FluentCard>
                             </FluentStack>
                         }
+                        <FluentStack Id="endOfMessages" />
                     </FluentStack>
                 </FluentStack>
                 <FluentStack Style="height: 5em; position: relative; width: 100%; position: sticky; bottom: 0;
@@ -97,7 +101,7 @@ if (Server is not null &&
                                     Id="channelMessageTextArea"
                                     Maxlength="400" />
                     <FluentButton OnClick="SendMessageAsync"
-                                  Style="position: absolute; right: 1.5em; bottom: 1em; background: transparent; border: none;">
+                                    Style="position: absolute; right: 1.5em; bottom: 1em; background: transparent; border: none;">
                         <FluentIcon Value="@(new Size20.Send())" />
                     </FluentButton>
                 </FluentStack>
@@ -113,8 +117,8 @@ if (Server is not null &&
                                 <FluentPersona Image="@(!string.IsNullOrEmpty(member.ProfilePictureUrl)
                                                         ? member.ProfilePictureUrl
                                                         : new Size48.Person().ToDataUri(size: "25px", color: "white"))"
-                                               ImageSize="50px"
-                                               Status="PresenceStatus.Available">
+                                                ImageSize="50px"
+                                                Status="PresenceStatus.Available">
                                 </FluentPersona>
                                 <FluentStack Orientation="Orientation.Vertical">
                                     <FluentLabel Style="font-size: 1.1em;" Color="Color.Custom"
@@ -187,12 +191,29 @@ if (Server is not null &&
         LoadingState.IsLoading = false;
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("eval", @"
+                const scrollContainer = document.getElementById('channelMessageView');
+                if (scrollContainer) {
+                    scrollContainer.addEventListener('scroll', () => {
+                        window.chatScroll.checkScrollLock('channelMessageView');
+                    });
+                }"
+            );
+            await JS.InvokeVoidAsync("chatScroll.scrollToBottom", "endOfMessages");
+        }
+    }
+
     private async void OnChannelMessageReceived(string serverId, string channelId, ChatMessage message)
     {
         if (Channel != null && channelId == Channel.Id)
         {
             Channel.Messages.Add(message);
-            await InvokeAsync(StateHasChanged);
+            await InvokeAsync(StateHasChanged); 
+            await JS.InvokeVoidAsync("chatScroll.scrollToBottom", "endOfMessages");
         }
     }
 

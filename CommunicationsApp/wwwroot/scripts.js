@@ -16,3 +16,19 @@ window.titleHelper = {
         document.title = title;
     }
 };
+
+window.chatScroll = {
+    isAtBottom: true,
+    checkScrollLock: function (elementId) {
+        const el = document.getElementById(elementId);
+        if (!el) return;
+
+        this.isAtBottom = el.scrollHeight - el.scrollTop <= el.clientHeight + 20;
+    },
+    scrollToBottom: function (elementId) {
+        const el = document.getElementById(elementId);
+        if (el && this.isAtBottom) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
+};
