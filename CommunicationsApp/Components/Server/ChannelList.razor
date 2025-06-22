@@ -2,6 +2,7 @@
 
 @inject AuthenticationStateProvider ASP
 @inject IServerService ServerService
+@inject IDialogService DialogService
 
 @if (LoadingState.IsLoading)
 {
@@ -25,9 +26,13 @@ else
                 <FluentMenu UseMenuService="true"
                         @bind-Open="OpenServerMenu"
                         Anchor="btnOpenServerMenu"
-                        VerticalThreshold="170"
+                        VerticalThreshold="200"
+                        HorizontalThreshold="200"
                         HorizontalPosition="HorizontalPosition.Center">
-                    <FluentMenuItem>Server-specific items here</FluentMenuItem>
+                    <FluentMenuItem OnClick="@OpenInvitationModalAsync">
+                        Invite people
+                        <FluentIcon Value="@(new Size20.PeopleAdd())" Slot="end" />
+                    </FluentMenuItem>
                 </FluentMenu>
             </FluentCard>
         </FluentStack>
@@ -69,5 +74,15 @@ else
             Server = await ServerService.GetServerByIdAsync(ServerId, UserId);
             LoadingState.IsLoading = false;
         }
+    }
+
+    private async Task OpenInvitationModalAsync()
+    {
+
+        var dialog = await DialogService.ShowDialogAsync<ServerInvitationModal>(Server, new DialogParameters()
+        {
+            Title = $"Invite people to the server {Server.Name}",
+            Height = "25em",
+        });
     }
 }

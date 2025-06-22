@@ -211,12 +211,13 @@ namespace CommunicationsApp.Services
                 LEFT JOIN Channels c ON c.ChannelClassId = cc.Id
                 LEFT JOIN ServerProfiles sp ON sp.ServerId = s.Id
                 WHERE s.InvitationCode = @code
+                OR s.CustomInvitationCode = @code
                 """;
             var server = await GetServerFromDatabaseAsync(getServerQuery, new { code });
             
             if (server is null)
             {
-                return new { Succeeded = false, ErrorMessage = "There no server associated with given invitation." };
+                return new { Succeeded = false, ErrorMessage = "There is no server associated with given invitation." };
             }
 
             ServerProfile serverProfile = new()
@@ -244,7 +245,6 @@ namespace CommunicationsApp.Services
             {
                 return new { Succeeded = false, ErrorMessage = "Failed to join server." };
             }
-        
 
             var serverProfileQuery = """
                 SELECT sp.*, sr.Id AS ServerRoleId, sr.*
@@ -255,6 +255,8 @@ namespace CommunicationsApp.Services
                 """;
 
             server = await GetServerWithMembersAsync(serverProfileQuery, new { serverId = server.Id }, server);
+
+            await UpdateCacheAsync(server.Id, server);
 
             return new { Succeeded = true, Server = server };
         }

@@ -7,18 +7,22 @@
 
 @* Header *@
 <FluentDialogHeader>
-    <FluentStack VerticalAlignment="VerticalAlignment.Center">
-        @* <FluentIcon Value="@(new Size20.Crown())" /> *@
+    <FluentStack Orientation="Orientation.Vertical" VerticalAlignment="VerticalAlignment.Center"
+    HorizontalAlignment="HorizontalAlignment.Center">
         <FluentLabel Typo="Typography.PaneHeader">
-            Create own server
+            @Dialog.Instance.Parameters.Title
+        </FluentLabel>
+        <FluentLabel>
+            Join an existing server by pasting the invitation below
         </FluentLabel>
     </FluentStack>
 </FluentDialogHeader>
 
 @* Footer *@
 <FluentDialogFooter>
-    <FluentStack Orientation="Orientation.Vertical">
-        <FluentButton OnClick="@SaveAsync">
+    <FluentStack HorizontalAlignment="HorizontalAlignment.SpaceBetween">
+        <FluentButton>Go back</FluentButton>
+        <FluentButton Appearance="Appearance.Accent" OnClick="@SaveAsync">
             Join server
         </FluentButton>
     </FluentStack>
@@ -27,8 +31,19 @@
 @* Body *@
 <FluentDialogBody>
     <FluentStack Orientation="Orientation.Vertical" Style="overflow-y: auto">
-        <FluentTextField @bind-Value="InvitationCode" Placeholder="Server invitation link or code"
-            Label="Server invitation"/>
+        <FluentTextField @bind-Value="InvitationCode" Required Style="width: 100%; height: 4em;"
+            Placeholder="Server invitation link or code"
+            Label="Server invitation" />
+        <FluentLabel Typo="Typography.Subject">Invitations should look like the following ones:</FluentLabel>
+        <FluentLabel Style="font-size: 0.9em; cursor: default;">
+            DpeXAdBQSXe2oyVnSxRGew
+        </FluentLabel>
+        <FluentLabel Style="font-size: 0.9em; cursor: default;">
+            @($"{NavigationManager.BaseUri}DpeXAdBQSXe2oyVnSxRGew")
+        </FluentLabel>
+        <FluentLabel Style="font-size: 0.9em; cursor: default;">
+            @($"{NavigationManager.BaseUri}custom-invitation")
+        </FluentLabel>
     </FluentStack>
 </FluentDialogBody>
 
@@ -47,7 +62,31 @@
 
     private async Task SaveAsync()
     {
+        if (string.IsNullOrWhiteSpace(InvitationCode))
+        {
+            Console.WriteLine("Invitation code cannot be empty.");
+            return;
+        }
+        if (Uri.TryCreate(InvitationCode, UriKind.Absolute, out var uri))
+        {
+            InvitationCode = uri.Segments.Last();
+        }
+        if (User.Servers.Any(s => s.InvitationCode == InvitationCode || s.CustomInvitationCode == InvitationCode))
+        {
+            Console.WriteLine("You are already a member of this server.");
+            return;
+        }
+        
+        var result = await ServerService.JoinServerByInvitationCode(InvitationCode, User);
 
-        await Dialog.CloseAsync();
+        if (result.Succeeded)
+        {
+            Server server = result.Server;
+            var navUrl = $"channels/{server.Id}/{server.ChannelClasses.First()?.Channels.First()?.Id}";
+            User.Servers.Add(server);
+            await UserService.UpdateCacheAsync(User);
+            NavigationManager.NavigateTo(navUrl, forceLoad: true);
+            await Dialog.CloseAsync();
+        }
     }
 }

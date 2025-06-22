@@ -118,7 +118,7 @@ if (Server is not null &&
                                 </FluentPersona>
                                 <FluentStack Orientation="Orientation.Vertical">
                                     <FluentLabel Style="font-size: 1.1em;" Color="Color.Custom"
-                                        CustomColor="@(member.Roles.First().HexColour)">
+                                        CustomColor="@((member.Roles.Count > 0 ? member.Roles.FirstOrDefault().HexColour : ""))">
                                         @member.DisplayName
                                         @if (member.UserId == Server.OwnerId)
                                         {

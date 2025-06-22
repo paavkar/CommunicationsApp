@@ -1,0 +1,59 @@
+﻿@implements IDialogContentComponent<Server>
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JS
+
+@* Header *@
+<FluentDialogHeader>
+    <FluentStack VerticalAlignment="VerticalAlignment.Center">
+        @* <FluentIcon Value="@(new Size20.Crown())" /> *@
+        <FluentLabel Typo="Typography.Subject">
+            @Dialog.Instance.Parameters.Title
+        </FluentLabel>
+    </FluentStack>
+</FluentDialogHeader>
+
+@* Footer *@
+<FluentDialogFooter>
+    <FluentStack Orientation="Orientation.Vertical">
+        <FluentLabel>
+            Send the server's invitation link to someone
+        </FluentLabel>
+        <FluentTextField ReadOnly Style="width: 100%;"
+                         Value="@InvitationLink">
+            <FluentIcon Id="invitationCopyIcon" Value="@(new Size20.Copy())" Color="@Color.Neutral" Slot="end"
+                        OnClick="@CopyLink" />
+            <FluentTooltip Anchor="invitationCopyIcon" Position="TooltipPosition.Top" @key="@TooltipText">
+                @TooltipText
+            </FluentTooltip>
+            </FluentTextField>
+    </FluentStack>
+</FluentDialogFooter>
+
+@* Body *@
+<FluentDialogBody>
+    <FluentStack Orientation="Orientation.Vertical" Style="overflow-y: auto">
+    </FluentStack>
+</FluentDialogBody>
+
+@code {
+    [Parameter]
+    public Server Content { get; set; } = default!;
+    [CascadingParameter]
+    public FluentDialog Dialog { get; set; } = default!;
+    private string InvitationLink { get; set; }
+    private string TooltipText { get; set; } = "Copy link";
+
+    protected override void OnInitialized()
+    {
+        InvitationLink = $"{NavigationManager.BaseUri}{(string.IsNullOrEmpty(Content.CustomInvitationCode)
+                                         ? Content.InvitationCode
+                                         : Content.CustomInvitationCode)}";
+    }
+
+    private async void CopyLink()
+    {
+        await JS.InvokeVoidAsync("navigator.clipboard.writeText", InvitationLink);
+        TooltipText = "Link copied!";
+        StateHasChanged();
+    }
+}

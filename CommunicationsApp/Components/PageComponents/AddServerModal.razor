@@ -70,10 +70,12 @@
 
     private async void OpenJoinServerModal()
     {
-        // var dialog = await DialogService.ShowDialogAsync<JoinServerModal>(null, new DialogParameters
-        // {
-        //     Title = "Join Server",
-        //     Height = "15em",
-        // });
+        var dialog = await DialogService.ShowDialogAsync<JoinServerModal>(new DialogParameters
+        {
+            Title = "Join Server",
+            Height = "32em",
+            Width = "30em"
+        });
+        await Dialog.CloseAsync();
     }
 }
