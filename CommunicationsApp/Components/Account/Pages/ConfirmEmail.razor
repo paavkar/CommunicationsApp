@@ -10,8 +10,10 @@
 
 <PageTitle>Confirm email</PageTitle>
 
-<h1>Confirm email</h1>
-<StatusMessage Message="@statusMessage" />
+<FluentStack Orientation="Orientation.Vertical" HorizontalAlignment="HorizontalAlignment.Center">
+    <FluentLabel Alignment="HorizontalAlignment.Center" Typo="Typography.H1">Confirm email</FluentLabel>
+    <StatusMessage Message="@statusMessage" />
+</FluentStack>
 
 @code {
     private string? statusMessage;
