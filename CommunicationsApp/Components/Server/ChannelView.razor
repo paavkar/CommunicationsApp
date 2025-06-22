@@ -90,7 +90,7 @@ else
                                 </FluentCard>
                             </FluentStack>
                         }
-                        <FluentStack Id="endOfMessages" />
+                        <FluentStack Id="endOfMessages" Style="height: 5px;" />
                     </FluentStack>
                 </FluentStack>
                 <FluentStack Style="height: 5em; position: relative; width: 100%; position: sticky; bottom: 0;
@@ -195,14 +195,7 @@ else
     {
         if (firstRender)
         {
-            await JS.InvokeVoidAsync("eval", @"
-                const scrollContainer = document.getElementById('channelMessageView');
-                if (scrollContainer) {
-                    scrollContainer.addEventListener('scroll', () => {
-                        window.chatScroll.checkScrollLock('channelMessageView');
-                    });
-                }"
-            );
+            await JS.InvokeVoidAsync("chatScroll.initializeScrollWatcher", "channelMessageView");
             await JS.InvokeVoidAsync("chatScroll.scrollToBottom", "endOfMessages");
         }
     }
@@ -212,8 +205,12 @@ else
         if (Channel != null && channelId == Channel.Id)
         {
             Channel.Messages.Add(message);
-            await InvokeAsync(StateHasChanged); 
-            await JS.InvokeVoidAsync("chatScroll.scrollToBottom", "endOfMessages");
+            await InvokeAsync(StateHasChanged);
+            bool autoScroll = await JS.InvokeAsync<bool>("chatScroll.shouldScroll", "channelMessageView");
+            if (autoScroll)
+            {
+                await JS.InvokeVoidAsync("chatScroll.scrollToBottom", "endOfMessages");
+            }
         }
     }
 
