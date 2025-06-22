@@ -16,6 +16,8 @@ namespace CommunicationsApp.Data
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+            modelBuilder.Entity<ChatMessage>()
+                .Ignore(c => c.Reactions);
         }
     }
 }

@@ -7,7 +7,9 @@ using Microsoft.Extensions.Caching.Hybrid;
 
 namespace CommunicationsApp.Services
 {
-    public class UserService(IConfiguration configuration, HybridCache cache) : IUserService
+    public class UserService(
+        IConfiguration configuration,
+        HybridCache cache) : IUserService
     {
         private SqlConnection GetConnection()
         {

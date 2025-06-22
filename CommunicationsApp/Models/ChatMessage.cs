@@ -31,7 +31,6 @@ namespace CommunicationsApp.Models
 
         [JsonProperty(PropertyName = "attachments")]
         public List<string> Attachments { get; set; } = [];
-        [NotMapped]
         [JsonProperty(PropertyName = "reactions")]
         public Dictionary<string, List<ServerProfile>> Reactions { get; set; } = [];
         [JsonProperty(PropertyName = "mentions")]

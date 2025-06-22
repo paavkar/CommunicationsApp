@@ -8,6 +8,7 @@ namespace CommunicationsApp.Models
         public string? Id { get; set; }
         public string Name { get; set; } = string.Empty;
         public string InvitationCode { get; set; } = string.Empty;
+        public string CustomInvitationCode { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public string OwnerId { get; set; } = string.Empty;
         public DateTimeOffset CreatedAt { get; set; }

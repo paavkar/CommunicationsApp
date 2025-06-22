@@ -20,8 +20,8 @@ namespace CommunicationsApp.Services
         {
             server.CreatedAt = DateTimeOffset.UtcNow;
             var insertServerQuery = """
-                INSERT INTO Servers (Id, Name, InvitationCode, Description, OwnerId, CreatedAt, IconUrl, BannerUrl, ServerType)
-                VALUES (@Id, @Name, @InvitationCode, @Description, @OwnerId, @CreatedAt, @IconUrl, @BannerUrl, @ServerType)
+                INSERT INTO Servers (Id, Name, InvitationCode, CustomInvitationCode, Description, OwnerId, CreatedAt, IconUrl, BannerUrl, ServerType)
+                VALUES (@Id, @Name, @InvitationCode, @CustomInvitationCode, @Description, @OwnerId, @CreatedAt, @IconUrl, @BannerUrl, @ServerType)
                 """;
             using var connection = GetConnection();
             connection.Open();

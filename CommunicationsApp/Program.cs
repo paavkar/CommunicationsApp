@@ -72,8 +72,8 @@ builder.Services.AddApiVersioning(options =>
 builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
 builder.Services.AddScoped<CosmosDbFactory>();
 builder.Services.AddScoped<ICosmosDbService, CosmosDbService>();
-builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IServerService, ServerService>();
+builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ChatHubService>();
 
 var app = builder.Build();
