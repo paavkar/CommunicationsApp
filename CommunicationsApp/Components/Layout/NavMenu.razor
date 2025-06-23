@@ -81,8 +81,26 @@
                             </FluentStack>
                             <FluentSpacer />
                             <FluentStack HorizontalAlignment="HorizontalAlignment.End">
+                                @if (RenderMenu)
+                                {
+                                    <FluentMenu UseMenuService="true"
+                                                @bind-Open="OpenSettingsMenu"
+                                                Anchor="btnOpenSettings">
+                                        <FluentMenuItem>
+                                            <form action="Account/Logout" method="post">
+                                                <AntiforgeryToken />
+                                                <input type="hidden" name="ReturnUrl" value="@currentUrl" />
+                                                <FluentButton BackgroundColor="rgba(0,0,0,0)"
+                                                              IconStart="@(new Size20.SignOut())" Type="ButtonType.Submit">
+                                                    Logout
+                                                </FluentButton>
+                                            </form>
+                                        </FluentMenuItem>
+                                    </FluentMenu>
+                                }
                                 <FluentTooltip Anchor="btnOpenSettings" Position="TooltipPosition.Top">Open settings</FluentTooltip>
-                                <FluentButton Id="btnOpenSettings" BackgroundColor="rgba(0,0,0,0)">
+                                <FluentButton Id="btnOpenSettings" BackgroundColor="rgba(0,0,0,0)" 
+                                    OnClick="@(() => OpenSettingsMenu = !OpenSettingsMenu)">
                                     <FluentIcon Value="@(new Size24.Settings())" />
                                 </FluentButton>
                             </FluentStack>
@@ -99,6 +117,8 @@
     public bool ChannelView { get; set; }
     public string ServerId { get; set; }
     public string UserId { get; set; }
+    public bool OpenSettingsMenu { get; set; } = false;
+    public bool RenderMenu { get; set; } = false;
 
     protected override void OnInitialized()
     {
@@ -147,6 +167,7 @@
     {
         if (firstRender)
         {
+            RenderMenu = true;
             var serverAndChannelId = currentUrl.Substring(currentUrl.IndexOf('/') + 1).Split('/');
             if (serverAndChannelId.Length > 1)
             {
