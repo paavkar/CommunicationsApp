@@ -8,5 +8,12 @@
             Private = 1,
             Community = 2
         }
+
+        public enum ServerUpdateType
+        {
+            MemberJoined = 0,
+            MemberLeft = 1,
+            MemberUpdated = 2,
+        }
     }
 }

@@ -1,11 +1,12 @@
 ﻿using CommunicationsApp.Models;
 using Microsoft.AspNetCore.SignalR;
+using static CommunicationsApp.Models.Enums;
 
 namespace CommunicationsApp.Hubs
 {
-    public class ChatHub : Hub
+    public class CommunicationsHub : Hub
     {
-        public Task JoinChannel(string channelId)
+        public Task JoinBroadcastChannel(string channelId)
         {
             return Groups.AddToGroupAsync(Context.ConnectionId, channelId);
         }
@@ -24,6 +25,12 @@ namespace CommunicationsApp.Hubs
         {
             return Clients.Group(contextId)
                           .SendAsync("DataReady", contextId, dataType);
+        }
+
+        public Task NotifyMemberUpdate(string serverId, ServerUpdateType updateType, ServerProfile member)
+        {
+            return Clients.Group(serverId)
+                          .SendAsync("MemberUpdate", serverId, updateType, member);
         }
     }
 }

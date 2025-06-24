@@ -1,11 +1,12 @@
 ﻿@implements IDisposable
 @using CommunicationsApp.Components.Server
+@using static CommunicationsApp.Models.Enums
 
 @rendermode @(new InteractiveServerRenderMode(prerender: false))
 @inject NavigationManager NavigationManager
 @inject IdentityUserAccessor UserAccessor
 @inject AuthenticationStateProvider ASP
-@inject ChatHubService ChatHubService
+@inject CommunicationsHubService ChatHubService
 @inject IServerService ServerService
 @inject IUserService UserService
 
@@ -128,17 +129,9 @@
 
     protected override async Task OnInitializedAsync()
     {
-        try
-        {
-            await ChatHubService.StartAsync();
-        }
-        catch (TaskCanceledException ex)
-        {
-            await Task.Delay(500);
-            await ChatHubService.StartAsync();
-        }
-        await ChatHubService.JoinChannelAsync("dataReady");
+        await ChatHubService.StartAsync();
         ChatHubService.ChannelMessageReceived += OnChannelMessageReceived;
+        ChatHubService.MemberUpdateReceived += OnMemberUpdateReceived;
         var authState = await ASP.GetAuthenticationStateAsync();
         UserId = authState.User.Claims.Where(c => c.Type.Contains("nameidentifier")).First().Value;
 
@@ -148,16 +141,15 @@
 
             foreach (var server in User.Servers)
             {
+                await ChatHubService.JoinBroadcastChannelAsync(server.Id!);
                 foreach (var channelClass in server.ChannelClasses)
                 {
                     foreach (var channel in channelClass.Channels)
                     {
-                        await ChatHubService.JoinChannelAsync(channel.Id!);
+                        await ChatHubService.JoinBroadcastChannelAsync(channel.Id!);
                     }
                 }
             }
-
-            await ChatHubService.NotifyDataReadyAsync("dataReady", "mainLayout");
 
             StateHasChanged();
         }
@@ -200,6 +192,24 @@
         }
     }
 
+    private async void OnMemberUpdateReceived(string serverId, ServerUpdateType updateType, ServerProfile member)
+    {
+        switch (updateType)
+        {
+            case ServerUpdateType.MemberJoined:
+                var server = User.Servers.FirstOrDefault(s => s.Id == serverId);
+                if (server is not null)
+                {
+                    if (!server.Members.Any(m => m.Id == member.Id))
+                    {
+                        server.Members.Add(member);
+                        await UserService.UpdateCacheAsync(User);
+                    }
+                }
+                break;
+        }
+    }
+
     private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
     {
         currentUrl = NavigationManager.ToBaseRelativePath(e.Location);
@@ -220,5 +230,6 @@
     {
         NavigationManager.LocationChanged -= OnLocationChanged;
         ChatHubService.ChannelMessageReceived -= OnChannelMessageReceived;
+        ChatHubService.MemberUpdateReceived -= OnMemberUpdateReceived;
     }
 }

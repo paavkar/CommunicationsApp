@@ -5,15 +5,17 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
 using System.Text;
 using System.Text.Json;
+using static CommunicationsApp.Models.Enums;
 
 namespace CommunicationsApp.Services
 {
-    public class ChatHubService(
+    public class CommunicationsHubService(
         NavigationManager navigationManager,
-        ILogger<ChatHubService> logger) : IAsyncDisposable
+        ILogger<CommunicationsHubService> logger) : IAsyncDisposable
     {
         public HubConnection HubConnection { get; private set; }
         public event Action<string, string, ChatMessage>? ChannelMessageReceived;
+        public event Action<string, ServerUpdateType, ServerProfile>? MemberUpdateReceived;
         public event Action<string, string>? DataReady;
 
         private void EnsureHubConnection()
@@ -44,6 +46,13 @@ namespace CommunicationsApp.Services
                     Console.WriteLine($"On: {contextId}");
                     DataReady?.Invoke(contextId, dataType);
                 });
+
+                HubConnection.On<string, ServerUpdateType, ServerProfile>(
+                    "MemberUpdate",
+                    (serverId, updateType, member) =>
+                    {
+                        MemberUpdateReceived?.Invoke(serverId, updateType, member);
+                    });
             }
         }
 
@@ -56,14 +65,14 @@ namespace CommunicationsApp.Services
             }
         }
 
-        public async Task JoinChannelAsync(string channelId)
+        public async Task JoinBroadcastChannelAsync(string channelId)
         {
             EnsureHubConnection();
             if (HubConnection.State != HubConnectionState.Connected)
             {
                 return;
             }
-            await HubConnection.SendAsync("JoinChannel", channelId);
+            await HubConnection.SendAsync("JoinBroadcastChannel", channelId);
         }
 
         public async Task<dynamic> SendMessageAsync(string serverId, string channelId, ChatMessage message)
@@ -100,6 +109,16 @@ namespace CommunicationsApp.Services
                 return;
             }
             await HubConnection.InvokeAsync("NotifyDataReady", contextId, dataType);
+        }
+
+        public async Task NotifyMemberUpdateAsync(string serverId, ServerUpdateType updateType, ServerProfile member)
+        {
+            EnsureHubConnection();
+            if (HubConnection.State != HubConnectionState.Connected)
+            {
+                return;
+            }
+            await HubConnection.InvokeAsync("NotifyMemberUpdate", serverId, updateType, member);
         }
 
         public async ValueTask DisposeAsync()

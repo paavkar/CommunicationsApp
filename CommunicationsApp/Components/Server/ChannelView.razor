@@ -1,10 +1,11 @@
 ﻿@implements IDisposable
 @page "/channels/{ServerId}/{ChannelId}"
+@using static CommunicationsApp.Models.Enums
 @rendermode @(new InteractiveServerRenderMode(prerender: false))
 
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider ASP
-@inject ChatHubService ChatHubService
+@inject CommunicationsHubService ChatHubService
 @inject IServerService ServerService
 @inject IToastService ToastService
 @inject IJSRuntime JS
@@ -160,6 +161,7 @@ else
     protected override void OnInitialized()
     {
         ChatHubService.ChannelMessageReceived += OnChannelMessageReceived;
+        ChatHubService.MemberUpdateReceived += OnMemberUpdateReceived;
     }
 
     protected override async Task OnInitializedAsync()
@@ -214,6 +216,24 @@ else
         }
     }
 
+    private async void OnMemberUpdateReceived(string serverId, ServerUpdateType updateType, ServerProfile member)
+    {
+        if (ServerId == serverId)
+        {
+            switch (updateType)
+            {
+                case ServerUpdateType.MemberJoined:
+                    if (Server != null && !Server.Members.Any(m => m.UserId == member.UserId))
+                    {
+                        Server.Members.Add(member);
+                        Server.Members = Server.Members.OrderBy(m => m.DisplayName).ToList();
+                        await InvokeAsync(StateHasChanged);
+                    }
+                    break;
+            }
+        }
+    }
+
     private async Task SendMessageAsync()
     {
         if (string.IsNullOrWhiteSpace(NewMessage.Content))
@@ -250,5 +270,6 @@ else
     public void Dispose()
     {
         ChatHubService.ChannelMessageReceived -= OnChannelMessageReceived;
+        ChatHubService.MemberUpdateReceived -= OnMemberUpdateReceived;
     }
 }

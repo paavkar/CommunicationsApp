@@ -74,7 +74,7 @@ builder.Services.AddScoped<CosmosDbFactory>();
 builder.Services.AddScoped<ICosmosDbService, CosmosDbService>();
 builder.Services.AddScoped<IServerService, ServerService>();
 builder.Services.AddScoped<IUserService, UserService>();
-builder.Services.AddScoped<ChatHubService>();
+builder.Services.AddScoped<CommunicationsHubService>();
 
 var app = builder.Build();
 
@@ -105,6 +105,6 @@ app.UseAuthorization();
 app.MapAdditionalIdentityEndpoints();
 app.MapControllers();
 
-app.MapHub<CommunicationsApp.Hubs.ChatHub>("/chathub");
+app.MapHub<CommunicationsApp.Hubs.CommunicationsHub>("/chathub");
 
 app.Run();

@@ -258,7 +258,7 @@ namespace CommunicationsApp.Services
 
             await UpdateCacheAsync(server.Id, server);
 
-            return new { Succeeded = true, Server = server };
+            return new { Succeeded = true, Server = server, ServerProfile = serverProfile };
         }
 
         public async Task<Server?> GetServerFromDatabaseAsync(string sql, object queryParameters)

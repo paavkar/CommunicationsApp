@@ -2,7 +2,7 @@
 @inject NavigationManager NavigationManager
 @inject IdentityUserAccessor UserAccessor
 @inject AuthenticationStateProvider ASP
-@inject ChatHubService ChatHubService
+@inject CommunicationsHubService ChatHubService
 @inject IServerService ServerService
 @inject IUserService UserService
 
@@ -83,16 +83,12 @@
         if (result.Succeeded)
         {
             Server server = result.Server;
-            foreach (var channelClass in server.ChannelClasses)
-            {
-                foreach (var channel in channelClass.Channels)
-                {
-                    await ChatHubService.JoinChannelAsync(channel.Id);
-                }
-            }
-            var navUrl = $"channels/{server.Id}/{server.ChannelClasses.First()?.Channels.First()?.Id}";
+            ServerProfile serverProfile = result.ServerProfile;
+            User.ServerProfiles.Add(serverProfile);
             User.Servers.Add(server);
             await UserService.UpdateCacheAsync(User);
+            await ChatHubService.NotifyMemberUpdateAsync(server.Id, ServerUpdateType.MemberJoined, serverProfile);
+            var navUrl = $"channels/{server.Id}/{server.ChannelClasses.First()?.Channels.First()?.Id}";
             NavigationManager.NavigateTo(navUrl, forceLoad: true);
             await Dialog.CloseAsync();
         }
