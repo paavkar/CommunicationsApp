@@ -1,8 +1,12 @@
-﻿@rendermode InteractiveServer
+﻿@using static CommunicationsApp.Models.Enums
+@rendermode InteractiveServer
 
+@inject CommunicationsHubService CommunicationsHubService
+@inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider ASP
 @inject IServerService ServerService
 @inject IDialogService DialogService
+@inject IUserService UserService
 
 @if (LoadingState.IsLoading)
 {
@@ -27,12 +31,20 @@ else
                         @bind-Open="OpenServerMenu"
                         Anchor="btnOpenServerMenu"
                         VerticalThreshold="200"
-                        HorizontalThreshold="200"
                         HorizontalPosition="HorizontalPosition.Center">
                     <FluentMenuItem OnClick="@OpenInvitationModalAsync">
                         Invite people
                         <FluentIcon Value="@(new Size20.PeopleAdd())" Slot="end" />
                     </FluentMenuItem>
+                    @if (!IsServerOwner)
+                    {
+                        <FluentDivider />
+                        <FluentMenuItem OnClick="@LeaveServerAsync">
+                            <FluentLabel Color="Color.Error">Leave server</FluentLabel>
+                            <FluentIcon Value="@(new Size20.DoorArrowRight())" Color="Color.Error" Slot="end" />
+                        </FluentMenuItem>
+                    }
+                    
                 </FluentMenu>
             </FluentCard>
         </FluentStack>
@@ -61,6 +73,8 @@ else
     public string? ServerId { get; set; }
     public string? UserId { get; set; }
     public Server? Server { get; set; }
+    public ApplicationUser? User { get; set; }
+    public bool IsServerOwner { get; set; } = false;
     public bool OpenServerMenu = false;
     public bool ChannelClassesExpanded = true;
     public LoadingState LoadingState { get; set; } = new();
@@ -68,21 +82,74 @@ else
     protected override async Task OnInitializedAsync()
     {
         var authState = await ASP.GetAuthenticationStateAsync();
-        var UserId = authState.User.Claims.Where(c => c.Type.Contains("nameidentifier")).First().Value;
+        UserId = authState.User.Claims.Where(c => c.Type.Contains("nameidentifier")).First().Value;
         if (!string.IsNullOrEmpty(ServerId) && !string.IsNullOrEmpty(UserId))
         {
             Server = await ServerService.GetServerByIdAsync(ServerId, UserId);
+            if (Server is null)
+            {
+                NavigationManager.NavigateTo("/", forceLoad: true);
+                return;
+            }
+            User = await UserService.GetUserByIdAsync(UserId);
+            IsServerOwner = Server.OwnerId == UserId;
             LoadingState.IsLoading = false;
         }
     }
 
     private async Task OpenInvitationModalAsync()
     {
-
         var dialog = await DialogService.ShowDialogAsync<ServerInvitationModal>(Server, new DialogParameters()
         {
             Title = $"Invite people to the server {Server.Name}",
             Height = "25em",
         });
+    }
+
+    private async void LeaveServerAsync()
+    {
+        if (Server != null)
+        {
+            var dialog = await DialogService.ShowConfirmationAsync(
+                $"Are you sure you want to leave the server {Server.Name}?",
+                "Leave",
+                "Cancel",
+                "Leave Server"
+            );
+            var dialogResult = await dialog.Result;
+            if (dialogResult.Cancelled)
+            {
+                return;
+            }
+            var result = await ServerService.LeaveServerAsync(Server.Id, UserId);
+            if (result.Succeeded)
+            {
+                var serverProfile = Server.Members.FirstOrDefault(m => m.UserId == UserId);
+                if (serverProfile != null)
+                {
+                    await CommunicationsHubService.LeaveBroadcastChannelAsync(Server.Id);
+                    foreach (var channel in Server.ChannelClasses.SelectMany(cc => cc.Channels))
+                    {
+                        await CommunicationsHubService.LeaveBroadcastChannelAsync(channel.Id);
+                    }
+                    Server = await ServerService.GetServerByIdAsync(Server.Id, UserId);
+                    Server.Members.RemoveAll(sp => sp.Id == serverProfile.Id);
+                    await ServerService.UpdateCacheAsync(Server.Id, Server);
+                    User.ServerProfiles.RemoveAll(sp => sp.ServerId == Server.Id);
+                    var removed = User.Servers.RemoveAll(s => s.Id == Server.Id);
+                    await UserService.UpdateCacheAsync(User);
+                    await CommunicationsHubService.NotifyMemberUpdateAsync(
+                        Server.Id,
+                        ServerUpdateType.MemberLeft,
+                        serverProfile
+                    );
+                }
+                NavigationManager.NavigateTo("/", forceLoad: true);
+            }
+            else
+            {
+                Console.WriteLine("Failed to leave server.");
+            }
+        }
     }
 }

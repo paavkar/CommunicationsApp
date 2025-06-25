@@ -10,5 +10,6 @@ namespace CommunicationsApp.Interfaces
         Task<Server?> GetServerFromDatabaseAsync(string serverId, string userId);
         Task UpdateCacheAsync(string serverId, Server server);
         Task<dynamic> JoinServerByInvitationCode(string code, ApplicationUser user);
+        Task<dynamic> LeaveServerAsync(string serverId, string userId);
     }
 }

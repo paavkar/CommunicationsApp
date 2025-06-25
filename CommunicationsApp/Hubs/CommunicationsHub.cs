@@ -11,7 +11,7 @@ namespace CommunicationsApp.Hubs
             return Groups.AddToGroupAsync(Context.ConnectionId, channelId);
         }
 
-        public Task LeaveChannel(string channelId) =>
+        public Task LeaveBroadcastChannel(string channelId) =>
             Groups.RemoveFromGroupAsync(Context.ConnectionId, channelId);
 
         public Task SendMessageToChannel(string serverId, string channelId, ChatMessage message)

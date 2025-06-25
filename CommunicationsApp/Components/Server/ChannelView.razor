@@ -230,6 +230,13 @@ else
                         await InvokeAsync(StateHasChanged);
                     }
                     break;
+                case ServerUpdateType.MemberLeft:
+                    if (Server != null)
+                    {
+                        Server.Members.RemoveAll(m => m.Id == member.Id);
+                        await InvokeAsync(StateHasChanged);
+                    }
+                    break;
             }
         }
     }
