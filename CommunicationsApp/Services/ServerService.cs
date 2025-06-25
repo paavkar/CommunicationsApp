@@ -392,5 +392,36 @@ namespace CommunicationsApp.Services
             }
             await cache.SetAsync($"server_{serverId}", server);
         }
+
+        public async Task<dynamic> LeaveServerAsync(string serverId, string userId)
+        {
+            var deleteServerProfileQuery = """
+                DELETE FROM ServerProfiles
+                WHERE ServerId = @serverId AND UserId = @userId
+                """;
+            using var connection = GetConnection();
+            connection.Open();
+            using SqlTransaction transaction = connection.BeginTransaction();
+            try
+            {
+                var rowsAffected = await connection.ExecuteAsync(deleteServerProfileQuery, new { serverId, userId }, transaction);
+                if (rowsAffected > 0)
+                {
+                    transaction.Commit();
+                    return new { Succeeded = true };
+                }
+                else
+                {
+                    transaction.Rollback();
+                    return new { Succeeded = false, ErrorMessage = "Failed to leave server." };
+                }
+            }
+            catch (Exception e)
+            {
+                transaction.Rollback();
+                Console.WriteLine($"Error: {e.Message}");
+                return new { Succeeded = false, ErrorMessage = e.Message };
+            }
+        }
     }
 }

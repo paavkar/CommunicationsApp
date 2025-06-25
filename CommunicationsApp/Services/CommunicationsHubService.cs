@@ -32,8 +32,6 @@ namespace CommunicationsApp.Services
                   .WithAutomaticReconnect()
                   .Build();
 
-                Console.WriteLine($"[ChatHubService] New HubConnection instance hash: {HubConnection.GetHashCode()}");
-
                 HubConnection.On<string, string, ChatMessage>(
                     "ReceiveChannelMessage",
                     (serverId, channelId, message) =>
@@ -43,7 +41,6 @@ namespace CommunicationsApp.Services
 
                 HubConnection.On<string, string>("DataReady", (contextId, dataType) =>
                 {
-                    Console.WriteLine($"On: {contextId}");
                     DataReady?.Invoke(contextId, dataType);
                 });
 
@@ -73,6 +70,16 @@ namespace CommunicationsApp.Services
                 return;
             }
             await HubConnection.SendAsync("JoinBroadcastChannel", channelId);
+        }
+
+        public async Task LeaveBroadcastChannelAsync(string channelId)
+        {
+            EnsureHubConnection();
+            if (HubConnection.State != HubConnectionState.Connected)
+            {
+                return;
+            }
+            await HubConnection.SendAsync("LeaveBroadcastChannel", channelId);
         }
 
         public async Task<dynamic> SendMessageAsync(string serverId, string channelId, ChatMessage message)

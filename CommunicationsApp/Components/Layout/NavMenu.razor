@@ -198,13 +198,18 @@
         {
             case ServerUpdateType.MemberJoined:
                 var server = User.Servers.FirstOrDefault(s => s.Id == serverId);
-                if (server is not null)
+                if (server is not null && !server.Members.Any(m => m.Id == member.Id))
                 {
-                    if (!server.Members.Any(m => m.Id == member.Id))
-                    {
-                        server.Members.Add(member);
-                        await UserService.UpdateCacheAsync(User);
-                    }
+                    server.Members.Add(member);
+                    await UserService.UpdateCacheAsync(User);
+                }
+                break;
+            case ServerUpdateType.MemberLeft:
+                var serverToUpdate = User.Servers.FirstOrDefault(s => s.Id == serverId);
+                if (serverToUpdate is not null)
+                {
+                    serverToUpdate.Members.RemoveAll(m => m.Id == member.Id);
+                    await UserService.UpdateCacheAsync(User);
                 }
                 break;
         }
