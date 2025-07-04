@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 
 @inject CommunicationsHubService CommunicationsHubService
+@inject IStringLocalizer<CommunicationsAppLoc> Localizer
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider ASP
 @inject IServerService ServerService
@@ -33,14 +34,14 @@ else
                         VerticalThreshold="200"
                         HorizontalPosition="HorizontalPosition.Center">
                     <FluentMenuItem OnClick="@OpenInvitationModalAsync">
-                        Invite people
+                        @Localizer["InvitePeople"]
                         <FluentIcon Value="@(new Size20.PeopleAdd())" Slot="end" />
                     </FluentMenuItem>
                     @if (!IsServerOwner)
                     {
                         <FluentDivider />
                         <FluentMenuItem OnClick="@LeaveServerAsync">
-                            <FluentLabel Color="Color.Error">Leave server</FluentLabel>
+                            <FluentLabel Color="Color.Error">@Localizer["LeaveServer"]</FluentLabel>
                             <FluentIcon Value="@(new Size20.DoorArrowRight())" Color="Color.Error" Slot="end" />
                         </FluentMenuItem>
                     }
@@ -101,7 +102,7 @@ else
     {
         var dialog = await DialogService.ShowDialogAsync<ServerInvitationModal>(Server, new DialogParameters()
         {
-            Title = $"Invite people to the server {Server.Name}",
+            Title = $"{Localizer["InvitePeopleTo"]} {Server.Name}",
             Height = "25em",
         });
     }
@@ -111,10 +112,10 @@ else
         if (Server != null)
         {
             var dialog = await DialogService.ShowConfirmationAsync(
-                $"Are you sure you want to leave the server {Server.Name}?",
-                "Leave",
-                "Cancel",
-                "Leave Server"
+                $"{Localizer["LeaveServerConfirmation"]} {Server.Name}?",
+                Localizer["Leave"],
+                Localizer["Cancel"],
+                Localizer["LeaveServer"]
             );
             var dialogResult = await dialog.Result;
             if (dialogResult.Cancelled)

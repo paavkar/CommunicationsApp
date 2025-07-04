@@ -3,9 +3,10 @@
 @using static CommunicationsApp.Models.Enums
 @rendermode @(new InteractiveServerRenderMode(prerender: false))
 
+@inject IStringLocalizer<CommunicationsAppLoc> Localizer
+@inject CommunicationsHubService ChatHubService
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider ASP
-@inject CommunicationsHubService ChatHubService
 @inject IServerService ServerService
 @inject IToastService ToastService
 @inject IJSRuntime JS
@@ -41,7 +42,7 @@ else
                                 Style="justify-self: flex-end;">
                     <FluentIcon Value="@(new Size24.PeopleCommunity())" Slot="start" />
                     <FluentTooltip Anchor="btnDisplayMemberList" Position="TooltipPosition.Left">
-                        @(DisplayMemberList ? "Hide member list" : "Display member list")
+                    @(DisplayMemberList ? Localizer["HideMemberList"] : Localizer["DisplayMemberList"])
                     </FluentTooltip>
                 </FluentButton>
         </FluentStack>
@@ -56,7 +57,7 @@ else
                         <FluentLabel Weight="FontWeight.Bold"
                                         Typo="Typography.Subject"
                                         Alignment="HorizontalAlignment.Center">
-                            Welcome to channel #@Channel.Name!
+                            @Localizer["WelcomeToChannel"] #@Channel.Name!
                         </FluentLabel>
                         <FluentLabel>
                             This is where the fun begins
@@ -97,7 +98,7 @@ else
                 <FluentStack Style="height: 5em; position: relative; width: 100%; position: sticky; bottom: 0;
                                     align-self: start; padding-bottom: 1em;" Id="textAreaStack">
                     <FluentTextArea @bind-Value="NewMessage.Content"
-                                    Placeholder="Type your message here..."
+                                    Placeholder="@($"{Localizer["SendMessage"]} #{Channel.Name}")"
                                     Style="width: 100%; padding: 0 1em;"
                                     Id="channelMessageTextArea"
                                     Maxlength="400" />
@@ -129,7 +130,7 @@ else
                                         {
                                             <FluentIcon Id="serverOwner" Value="@(new Size20.Crown())" />
                                             <FluentTooltip Anchor="serverOwner">
-                                                Server owner
+                                                @Localizer["ServerOwner"]
                                             </FluentTooltip>
                                         }
                                     </FluentLabel>

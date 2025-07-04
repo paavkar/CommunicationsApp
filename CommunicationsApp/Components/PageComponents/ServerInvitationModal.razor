@@ -1,11 +1,11 @@
 ﻿@implements IDialogContentComponent<Server>
+@inject IStringLocalizer<CommunicationsAppLoc> Localizer
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JS
 
 @* Header *@
 <FluentDialogHeader>
     <FluentStack VerticalAlignment="VerticalAlignment.Center">
-        @* <FluentIcon Value="@(new Size20.Crown())" /> *@
         <FluentLabel Typo="Typography.Subject">
             @Dialog.Instance.Parameters.Title
         </FluentLabel>
@@ -16,7 +16,7 @@
 <FluentDialogFooter>
     <FluentStack Orientation="Orientation.Vertical">
         <FluentLabel>
-            Send the server's invitation link to someone
+            @Localizer["SendInvitation"]
         </FluentLabel>
         <FluentTextField ReadOnly Style="width: 100%;"
                          Value="@InvitationLink">
@@ -41,10 +41,11 @@
     [CascadingParameter]
     public FluentDialog Dialog { get; set; } = default!;
     private string InvitationLink { get; set; }
-    private string TooltipText { get; set; } = "Copy link";
+    private string TooltipText { get; set; }
 
     protected override void OnInitialized()
     {
+        TooltipText = Localizer["CopyLink"];
         InvitationLink = $"{NavigationManager.BaseUri}{(string.IsNullOrEmpty(Content.CustomInvitationCode)
                                          ? Content.InvitationCode
                                          : Content.CustomInvitationCode)}";
@@ -53,7 +54,7 @@
     private async void CopyLink()
     {
         await JS.InvokeVoidAsync("navigator.clipboard.writeText", InvitationLink);
-        TooltipText = "Link copied!";
+        TooltipText = Localizer["LinkCopied"];
         StateHasChanged();
     }
 }

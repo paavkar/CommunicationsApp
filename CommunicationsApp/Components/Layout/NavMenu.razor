@@ -3,10 +3,11 @@
 @using static CommunicationsApp.Models.Enums
 
 @rendermode @(new InteractiveServerRenderMode(prerender: false))
+@inject IStringLocalizer<CommunicationsAppLoc> Localizer
+@inject CommunicationsHubService ChatHubService
 @inject NavigationManager NavigationManager
 @inject IdentityUserAccessor UserAccessor
 @inject AuthenticationStateProvider ASP
-@inject CommunicationsHubService ChatHubService
 @inject IServerService ServerService
 @inject IUserService UserService
 
@@ -93,13 +94,15 @@
                                                 <input type="hidden" name="ReturnUrl" value="@currentUrl" />
                                                 <FluentButton BackgroundColor="rgba(0,0,0,0)"
                                                               IconStart="@(new Size20.SignOut())" Type="ButtonType.Submit">
-                                                    Logout
+                                                @Localizer["LogOut"]
                                                 </FluentButton>
                                             </form>
                                         </FluentMenuItem>
                                     </FluentMenu>
                                 }
-                                <FluentTooltip Anchor="btnOpenSettings" Position="TooltipPosition.Top">Open settings</FluentTooltip>
+                                <FluentTooltip Anchor="btnOpenSettings" Position="TooltipPosition.Top">
+                                    @Localizer["OpenSettings"]
+                                </FluentTooltip>
                                 <FluentButton Id="btnOpenSettings" BackgroundColor="rgba(0,0,0,0)" 
                                     OnClick="@(() => OpenSettingsMenu = !OpenSettingsMenu)">
                                     <FluentIcon Value="@(new Size24.Settings())" />

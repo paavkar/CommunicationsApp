@@ -1,13 +1,13 @@
 ﻿@implements IDialogContentComponent
-@inject IDialogService DialogService
+@inject IStringLocalizer<CommunicationsAppLoc> Localizer
 @inject AuthenticationStateProvider ASP
+@inject IDialogService DialogService
 
 @* Header *@
 <FluentDialogHeader>
     <FluentStack VerticalAlignment="VerticalAlignment.Center">
-        @* <FluentIcon Value="@(new Size20.Crown())" /> *@
         <FluentLabel Typo="Typography.PaneHeader">
-            Create own server
+            @Localizer["CreateOwnServer"]
         </FluentLabel>
     </FluentStack>
 </FluentDialogHeader>
@@ -16,10 +16,10 @@
 <FluentDialogFooter>
     <FluentStack Orientation="Orientation.Vertical">
         <FluentLabel>
-            Do you already have an invitation?
+            @Localizer["AlreadyInvitation"]
         </FluentLabel>
         <FluentButton OnClick="@OpenJoinServerModal">
-            Join server
+            @Localizer["JoinServer"]
         </FluentButton>
     </FluentStack>
 </FluentDialogFooter>
@@ -29,7 +29,7 @@
     <FluentStack Orientation="Orientation.Vertical" Style="overflow-y: auto">
         <FluentButton OnClick="@OpenNewServerModal" Style="width: 10em;">
             <FluentIcon Value="@(new Size20.Add())" />
-            Create own
+            @Localizer["CreateOwn"]
         </FluentButton>
     </FluentStack>
 </FluentDialogBody>
@@ -62,7 +62,7 @@
         };
         var dialog = await DialogService.ShowDialogAsync<NewServerModal>(newServer, new DialogParameters()
         {
-            Title = "Create New Server",
+            Title = Localizer["CreateNewServer"],
             Height = "25em",
         });
         await Dialog.CloseAsync();
@@ -72,7 +72,7 @@
     {
         var dialog = await DialogService.ShowDialogAsync<JoinServerModal>(new DialogParameters
         {
-            Title = "Join Server",
+            Title = Localizer["JoinServer"],
             Height = "32em",
             Width = "30em"
         });

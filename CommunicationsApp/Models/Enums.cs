@@ -5,15 +5,15 @@
         public enum ServerType
         {
             Public = 0,
-            Private = 1,
-            Community = 2
+            Private,
+            Community,
         }
 
         public enum ServerUpdateType
         {
             MemberJoined = 0,
-            MemberLeft = 1,
-            MemberUpdated = 2,
+            MemberLeft,
+            MemberUpdated,
         }
     }
 }

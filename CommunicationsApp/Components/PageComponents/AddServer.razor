@@ -1,10 +1,11 @@
 ﻿@rendermode InteractiveServer
 @inject IDialogService DialogService
+@inject IStringLocalizer<CommunicationsAppLoc> Localizer
 
 <FluentCard Id="addServerCard" Style="display: flex; padding: 0; height: 3.5em; width: 3.5em; margin: 0 auto;
                                       justify-content: center;">
     <FluentTooltip Anchor="btnAddServer" Position="TooltipPosition.Right">
-        Add server
+        @Localizer["AddServer"]
     </FluentTooltip>
     <FluentButton Id="btnAddServer" OnClick="@OpenAddServerModal" 
         Style="width: 2em; margin: 0 auto; align-self: center;"

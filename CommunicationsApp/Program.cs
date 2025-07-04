@@ -76,6 +76,11 @@ builder.Services.AddScoped<IServerService, ServerService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<CommunicationsHubService>();
 
+builder.Services.AddLocalization(options =>
+{
+    options.ResourcesPath = "Resources";
+});
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -91,6 +96,14 @@ else
 }
 
 app.UseHttpsRedirection();
+
+var supportedCultures = new[] { "en-GB", "fi-FI" };
+var localizationOptions = new RequestLocalizationOptions()
+    .SetDefaultCulture(supportedCultures[0])
+    .AddSupportedCultures(supportedCultures)
+    .AddSupportedUICultures(supportedCultures);
+
+app.UseRequestLocalization(localizationOptions);
 
 app.UseAntiforgery();
 

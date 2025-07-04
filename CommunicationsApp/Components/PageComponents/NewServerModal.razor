@@ -1,4 +1,5 @@
 ﻿@implements IDialogContentComponent<Server>
+@inject IStringLocalizer<CommunicationsAppLoc> Localizer
 @inject NavigationManager NavigationManager
 @inject IdentityUserAccessor UserAccessor
 @inject AuthenticationStateProvider ASP
@@ -8,7 +9,6 @@
 @* Header *@
 <FluentDialogHeader>
     <FluentStack VerticalAlignment="VerticalAlignment.Center">
-        @* <FluentIcon Value="@(new Size20.Crown())" /> *@
         <FluentLabel Typo="Typography.PaneHeader">
             @Dialog.Instance.Parameters.Title
         </FluentLabel>
@@ -17,18 +17,18 @@
 
 @* Footer *@
 <FluentDialogFooter>
-    <FluentButton Appearance="Appearance.Accent" OnClick="@SaveAsync">Save</FluentButton>
-    <FluentButton Appearance="Appearance.Neutral" OnClick="@CancelAsync">Cancel</FluentButton>
+    <FluentButton Appearance="Appearance.Accent" OnClick="@SaveAsync">@Localizer["Save"]</FluentButton>
+    <FluentButton Appearance="Appearance.Neutral" OnClick="@CancelAsync">@Localizer["Cancel"]</FluentButton>
 </FluentDialogFooter>
 
 @* Body *@
 <FluentDialogBody>
     <FluentStack Orientation="Orientation.Vertical" Style="overflow-y: auto; height: 15em;">
         <FluentTextField @bind-Value="Content.Name" 
-                         Placeholder="Server Name" Style="width: 100%;" Label="Server name" />
+                         Placeholder="@Localizer["ServerName"]" Style="width: 100%;" Label="@Localizer["ServerName"]" />
         <FluentTextArea @bind-Value="Content.Description"
-                         Placeholder="Server description" Style="width: 100%;" Rows="4"
-                         Label="(Optional) Server description" />
+                        Placeholder="@Localizer["OptionalServerDescription"]" Style="width: 100%;" Rows="4"
+                        Label="@Localizer["OptionalServerDescription"]" />
     </FluentStack>
 </FluentDialogBody>
 

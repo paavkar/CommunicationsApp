@@ -7,73 +7,75 @@
 @using Microsoft.AspNetCore.WebUtilities
 @using CommunicationsApp.Data
 
-@inject UserManager<ApplicationUser> UserManager
-@inject IUserStore<ApplicationUser> UserStore
+@inject IStringLocalizer<CommunicationsAppLoc> Localizer
 @inject SignInManager<ApplicationUser> SignInManager
 @inject IEmailSender<ApplicationUser> EmailSender
-@inject ILogger<Register> Logger
-@inject NavigationManager NavigationManager
+@inject UserManager<ApplicationUser> UserManager
 @inject IdentityRedirectManager RedirectManager
+@inject IUserStore<ApplicationUser> UserStore
+@inject NavigationManager NavigationManager
+@inject ILogger<Register> Logger
 
-<PageTitle>Register</PageTitle>
-
+<PageTitle>@Localizer["Register"]</PageTitle>
 
 <FluentStack Orientation="Orientation.Vertical"
     HorizontalAlignment="HorizontalAlignment.Center">
-    <h1>Register</h1>
+    <h1>@Localizer["Register"]</h1>
     <StatusMessage Message="@Message" />
     <FluentStack HorizontalAlignment="HorizontalAlignment.Center">
         <EditForm Model="Input" asp-route-returnUrl="@ReturnUrl" method="post"
                     OnValidSubmit="RegisterUser" FormName="register" style="width: 40em;">
             <DataAnnotationsValidator />
-            <h2>Create a new account.</h2>
+            <h2>@Localizer["CreateNewAccount"]</h2>
             <hr />
             <ValidationSummary class="text-danger" role="alert" />
             <div class="form-floating mb-3">
                 <InputText @bind-Value="Input.Email" id="Input.Email" class="form-control"
                             autocomplete="username" aria-required="true" placeholder="name@example.com" />
-                <label for="Input.Email">Email</label>
+                <label for="Input.Email">@Localizer["Email"]</label>
                 <ValidationMessage For="() => Input.Email" class="text-danger" />
             </div>
             <div class="form-floating mb-3">
                 <InputText @bind-Value="Input.UserName" id="Input.UserName" class="form-control"
-                            autocomplete="username" aria-required="true" placeholder="username" />
-                <label for="Input.UserName">Username</label>
+                           autocomplete="username" aria-required="true"
+                           placeholder="@Localizer["Username"].ToString().ToLower()"  />
+                <label for="Input.UserName">@Localizer["Username"]</label>
                 <ValidationMessage For="() => Input.UserName" class="text-danger" />
             </div>
             <div class="form-floating mb-3">
                 <InputText @bind-Value="Input.DisplayName" id="Input.DisplayName"
                             class="form-control" autocomplete="username" aria-required="true"
-                            placeholder="display name" />
-                <label for="Input.DisplayName">Display Name</label>
+                           placeholder="@Localizer["DisplayName"].ToString().ToLower()" />
+                <label for="Input.DisplayName">@Localizer["DisplayName"]</label>
                 <ValidationMessage For="() => Input.DisplayName" class="text-danger" />
             </div>
             <div class="form-floating mb-3">
                 <InputText type="password" @bind-Value="Input.Password" id="Input.Password"
                             class="form-control" autocomplete="new-password" aria-required="true"
-                            placeholder="password" />
-                <label for="Input.Password">Password</label>
+                           placeholder=@Localizer["Password"].ToString().ToLower() />
+                <label for="Input.Password">@Localizer["Password"]</label>
                 <ValidationMessage For="() => Input.Password" class="text-danger" />
             </div>
             <div class="form-floating mb-3">
                 <InputText type="password" @bind-Value="Input.ConfirmPassword"
                             id="Input.ConfirmPassword" class="form-control" autocomplete="new-password"
-                            aria-required="true" placeholder="password" />
-                <label for="Input.ConfirmPassword">Confirm Password</label>
+                           aria-required="true" placeholder=@Localizer["Password"].ToString().ToLower() />
+                <label for="Input.ConfirmPassword">@Localizer["ConfirmPassword"]</label>
                 <ValidationMessage For="() => Input.ConfirmPassword" class="text-danger" />
             </div>
             <button type="submit" class="w-50 btn btn-lg btn-primary d-block mx-auto">
-                Register
+                @Localizer["Register"]
             </button>
             <div>
                 <p>
-                    <a href="Account/Login">Already have an account? Log in here</a>
+                    <a href="Account/Login">@Localizer["AlreadyHaveAccount"]</a>
                 </p>
             </div>
         </EditForm>
         <FluentStack Style="width: 30em;">
             <section>
-                <h3>Use another service to register.</h3>
+                <h3>
+                    @Localizer["UseAnotherServiceRegister"]</h3>
                 <hr />
                 <ExternalLoginPicker />
             </section>

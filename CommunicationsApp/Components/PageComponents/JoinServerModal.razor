@@ -1,8 +1,10 @@
 ﻿@implements IDialogContentComponent
+
+@inject IStringLocalizer<CommunicationsAppLoc> Localizer
+@inject CommunicationsHubService ChatHubService
 @inject NavigationManager NavigationManager
 @inject IdentityUserAccessor UserAccessor
 @inject AuthenticationStateProvider ASP
-@inject CommunicationsHubService ChatHubService
 @inject IServerService ServerService
 @inject IUserService UserService
 
@@ -14,7 +16,7 @@
             @Dialog.Instance.Parameters.Title
         </FluentLabel>
         <FluentLabel>
-            Join an existing server by pasting the invitation below
+            @Localizer["JoinExistingServerPaste"]
         </FluentLabel>
     </FluentStack>
 </FluentDialogHeader>
@@ -22,9 +24,9 @@
 @* Footer *@
 <FluentDialogFooter>
     <FluentStack HorizontalAlignment="HorizontalAlignment.SpaceBetween">
-        <FluentButton>Go back</FluentButton>
+        <FluentButton>@Localizer["GoBack"]</FluentButton>
         <FluentButton Appearance="Appearance.Accent" OnClick="@SaveAsync">
-            Join server
+            @Localizer["JoinServer"]
         </FluentButton>
     </FluentStack>
 </FluentDialogFooter>
@@ -33,9 +35,9 @@
 <FluentDialogBody>
     <FluentStack Orientation="Orientation.Vertical" Style="overflow-y: auto">
         <FluentTextField @bind-Value="InvitationCode" Required Style="width: 100%; height: 4em;"
-            Placeholder="Server invitation link or code"
-            Label="Server invitation" />
-        <FluentLabel Typo="Typography.Subject">Invitations should look like the following ones:</FluentLabel>
+                         Placeholder="@Localizer["InvitationCodeOrLink"]"
+                         Label="@Localizer["ServerInvitation"]" />
+        <FluentLabel Typo="Typography.Subject">@Localizer["InvitationsVisual"]</FluentLabel>
         <FluentLabel Style="font-size: 0.9em; cursor: default;">
             DpeXAdBQSXe2oyVnSxRGew
         </FluentLabel>
@@ -65,7 +67,7 @@
     {
         if (string.IsNullOrWhiteSpace(InvitationCode))
         {
-            Console.WriteLine("Invitation code cannot be empty.");
+            Console.WriteLine(Localizer["EmptyInvitation"]);
             return;
         }
         if (Uri.TryCreate(InvitationCode, UriKind.Absolute, out var uri))
@@ -74,7 +76,7 @@
         }
         if (User.Servers.Any(s => s.InvitationCode == InvitationCode || s.CustomInvitationCode == InvitationCode))
         {
-            Console.WriteLine("You are already a member of this server.");
+            Console.WriteLine(Localizer["AlreadyMember"]);
             return;
         }
         
