@@ -9,8 +9,8 @@
         public string DisplayName { get; set; } = string.Empty;
         public string ProfilePictureUrl { get; set; } = string.Empty;
         public string BannerUrl { get; set; } = string.Empty;
-        public DateTimeOffset? CreatedAt { get; set; }
-        public DateTimeOffset? JoinedAt { get; set; }
+        public DateTimeOffset CreatedAt { get; set; }
+        public DateTimeOffset JoinedAt { get; set; }
         public string Status { get; set; } = string.Empty;
         public string Bio { get; set; } = string.Empty;
 
@@ -21,8 +21,8 @@
         {
             return $"ServerProfile [Id={Id ?? "null"}, UserId={UserId}, UserName={UserName}, " +
                    $"ServerId={ServerId}, DisplayName={DisplayName}, ProfilePictureUrl={ProfilePictureUrl}, " +
-                   $"BannerUrl={BannerUrl}, CreatedAt={(CreatedAt?.ToString() ?? "null")}, " +
-                   $"JoinedAt={(JoinedAt?.ToString() ?? "null")}, Status={Status}, Bio={Bio}]";
+                   $"BannerUrl={BannerUrl}, CreatedAt={(CreatedAt.ToString() ?? "null")}, " +
+                   $"JoinedAt={(JoinedAt.ToString() ?? "null")}, Status={Status}, Bio={Bio}]";
         }
     }
 }

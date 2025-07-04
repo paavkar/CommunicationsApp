@@ -213,6 +213,9 @@
   <data name="LogOut" xml:space="preserve">
     <value>Kirjaudu ulos</value>
   </data>
+  <data name="MemberSince" xml:space="preserve">
+    <value>Jäsen alkaen</value>
+  </data>
   <data name="OpenSettings" xml:space="preserve">
     <value>Avaa asetukset</value>
   </data>

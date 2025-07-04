@@ -1,0 +1,32 @@
+﻿@inject IStringLocalizer<CommunicationsAppLoc> Localizer
+@inject IJSRuntime JS
+
+<FluentStack Orientation="Orientation.Vertical">
+    <FluentPersona Image="@(!string.IsNullOrEmpty(Profile.ProfilePictureUrl)
+                                    ? Profile.ProfilePictureUrl
+                                    : new Size48.Person().ToDataUri(size: "40px", color: "white"))"
+                ImageSize="80px"
+                Status="PresenceStatus.Available">
+    </FluentPersona>
+    <FluentLabel Weight="FontWeight.Bold" Style="font-size: 1.2em;">@Profile.DisplayName</FluentLabel>
+    <FluentLabel>@Profile.UserName</FluentLabel>
+    <FluentLabel>@Profile.Bio</FluentLabel>
+    <FluentStack Orientation="Orientation.Vertical" VerticalGap="0">
+        <FluentLabel Style="font-size: 0.9em;" Weight="FontWeight.Bold">@Localizer["MemberSince"]</FluentLabel>
+        <FluentStack>
+            <FluentLabel>@Profile.CreatedAt.AddHours(TimeZoneOffset).ToString("dd.MM.yyy")</FluentLabel>
+            <FluentLabel>@Profile.JoinedAt.AddHours(TimeZoneOffset).ToString("dd.MM.yyy")</FluentLabel>
+        </FluentStack>
+    </FluentStack>
+</FluentStack>
+
+@code {
+    [Parameter]
+    public ServerProfile Profile { get; set; }
+    public int TimeZoneOffset { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        TimeZoneOffset = await JS.InvokeAsync<int>("timeZoneHelper.getTimeZone");
+    }
+}

@@ -66,7 +66,19 @@ else
                     <FluentStack Orientation="Orientation.Vertical" Style="flex-grow: 1;">
                         @foreach (var message in Channel!.Messages)
                         {
+                            var displayNameId = $"senderDisplayName-{message.Id}";
+                            var popoverId = $"popover-{message.Id}";
+
                             <FluentStack>
+                                <FluentPopover AnchorId=@displayNameId 
+                                    Open="@(OpenPopoverId == popoverId)"
+                                    OpenChanged="@((bool isOpen) => OnPopoverOpenChanged(popoverId, isOpen))"
+                                    Style="width: 300px; border-radius: 0.5em;"
+                                               VerticalPosition="VerticalPosition.Top" VerticalThreshold="200">
+                                    <Body>
+                                        <ProfileCard Profile="@message.Sender" />
+                                    </Body>
+                                </FluentPopover>
                                 <FluentCard Style="border-radius: 0; padding: 10px;">
                                     <FluentStack>
                                         <FluentPersona Image="@(!string.IsNullOrEmpty(message.Sender.ProfilePictureUrl)
@@ -77,7 +89,9 @@ else
                                         </FluentPersona>
                                         <FluentStack Orientation="Orientation.Vertical" VerticalGap="0">
                                             <FluentStack>
-                                                <FluentLabel Weight="FontWeight.Bold" Style="font-size: 1.1em;">
+                                                <FluentLabel Id=@displayNameId Weight="FontWeight.Bold"
+                                                    Style="font-size: 1.1em; cursor: pointer;"
+                                                 @onclick="() => OnPopoverOpenChanged(popoverId, OpenPopoverId != popoverId)">
                                                     @message.Sender.DisplayName
                                                 </FluentLabel>
                                                 <FluentLabel Style="font-size: 0.9em;">
@@ -158,6 +172,7 @@ else
     public int TimeZoneOffset { get; set; }
     public string? TitleString { get; set; }
     public bool DisplayMemberList = false;
+    private string? OpenPopoverId { get; set; }
 
     protected override void OnInitialized()
     {
@@ -209,6 +224,7 @@ else
         {
             Channel.Messages.Add(message);
             await InvokeAsync(StateHasChanged);
+            await Task.Delay(100);
             bool autoScroll = await JS.InvokeAsync<bool>("chatScroll.shouldScroll", "channelMessageView");
             if (autoScroll)
             {
@@ -273,6 +289,14 @@ else
         }
 
         NewMessage = new();
+    }
+
+    private void OnPopoverOpenChanged(string popoverId, bool isOpen)
+    {
+        if (isOpen)
+            OpenPopoverId = popoverId;
+        else if (OpenPopoverId == popoverId)
+            OpenPopoverId = null;
     }
 
     public void Dispose()
