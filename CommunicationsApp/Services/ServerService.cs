@@ -135,27 +135,19 @@ namespace CommunicationsApp.Services
             }
         }
 
-        public async Task<Server?> GetServerByIdAsync(string serverId, string userId)
+        public async Task<Server?> GetServerByIdAsync(string serverId)
         {
             var cachedServer = await cache.GetOrCreateAsync<Server>(
                 $"server_{serverId}",
                 factory: async entry =>
                 {
-                    return await GetServerFromDatabaseAsync(serverId, userId);
+                    return await GetServerFromDatabaseAsync(serverId);
                 }
             );
-            if (cachedServer is null)
-            {
-                await cache.RemoveAsync($"server_{serverId}");
-                return null;
-            }
-            else
-            {
-                return cachedServer.Members.All(m => m.UserId != userId) ? null : cachedServer;
-            }
+            return cachedServer;
         }
 
-        public async Task<Server?> GetServerFromDatabaseAsync(string serverId, string userId)
+        public async Task<Server?> GetServerFromDatabaseAsync(string serverId)
         {
             var getServerQuery = """
                 SELECT
@@ -172,24 +164,13 @@ namespace CommunicationsApp.Services
                 LEFT JOIN Channels c ON c.ChannelClassId = cc.Id
                 LEFT JOIN ServerProfiles sp ON sp.ServerId = s.Id
                 WHERE s.Id = @serverId
-                AND sp.UserId = @userId
                 """;
-            var server = await GetServerFromDatabaseAsync(getServerQuery, new { serverId, userId });
+            var server = await GetServerFromDatabaseAsync(getServerQuery, new { serverId });
             if (server is null)
             {
                 return null;
             }
-
-            var serverProfileQuery = """
-                SELECT sp.*, sr.Id AS ServerRoleId, sr.*
-                FROM ServerProfiles sp
-                LEFT JOIN UserServerRoles usr ON usr.ServerId = sp.ServerId AND usr.UserId = sp.UserId
-                LEFT JOIN ServerRoles sr ON sr.Id = usr.RoleId
-                WHERE sp.ServerId = @serverId
-                """;
-
-            server = await GetServerWithMembersAsync(serverProfileQuery, new { serverId = server.Id }, server);
-
+            
             return server ?? null;
         }
 
@@ -304,7 +285,7 @@ namespace CommunicationsApp.Services
                     {
                         member.Roles ??= [];
                         member = currentServer.Members.FirstOrDefault(m => m.Id == member.Id) ?? member;
-                        if (userServerRole.RoleId != null)
+                        if (userServerRole.RoleId != null && userServerRole.UserId == member.UserId)
                         {
                             var roleToAdd = currentServer.Roles.FirstOrDefault(r => r.Id == userServerRole.RoleId);
                             if (roleToAdd != null && !member.Roles.Any(r => r.Id == roleToAdd.Id))
@@ -408,6 +389,9 @@ namespace CommunicationsApp.Services
                 if (rowsAffected > 0)
                 {
                     transaction.Commit();
+                    var server = await GetServerFromDatabaseAsync(serverId);
+                    server.Members.RemoveAll(m => m.UserId == userId);
+                    await UpdateCacheAsync(serverId, server);
                     return new { Succeeded = true };
                 }
                 else

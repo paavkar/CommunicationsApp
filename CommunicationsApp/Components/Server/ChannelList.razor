@@ -86,7 +86,7 @@ else
         UserId = authState.User.Claims.Where(c => c.Type.Contains("nameidentifier")).First().Value;
         if (!string.IsNullOrEmpty(ServerId) && !string.IsNullOrEmpty(UserId))
         {
-            Server = await ServerService.GetServerByIdAsync(ServerId, UserId);
+            Server = await ServerService.GetServerByIdAsync(ServerId);
             if (Server is null)
             {
                 NavigationManager.NavigateTo("/", forceLoad: true);
@@ -133,9 +133,6 @@ else
                     {
                         await CommunicationsHubService.LeaveBroadcastChannelAsync(channel.Id);
                     }
-                    Server = await ServerService.GetServerByIdAsync(Server.Id, UserId);
-                    Server.Members.RemoveAll(sp => sp.Id == serverProfile.Id);
-                    await ServerService.UpdateCacheAsync(Server.Id, Server);
                     User.ServerProfiles.RemoveAll(sp => sp.ServerId == Server.Id);
                     var removed = User.Servers.RemoveAll(s => s.Id == Server.Id);
                     await UserService.UpdateCacheAsync(User);

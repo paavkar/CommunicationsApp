@@ -179,7 +179,7 @@
 
     private async void OnChannelMessageReceived(string serverId, string channelId, ChatMessage message)
     {
-        var server = await ServerService.GetServerByIdAsync(serverId, UserId);
+        var server = await ServerService.GetServerByIdAsync(serverId);
         if (server != null)
         {
             var channel = server.ChannelClasses

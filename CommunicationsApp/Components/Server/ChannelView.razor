@@ -189,7 +189,7 @@ else
         {
             return;
         }
-        Server = await ServerService.GetServerByIdAsync(ServerId, UserId);
+        Server = await ServerService.GetServerByIdAsync(ServerId);
         if (Server == null || Server.Members.All(m => m.UserId != UserId))
         {
             NavigationManager.NavigateTo("/");
