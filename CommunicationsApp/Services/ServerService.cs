@@ -166,11 +166,15 @@ namespace CommunicationsApp.Services
                 WHERE s.Id = @serverId
                 """;
             var server = await GetServerFromDatabaseAsync(getServerQuery, new { serverId });
-            if (server is null)
+            if (server is not null)
             {
-                return null;
+                server.ChannelClasses = [.. server.ChannelClasses.OrderBy(cc => cc.OrderNumber)];
+                foreach (var channelClass in server.ChannelClasses)
+                {
+                    channelClass.Channels = [.. channelClass.Channels.OrderBy(c => c.OrderNumber)];
+                }
             }
-            
+
             return server ?? null;
         }
 
@@ -195,7 +199,7 @@ namespace CommunicationsApp.Services
                 OR s.CustomInvitationCode = @code
                 """;
             var server = await GetServerFromDatabaseAsync(getServerQuery, new { code });
-            
+
             if (server is null)
             {
                 return new { Succeeded = false, ErrorMessage = "There is no server associated with given invitation." };
@@ -398,6 +402,79 @@ namespace CommunicationsApp.Services
                 {
                     transaction.Rollback();
                     return new { Succeeded = false, ErrorMessage = "Failed to leave server." };
+                }
+            }
+            catch (Exception e)
+            {
+                transaction.Rollback();
+                Console.WriteLine($"Error: {e.Message}");
+                return new { Succeeded = false, ErrorMessage = e.Message };
+            }
+        }
+
+        public async Task<dynamic> AddChannelClassAsync(ChannelClass channelClass)
+        {
+            var server = await GetServerByIdAsync(channelClass.ServerId);
+            server.ChannelClasses.Add(channelClass);
+            var insertChannelClassQuery = """
+                INSERT INTO ChannelClasses (Id, Name, ServerId, IsPrivate, OrderNumber)
+                VALUES (@Id, @Name, @ServerId, @IsPrivate, @OrderNumber)
+                """;
+            using var connection = GetConnection();
+            connection.Open();
+            using SqlTransaction transaction = connection.BeginTransaction();
+            try
+            {
+                var rowsAffected = await connection.ExecuteAsync(insertChannelClassQuery, channelClass, transaction);
+                if (rowsAffected > 0)
+                {
+                    transaction.Commit();
+                    await UpdateCacheAsync(server.Id!, server);
+                    return new { Succeeded = true, ChannelClass = channelClass };
+                }
+                else
+                {
+                    transaction.Rollback();
+                    return new { Succeeded = false, ErrorMessage = "Failed to add channel class." };
+                }
+            }
+            catch (Exception e)
+            {
+                transaction.Rollback();
+                Console.WriteLine($"Error: {e.Message}");
+                return new { Succeeded = false, ErrorMessage = e.Message };
+            }
+        }
+
+        public async Task<dynamic> AddChannelAsync(string channelClassId, Channel channel)
+        {
+            var server = await GetServerByIdAsync(channel.ServerId);
+            var channelClass = server.ChannelClasses.FirstOrDefault(cc => cc.Id == channelClassId);
+            if (channelClass == null)
+            {
+                return new { Succeeded = false, ErrorMessage = "Channel class not found." };
+            }
+            channelClass.Channels.Add(channel);
+            var insertChannelQuery = """
+                INSERT INTO Channels (Id, Name, ServerId, ChannelClassId, Description, IsPrivate, OrderNumber, CreatedAt)
+                VALUES (@Id, @Name, @ServerId, @ChannelClassId, @Description, @IsPrivate, @OrderNumber, @CreatedAt)
+                """;
+            using var connection = GetConnection();
+            connection.Open();
+            using SqlTransaction transaction = connection.BeginTransaction();
+            try
+            {
+                var rowsAffected = await connection.ExecuteAsync(insertChannelQuery, channel, transaction);
+                if (rowsAffected > 0)
+                {
+                    transaction.Commit();
+                    await UpdateCacheAsync(server.Id!, server);
+                    return new { Succeeded = true, Channel = channel };
+                }
+                else
+                {
+                    transaction.Rollback();
+                    return new { Succeeded = false, ErrorMessage = "Failed to add channel." };
                 }
             }
             catch (Exception e)
