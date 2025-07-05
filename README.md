@@ -9,18 +9,22 @@ Technologies used:
 - ASP.NET Core Identity
 - Azure Cosmos DB for NoSQL,
 - Blazor,
+- Dapper,
 - Fluent UI,
 - SignalR,
-- SQL Server.
+- MS SQL Server.
 
 HybridCache is used to cache user and server info to minimize database calls.
 
 ## Running locally
 
-NOTE! The app targets .NET 10, so currently you need the [preview](https://dotnet.microsoft.com/en-us/download/dotnet/10.0) version of it.
+### Development requirements
 
-This software uses ASP.NET Core Identity to provide user authentication, so you need an SQL Server database for it.
-Individual messages are in turn stored in an Azure Cosmos DB for NoSQL, so you should have at least the [emulator](https://learn.microsoft.com/en-us/azure/cosmos-db/how-to-develop-emulator?tabs=windows%2Ccsharp&pivots=api-nosql) available.
+- [.NET 10 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/10.0)
+- [SQL Server](https://learn.microsoft.com/en-us/sql/linux/quickstart-install-connect-docker?view=sql-server-linux-ver16&preserve-view=true&tabs=cli&pivots=cs1-bash#pullandrun2022)
+- [Azure Cosmos DB emulator](https://learn.microsoft.com/en-us/azure/cosmos-db/how-to-develop-emulator?tabs=docker-linux%2Ccsharp&pivots=api-nosql)
+
+### Application secrets
 
 The application expects the following variables to be set up:
 ```
@@ -35,13 +39,13 @@ The application expects the following variables to be set up:
 }
 ```
 If you're using the Cosmos DB Emulator, you're able to use its default values.  
-The values being 
+The values being
 
-```localhost:8081``` for endpoint,
+`localhost:8081` for endpoint,
 
-```C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==``` for key, and
+`C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==` for key, and
 
-```AccountEndpoint=https://localhost:8081/;AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==;``` for connection string.
+`AccountEndpoint=https://localhost:8081/;AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==;` for connection string.
 
-For the SQL Server database, you need to run the migration(s) first. You can do this with the ```Update-Database```
-command if you're using the VS Package Manager Console, or ```dotnet ef database update``` if you're using the CLI.
+For the SQL Server database, you need to run the migration(s) first. You can do this with the `Update-Database`
+command if you're using the VS Package Manager Console, or `dotnet ef database update` if you're using the CLI.
