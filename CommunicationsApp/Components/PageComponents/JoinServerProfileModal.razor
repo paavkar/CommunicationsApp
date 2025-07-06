@@ -1,0 +1,102 @@
+﻿@implements IDialogContentComponent<Server>
+
+@inject IStringLocalizer<CommunicationsAppLoc> Localizer
+@inject CommunicationsHubService ChatHubService
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider ASP
+@inject IServerService ServerService
+@inject IUserService UserService
+
+@* Header *@
+<FluentDialogHeader>
+    <FluentStack Orientation="Orientation.Vertical" VerticalAlignment="VerticalAlignment.Center"
+                 HorizontalAlignment="HorizontalAlignment.Center">
+        <FluentLabel Typo="Typography.PaneHeader">
+            @Dialog.Instance.Parameters.Title
+        </FluentLabel>
+    </FluentStack>
+</FluentDialogHeader>
+
+@* Footer *@
+<FluentDialogFooter>
+    <FluentStack HorizontalAlignment="HorizontalAlignment.SpaceBetween">
+        <FluentButton>@Localizer["GoBack"]</FluentButton>
+        <FluentButton Appearance="Appearance.Accent" OnClick="@SaveAsync">
+            @Localizer["JoinServer"]
+        </FluentButton>
+    </FluentStack>
+</FluentDialogFooter>
+
+@* Body *@
+<FluentDialogBody>
+    <FluentStack Orientation="Orientation.Vertical" Style="overflow-y: auto">
+
+        @if (User != null && Profile != null)
+        {
+            <FluentTextField @bind-Value="Profile.DisplayName" Style="width: 100%;"
+                             Placeholder="@User.DisplayName"
+                             Label="@Localizer["ServerProfileDisplayName"]" />
+
+            <FluentTextField @bind-Value="Profile.Status" Style="width: 100%;"
+                             Placeholder="@User.Status"
+                             Label="@Localizer["ServerProfileStatus"]" />
+        }
+
+    </FluentStack>
+</FluentDialogBody>
+
+@code {
+    [Parameter]
+    public Server Content { get; set; } = default!;
+    [CascadingParameter]
+    public FluentDialog Dialog { get; set; } = default!;
+    private ApplicationUser User { get; set; }
+    private ServerProfile Profile { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await ASP.GetAuthenticationStateAsync();
+        var UserId = authState.User.Claims.Where(c => c.Type.Contains("nameidentifier")).First().Value;
+        User = await UserService.GetUserByIdAsync(UserId);
+
+        Profile = new()
+        {
+            Id = Guid.CreateVersion7().ToString(),
+            UserId = User.Id,
+            UserName = User.UserName,
+            ServerId = Content.Id,
+            ProfilePictureUrl = User.ProfilePictureUrl,
+            BannerUrl = User.BannerUrl,
+            CreatedAt = User.CreatedAt,
+            JoinedAt = DateTimeOffset.UtcNow,
+            Bio = User.Bio
+        };
+    }
+
+    private async Task SaveAsync()
+    {
+        Profile.DisplayName = Profile.DisplayName.Trim();
+        Profile.Status = Profile.Status.Trim();
+        if (string.IsNullOrWhiteSpace(Profile.DisplayName))
+        {
+            Profile.DisplayName = User.DisplayName;
+        }
+        if (string.IsNullOrEmpty(Profile.Status))
+        {
+            Profile.Status = User.Status;
+        }
+        var result = await ServerService.JoinServerAsync(Content, Profile);
+
+        if (result.Succeeded)
+        {
+            Content = result.Server;
+            User.ServerProfiles.Add(Profile);
+            User.Servers.Add(Content);
+            await UserService.UpdateCacheAsync(User);
+            await ChatHubService.NotifyMemberUpdateAsync(Content.Id, ServerUpdateType.MemberJoined, Profile);
+            var navUrl = $"channels/{Content.Id}/{Content.ChannelClasses.First()?.Channels.First()?.Id}";
+            NavigationManager.NavigateTo(navUrl, forceLoad: true);
+            await Dialog.CloseAsync();
+        }
+    }
+}

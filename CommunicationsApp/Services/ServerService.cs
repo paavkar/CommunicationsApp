@@ -178,9 +178,8 @@ namespace CommunicationsApp.Services
             return server ?? null;
         }
 
-        public async Task<dynamic> JoinServerByInvitationCode(string code, ApplicationUser user)
+        public async Task<dynamic> GetServerByInvitationAsync(string invitationCode)
         {
-            var serverDictionary = new Dictionary<string, Server>();
             var getServerQuery = """
                 SELECT
                     s.*,
@@ -195,37 +194,24 @@ namespace CommunicationsApp.Services
                 LEFT JOIN ChannelClasses cc ON cc.ServerId = s.Id
                 LEFT JOIN Channels c ON c.ChannelClassId = cc.Id
                 LEFT JOIN ServerProfiles sp ON sp.ServerId = s.Id
-                WHERE s.InvitationCode = @code
-                OR s.CustomInvitationCode = @code
+                WHERE s.InvitationCode = @invitationCode OR s.CustomInvitationCode = @invitationCode
                 """;
-            var server = await GetServerFromDatabaseAsync(getServerQuery, new { code });
-
+            var server = await GetServerFromDatabaseAsync(getServerQuery, new { invitationCode });
             if (server is null)
             {
                 return new { Succeeded = false, ErrorMessage = "There is no server associated with given invitation." };
             }
+            return new { Succeeded = true, Server = server };
+        }
 
-            ServerProfile serverProfile = new()
-            {
-                Id = Guid.CreateVersion7().ToString(),
-                UserId = user.Id,
-                UserName = user.UserName,
-                ServerId = server.Id,
-                DisplayName = user.DisplayName,
-                ProfilePictureUrl = user.ProfilePictureUrl,
-                BannerUrl = user.BannerUrl,
-                CreatedAt = user.CreatedAt,
-                JoinedAt = DateTimeOffset.UtcNow,
-                Status = user.Status,
-                Bio = user.Bio
-            };
-
+        public async Task<dynamic> JoinServerAsync(Server server, ServerProfile profile)
+        {
             var insertServerProfileQuery = """
                 INSERT INTO ServerProfiles (Id, UserId, UserName, ServerId, DisplayName, ProfilePictureUrl, BannerUrl, CreatedAt, JoinedAt, Status, Bio)
                 VALUES (@Id, @UserId, @UserName, @ServerId, @DisplayName, @ProfilePictureUrl, @BannerUrl, @CreatedAt, @JoinedAt, @Status, @Bio)
                 """;
             using var connection = GetConnection();
-            var rowsAffected = await connection.ExecuteAsync(insertServerProfileQuery, serverProfile);
+            var rowsAffected = await connection.ExecuteAsync(insertServerProfileQuery, profile);
             if (rowsAffected <= 0)
             {
                 return new { Succeeded = false, ErrorMessage = "Failed to join server." };
@@ -243,7 +229,7 @@ namespace CommunicationsApp.Services
 
             await UpdateCacheAsync(server.Id, server);
 
-            return new { Succeeded = true, Server = server, ServerProfile = serverProfile };
+            return new { Succeeded = true, Server = server };
         }
 
         public async Task<Server?> GetServerFromDatabaseAsync(string sql, object queryParameters)

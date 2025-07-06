@@ -267,4 +267,16 @@
   <data name="WelcomeToChannel" xml:space="preserve">
     <value>Tervetuloa kanavalle</value>
   </data>
+  <data name="ServerProfileDisplayName" xml:space="preserve">
+    <value>Näyttönimi palvelinprofiilille</value>
+  </data>
+  <data name="ServerProfileStatus" xml:space="preserve">
+    <value>Tekstistatus palvelinprofiilille</value>
+  </data>
+  <data name="SetServerProfileDisplayNameStatus" xml:space="preserve">
+    <value>Aseta näyttönimi ja tekstistatus palvelinprofiilille</value>
+  </data>
+  <data name="SetServerProfile" xml:space="preserve">
+    <value>Aseta palvelinprofiili palvelimelle</value>
+  </data>
 </root>

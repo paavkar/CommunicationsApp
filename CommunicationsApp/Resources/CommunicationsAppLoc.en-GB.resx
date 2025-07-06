@@ -267,4 +267,16 @@
   <data name="WelcomeToChannel" xml:space="preserve">
     <value>Welcome to channel</value>
   </data>
+  <data name="ServerProfileDisplayName" xml:space="preserve">
+    <value>Display name for the server profile</value>
+  </data>
+  <data name="ServerProfileStatus" xml:space="preserve">
+    <value>Text status for the server profile</value>
+  </data>
+  <data name="SetServerProfileDisplayNameStatus" xml:space="preserve">
+    <value>Set display name and text status for the server profile</value>
+  </data>
+  <data name="SetServerProfile" xml:space="preserve">
+    <value>Set the server profile for server</value>
+  </data>
 </root>
