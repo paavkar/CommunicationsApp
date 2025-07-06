@@ -15,67 +15,75 @@
 
 <FluentStack Orientation="Orientation.Vertical" Style="min-width: 28em; width: 28em; height: 100%; overflow: hidden;"
     VerticalGap="0">
-    <FluentStack Style="width: 100%; flex-grow: 1; overflow: hidden; height: 100%;" HorizontalGap="0"
-        onclick="document.querySelector('.navbar-toggler').click()">
-        <nav class="nav flex-column overflow-x-hidden" 
-            style="overflow-y: auto; height: 100%; border-right: solid 0.1em; min-width: 5em;">
-            <AuthorizeView>
-                <Authorized>
-                    <FluentStack Orientation="Orientation.Vertical" 
-                    Style="flex-grow: 1; overflow-y: auto; scrollbar-width: none; padding-top: 10px;">
-                        @if (User != null && User.Servers.Any())
-                        {
-                            foreach (var server in User.Servers)
-                            {
-                                var buttonId = $"btnServerButton-{server.Id}";
-                                <FluentCard Style="display: flex; padding: 0; height: 3.5em; width: 3.5em; margin: 0 auto;
-                                                   justify-content: center;">
-                                    <FluentButton BackgroundColor="rgba(0,0,0,0)" Id="@buttonId" 
-                                                  Style="padding: 0; align-self: center;"
-                                                  OnClick="@(() => NavigationManager.NavigateTo($"channels/{server.Id}/{server.ChannelClasses.First().Channels.First().Id}"))">
-                                        <FluentTooltip Anchor="@buttonId" Position="TooltipPosition.Right">
-                                            @server.Name
-                                        </FluentTooltip>
-                                        @if (!string.IsNullOrEmpty(server.IconUrl))
-                                        {
-                                            <img src="@server.IconUrl" alt="@server.Name" width="50" />
-                                        }
-                                        else
-                                        {
-                                            <FluentLabel>
-                                                @(
-                                                    string.Concat(server.Name
-                                                    .Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)
-                                                    .Select(word => char.ToUpper(word[0])))
-                                                 )
-                                            </FluentLabel>
-                                            }
-                                    </FluentButton>
-                                </FluentCard>
-                            }
-                        }
-                        <AddServer />
-                    </FluentStack>
-                </Authorized>
-            </AuthorizeView>
-        </nav>
-        <FluentStack Orientation="Orientation.Vertical" Style="height: 100%; width: 23em; min-width: 23em;" VerticalGap="0">
-            @if (ChannelView)
-            {
-                <ChannelList @key="@ServerId" ServerId="@ServerId" />
-            }
+    @if (IsLoading)
+    {
+        <FluentStack Style="flex-grow: 1; display: flex; justify-content: center; align-items: center; height: 100%;">
+            <FluentProgressRing />
         </FluentStack>
-    </FluentStack>
-    <AuthorizeView>
-        <Authorized>
-            <FluentStack Style="position: sticky; bottom: 0; z-index: 10;">
-                <FluentCard Height="5em" Width="100%" Style="padding: 10px; margin: 0 0.4em 0.4em">
-                    <FluentStack>
+    }
+    else
+    {
+        <FluentStack Style="width: 100%; flex-grow: 1; overflow: hidden; height: 100%;" HorizontalGap="0"
+                     onclick="document.querySelector('.navbar-toggler').click()">
+            <nav class="nav flex-column overflow-x-hidden"
+                 style="overflow-y: auto; height: 100%; border-right: solid 0.1em; min-width: 5em;">
+                <AuthorizeView>
+                    <Authorized>
+                        <FluentStack Orientation="Orientation.Vertical"
+                                     Style="flex-grow: 1; overflow-y: auto; scrollbar-width: none; padding-top: 10px;">
+                            @if (User != null && User.Servers.Any())
+                            {
+                                foreach (var server in User.Servers)
+                                {
+                                    var buttonId = $"btnServerButton-{server.Id}";
+                                    <FluentCard Style="display: flex; padding: 0; height: 3.5em; width: 3.5em; margin: 0 auto;
+                                                                justify-content: center;">
+                                        <FluentButton BackgroundColor="rgba(0,0,0,0)" Id="@buttonId"
+                                                      Style="padding: 0; align-self: center;"
+                                                      OnClick="@(() => NavigationManager.NavigateTo($"channels/{server.Id}/{server.ChannelClasses.First().Channels.First().Id}"))">
+                                            <FluentTooltip Anchor="@buttonId" Position="TooltipPosition.Right">
+                                                @server.Name
+                                            </FluentTooltip>
+                                            @if (!string.IsNullOrEmpty(server.IconUrl))
+                                            {
+                                                <img src="@server.IconUrl" alt="@server.Name" width="50" />
+                                            }
+                                            else
+                                            {
+                                                <FluentLabel>
+                                                    @(
+                                                        string.Concat(server.Name
+                                                        .Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)
+                                                        .Select(word => char.ToUpper(word[0])))
+                                                    )
+                                                </FluentLabel>
+                                            }
+                                        </FluentButton>
+                                    </FluentCard>
+                                }
+                            }
+                            <AddServer />
+                        </FluentStack>
+                    </Authorized>
+                </AuthorizeView>
+            </nav>
+            <FluentStack Orientation="Orientation.Vertical" Style="height: 100%; width: 23em; min-width: 23em;" VerticalGap="0">
+                @if (ChannelView)
+                {
+                    <ChannelList @key="@ServerId" ServerId="@ServerId" />
+                }
+            </FluentStack>
+        </FluentStack>
+        <AuthorizeView>
+            <Authorized>
+                <FluentStack Style="position: sticky; bottom: 0; z-index: 10;">
+                    <FluentCard Height="5em" Width="100%" Style="padding: 10px; margin: 0 0.4em 0.4em">
+                        <FluentStack>
                             <FluentPersona Image="@(!string.IsNullOrEmpty(User?.ProfilePictureUrl)
                                                     ? User.ProfilePictureUrl
                                                     : new Size48.Person().ToDataUri(size: "25px", color: "white"))"
-                                            ImageSize="50px"
-                                            Status="PresenceStatus.Available">
+                                       ImageSize="50px"
+                                       Status="PresenceStatus.Available">
                             </FluentPersona>
                             <FluentStack Orientation="Orientation.Vertical">
                                 <FluentLabel Weight="FontWeight.Bold" Style="font-size: 1.1em;">@User?.DisplayName</FluentLabel>
@@ -93,8 +101,8 @@
                                                 <AntiforgeryToken />
                                                 <input type="hidden" name="ReturnUrl" value="@currentUrl" />
                                                 <FluentButton BackgroundColor="rgba(0,0,0,0)"
-                                                              IconStart="@(new Size20.SignOut())" Type="ButtonType.Submit">
-                                                @Localizer["LogOut"]
+                                                                IconStart="@(new Size20.SignOut())" Type="ButtonType.Submit">
+                                                    @Localizer["LogOut"]
                                                 </FluentButton>
                                             </form>
                                         </FluentMenuItem>
@@ -103,16 +111,17 @@
                                 <FluentTooltip Anchor="btnOpenSettings" Position="TooltipPosition.Top">
                                     @Localizer["OpenSettings"]
                                 </FluentTooltip>
-                                <FluentButton Id="btnOpenSettings" BackgroundColor="rgba(0,0,0,0)" 
-                                    OnClick="@(() => OpenSettingsMenu = !OpenSettingsMenu)">
+                                <FluentButton Id="btnOpenSettings" BackgroundColor="rgba(0,0,0,0)"
+                                                OnClick="@(() => OpenSettingsMenu = !OpenSettingsMenu)">
                                     <FluentIcon Value="@(new Size24.Settings())" />
                                 </FluentButton>
                             </FluentStack>
-                    </FluentStack>
-                </FluentCard>
-            </FluentStack>
-        </Authorized>
-    </AuthorizeView>
+                        </FluentStack>
+                    </FluentCard>
+                </FluentStack>
+            </Authorized>
+        </AuthorizeView>
+    }
 </FluentStack>
 
 @code {
@@ -123,6 +132,7 @@
     public string UserId { get; set; }
     public bool OpenSettingsMenu { get; set; } = false;
     public bool RenderMenu { get; set; } = false;
+    public bool IsLoading = true;
 
     protected override void OnInitialized()
     {
@@ -153,9 +163,8 @@
                     }
                 }
             }
-
-            StateHasChanged();
         }
+        IsLoading = false;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
