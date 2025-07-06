@@ -37,6 +37,14 @@ else
                         @Localizer["InvitePeople"]
                         <FluentIcon Value="@(new Size20.PeopleAdd())" Slot="end" />
                     </FluentMenuItem>
+                    @if (IsServerOwner)
+                    {
+                        <FluentDivider />
+                        <FluentMenuItem OnClick="@AddChannelClass">
+                            @Localizer["AddChannelClass"]
+                            <FluentIcon Value="@(new Size20.CollectionsAdd())" Slot="end" />
+                        </FluentMenuItem>
+                    }
                     @if (!IsServerOwner)
                     {
                         <FluentDivider />
@@ -147,6 +155,29 @@ else
             else
             {
                 Console.WriteLine("Failed to leave server.");
+            }
+        }
+    }
+
+    private async Task AddChannelClass()
+    {
+        var dialog = await DialogService.ShowDialogAsync<AddChannelClassModal>(Server, new DialogParameters()
+        {
+            Title = Localizer["AddChannelClass"],
+        });
+        var dialogResult = await dialog.Result;
+        if (dialogResult.Cancelled)
+        {
+            return;
+        }
+        var server = dialogResult.Data as Server;
+        if (server != null)
+        {
+            var channelClasses = server.ChannelClasses.LastOrDefault();
+            if (channelClasses != null)
+            {
+                Server.ChannelClasses.Add(channelClasses);
+                StateHasChanged();
             }
         }
     }

@@ -14,6 +14,12 @@
             MemberJoined = 0,
             MemberLeft,
             MemberUpdated,
+            ChannelClassAdded,
+            ChannelClassRemoved,
+            ChannelClassUpdated,
+            ChannelAdded,
+            ChannelRemoved,
+            ChannelUpdated,
         }
     }
 }

@@ -279,4 +279,37 @@
   <data name="SetServerProfile" xml:space="preserve">
     <value>Aseta palvelinprofiili palvelimelle</value>
   </data>
+  <data name="AddChannelClass" xml:space="preserve">
+    <value>Lisää uusi kanavaluokka</value>
+  </data>
+  <data name="ChannelClassName" xml:space="preserve">
+    <value>Kanavaluokan nimi</value>
+  </data>
+  <data name="Channel" xml:space="preserve">
+    <value>Kanava</value>
+  </data>
+  <data name="ChannelName" xml:space="preserve">
+    <value>Kanavan nimi</value>
+  </data>
+  <data name="PrivateClass" xml:space="preserve">
+    <value>Yksityinen kanavaluokka</value>
+  </data>
+  <data name="PrivateChannel" xml:space="preserve">
+    <value>Yksityinen kanava</value>
+  </data>
+  <data name="NewChannelClass" xml:space="preserve">
+    <value>Uusi kanavaluokka</value>
+  </data>
+  <data name="NewChannel" xml:space="preserve">
+    <value>Uusi kanava</value>
+  </data>
+  <data name="OptionalChannelDescription" xml:space="preserve">
+    <value>(Valinnanen) Kanavan kuvaus</value>
+  </data>
+  <data name="AddChannel" xml:space="preserve">
+    <value>Lisää uusi kanava</value>
+  </data>
+  <data name="AddAlsoChannel" xml:space="preserve">
+    <value>Lisää myös kanava?</value>
+  </data>
 </root>

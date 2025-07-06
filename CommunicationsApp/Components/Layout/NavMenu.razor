@@ -145,6 +145,8 @@
         await ChatHubService.StartAsync();
         ChatHubService.ChannelMessageReceived += OnChannelMessageReceived;
         ChatHubService.MemberUpdateReceived += OnMemberUpdateReceived;
+        ChatHubService.ChannelClassUpdateReceived += OnChannelClassUpdateReceived;
+        ChatHubService.ChannelUpdateReceived += OnChannelUpdateReceived;
         var authState = await ASP.GetAuthenticationStateAsync();
         UserId = authState.User.Claims.Where(c => c.Type.Contains("nameidentifier")).First().Value;
 
@@ -221,6 +223,66 @@
                 if (serverToUpdate is not null)
                 {
                     serverToUpdate.Members.RemoveAll(m => m.Id == member.Id);
+                    await UserService.UpdateCacheAsync(User);
+                }
+                break;
+        }
+    }
+
+    private async void OnChannelClassUpdateReceived(string serverId, ServerUpdateType updateType, ChannelClass cc)
+    {
+        var server = User.Servers.FirstOrDefault(s => s.Id == serverId);
+        switch (updateType)
+        {
+            case ServerUpdateType.ChannelClassAdded:
+                if (server is not null && !server.ChannelClasses.Any(m => m.Id == cc.Id))
+                {
+                    if (cc.Channels is not null)
+                    {
+                        foreach (var channel in cc.Channels)
+                        {
+                            if (!channel.IsPrivate)
+                            {
+                                await ChatHubService.JoinBroadcastChannelAsync(channel.Id!);
+                            }
+                        }
+                    }
+                    server.ChannelClasses.Add(cc);
+                    await UserService.UpdateCacheAsync(User);
+                }
+                break;
+            case ServerUpdateType.ChannelClassRemoved:
+                if (server is not null)
+                {
+                    foreach (var channel in cc.Channels)
+                    {
+                        await ChatHubService.LeaveBroadcastChannelAsync(channel.Id!);
+                    }
+                    server.ChannelClasses.RemoveAll(m => m.Id == cc.Id);
+                    await UserService.UpdateCacheAsync(User);
+                }
+                break;
+        }
+    }
+
+    private async void OnChannelUpdateReceived(string serverId, ServerUpdateType updateType, Channel c)
+    {
+        var channelClass = User.Servers.FirstOrDefault(s => s.Id == serverId)?.ChannelClasses.FirstOrDefault(cc => cc.Id == c.ChannelClassId);
+        switch (updateType)
+        {
+            case ServerUpdateType.ChannelAdded:
+                if (channelClass is not null && !channelClass.Channels.Any(m => m.Id == c.Id))
+                {
+                    await ChatHubService.JoinBroadcastChannelAsync(c.Id!);
+                    channelClass.Channels.Add(c);
+                    await UserService.UpdateCacheAsync(User);
+                }
+                break;
+            case ServerUpdateType.ChannelRemoved:
+                if (channelClass is not null)
+                {
+                    await ChatHubService.LeaveBroadcastChannelAsync(c.Id!);
+                    channelClass.Channels.RemoveAll(m => m.Id == c.Id);
                     await UserService.UpdateCacheAsync(User);
                 }
                 break;

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.FluentUI.AspNetCore.Components;
 using System.Text;
 using System.Text.Json;
 using static CommunicationsApp.Models.Enums;
@@ -16,6 +17,8 @@ namespace CommunicationsApp.Services
         public HubConnection HubConnection { get; private set; }
         public event Action<string, string, ChatMessage>? ChannelMessageReceived;
         public event Action<string, ServerUpdateType, ServerProfile>? MemberUpdateReceived;
+        public event Action<string, ServerUpdateType, ChannelClass>? ChannelClassUpdateReceived;
+        public event Action<string, ServerUpdateType, Channel>? ChannelUpdateReceived;
         public event Action<string, string>? DataReady;
 
         private void EnsureHubConnection()
@@ -49,6 +52,20 @@ namespace CommunicationsApp.Services
                     (serverId, updateType, member) =>
                     {
                         MemberUpdateReceived?.Invoke(serverId, updateType, member);
+                    });
+
+                HubConnection.On<string, ServerUpdateType, ChannelClass>(
+                    "ChannelClassUpdate",
+                    (serverId, updateType, cc) =>
+                    {
+                        ChannelClassUpdateReceived?.Invoke(serverId, updateType, cc);
+                    });
+
+                HubConnection.On<string, ServerUpdateType, Channel>(
+                    "ChannelUpdate",
+                    (serverId, updateType, c) =>
+                    {
+                        ChannelUpdateReceived?.Invoke(serverId, updateType, c);
                     });
             }
         }
@@ -118,14 +135,76 @@ namespace CommunicationsApp.Services
             await HubConnection.InvokeAsync("NotifyDataReady", contextId, dataType);
         }
 
-        public async Task NotifyMemberUpdateAsync(string serverId, ServerUpdateType updateType, ServerProfile member)
+        public async Task<dynamic> NotifyMemberUpdateAsync(string serverId, ServerUpdateType updateType, ServerProfile member)
         {
             EnsureHubConnection();
             if (HubConnection.State != HubConnectionState.Connected)
             {
-                return;
+                return null!;
             }
-            await HubConnection.InvokeAsync("NotifyMemberUpdate", serverId, updateType, member);
+            try
+            {
+                await HubConnection.InvokeAsync("NotifyMemberUpdate", serverId, updateType, member);
+                return new { Succeeded = true };
+            }
+            catch (HubException hubEx)
+            {
+                logger.LogError(hubEx, "SignalR hub error");
+                return new { Succeeded = false, ErrorMessage = hubEx.Message };
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "General error while sending message");
+                return new { Succeeded = false, ErrorMessage = ex.Message };
+            }
+        }
+
+        public async Task<dynamic> NotifyChannelClassUpdateAsync(string serverId, ServerUpdateType updateType, ChannelClass cc)
+        {
+            EnsureHubConnection();
+            if (HubConnection.State != HubConnectionState.Connected)
+            {
+                return null!;
+            }
+            try
+            {
+                await HubConnection.InvokeAsync("NotifyChannelClassUpdate", serverId, updateType, cc);
+                return new { Succeeded = true };
+            }
+            catch (HubException hubEx)
+            {
+                logger.LogError(hubEx, "SignalR hub error");
+                return new { Succeeded = false, ErrorMessage = hubEx.Message };
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "General error while sending message");
+                return new { Succeeded = false, ErrorMessage = ex.Message };
+            }
+        }
+
+        public async Task<dynamic> NotifyChannelUpdateAsync(string serverId, ServerUpdateType updateType, Channel c)
+        {
+            EnsureHubConnection();
+            if (HubConnection.State != HubConnectionState.Connected)
+            {
+                return null!;
+            }
+            try
+            {
+                await HubConnection.InvokeAsync("NotifyChannelUpdate", serverId, updateType, c);
+                return new { Succeeded = true };
+            }
+            catch (HubException hubEx)
+            {
+                logger.LogError(hubEx, "SignalR hub error");
+                return new { Succeeded = false, ErrorMessage = hubEx.Message };
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "General error while sending message");
+                return new { Succeeded = false, ErrorMessage = ex.Message };
+            }
         }
 
         public async ValueTask DisposeAsync()

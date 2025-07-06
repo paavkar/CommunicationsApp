@@ -32,5 +32,17 @@ namespace CommunicationsApp.Hubs
             return Clients.Group(serverId)
                           .SendAsync("MemberUpdate", serverId, updateType, member);
         }
+
+        public Task NotifyChannelClassUpdate(string serverId, ServerUpdateType updateType, ChannelClass cc)
+        {
+            return Clients.Group(serverId)
+                          .SendAsync("ChannelClassUpdate", serverId, updateType, cc);
+        }
+
+        public Task NotifyChannelUpdate(string serverId, ServerUpdateType updateType, Channel c)
+        {
+            return Clients.Group(serverId)
+                          .SendAsync("ChannelUpdate", serverId, updateType, c);
+        }
     }
 }

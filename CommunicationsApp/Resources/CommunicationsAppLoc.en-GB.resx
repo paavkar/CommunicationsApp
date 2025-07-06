@@ -279,4 +279,37 @@
   <data name="SetServerProfile" xml:space="preserve">
     <value>Set the server profile for server</value>
   </data>
+  <data name="AddChannelClass" xml:space="preserve">
+    <value>Add a new channel class</value>
+  </data>
+  <data name="ChannelClassName" xml:space="preserve">
+    <value>Name for the channel class</value>
+  </data>
+  <data name="Channel" xml:space="preserve">
+    <value>Channel</value>
+  </data>
+  <data name="ChannelName" xml:space="preserve">
+    <value>Name for the channel</value>
+  </data>
+  <data name="PrivateClass" xml:space="preserve">
+    <value>Private channel class</value>
+  </data>
+  <data name="PrivateChannel" xml:space="preserve">
+    <value>Private channel</value>
+  </data>
+  <data name="NewChannelClass" xml:space="preserve">
+    <value>New channel class</value>
+  </data>
+  <data name="NewChannel" xml:space="preserve">
+    <value>New channel</value>
+  </data>
+  <data name="OptionalChannelDescription" xml:space="preserve">
+    <value>(Optional) Channel description</value>
+  </data>
+  <data name="AddChannel" xml:space="preserve">
+    <value>Add a new channel</value>
+  </data>
+  <data name="AddAlsoChannel" xml:space="preserve">
+    <value>Add also a channel?</value>
+  </data>
 </root>
