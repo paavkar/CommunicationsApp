@@ -57,6 +57,11 @@
 
     private async Task SaveAsync()
     {
+        if (string.IsNullOrWhiteSpace(ChannelClass.Name))
+        {
+            Console.WriteLine(Localizer["ChannelClassNameRequired"]);
+            return;
+        }
         if (Content.ChannelClasses.Any(cc => cc.Name == ChannelClass.Name))
         {
             return;
@@ -97,8 +102,7 @@
                 Console.WriteLine(signalResult.ErrorMessage);
                 return;
             }
-            var server = await ServerService.GetServerByIdAsync(Content.Id);
-            await Dialog.CloseAsync(server);
+            await Dialog.CloseAsync(Channel);
         }
         else
         {

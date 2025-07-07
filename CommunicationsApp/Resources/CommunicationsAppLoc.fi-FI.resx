@@ -312,4 +312,10 @@
   <data name="AddAlsoChannel" xml:space="preserve">
     <value>Lisää myös kanava?</value>
   </data>
+  <data name="SelectChannelClass" xml:space="preserve">
+    <value>Valitse uuden kanavan kanavaluokka</value>
+  </data>
+  <data name="MakeSelection" xml:space="preserve">
+    <value>Tee valinta...</value>
+  </data>
 </root>

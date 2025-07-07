@@ -44,6 +44,11 @@ else
                             @Localizer["AddChannelClass"]
                             <FluentIcon Value="@(new Size20.CollectionsAdd())" Slot="end" />
                         </FluentMenuItem>
+
+                        <FluentMenuItem OnClick="@AddChannel">
+                            @Localizer["AddChannel"]
+                            <FluentIcon Value="@(new Size20.AddCircle())" Slot="end" />
+                        </FluentMenuItem>
                     }
                     @if (!IsServerOwner)
                     {
@@ -90,6 +95,8 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        CommunicationsHubService.ChannelClassUpdateReceived += OnChannelClassUpdateReceived;
+        CommunicationsHubService.ChannelUpdateReceived += OnChannelUpdateReceived;
         var authState = await ASP.GetAuthenticationStateAsync();
         UserId = authState.User.Claims.Where(c => c.Type.Contains("nameidentifier")).First().Value;
         if (!string.IsNullOrEmpty(ServerId) && !string.IsNullOrEmpty(UserId))
@@ -170,15 +177,69 @@ else
         {
             return;
         }
-        var server = dialogResult.Data as Server;
-        if (server != null)
+    }
+
+    private async Task AddChannel()
+    {
+        var dialog = await DialogService.ShowDialogAsync<AddChannelModal>(Server, new DialogParameters()
         {
-            var channelClasses = server.ChannelClasses.LastOrDefault();
-            if (channelClasses != null)
-            {
-                Server.ChannelClasses.Add(channelClasses);
-                StateHasChanged();
-            }
+            Title = Localizer["AddChannel"],
+        });
+        var dialogResult = await dialog.Result;
+        if (dialogResult.Cancelled)
+        {
+            return;
+        }
+    }
+
+    private async void OnChannelClassUpdateReceived(string serverId, ServerUpdateType updateType, ChannelClass cc)
+    {
+        if (serverId != ServerId || Server == null)
+        {
+            return;
+        }
+        switch (updateType)
+        {
+            case ServerUpdateType.ChannelClassAdded:
+                if (!Server.ChannelClasses.Any(m => m.Id == cc.Id))
+                {
+                    Server.ChannelClasses.Add(cc);
+                }
+                await InvokeAsync(StateHasChanged);
+                break;
+            case ServerUpdateType.ChannelClassRemoved:
+                if (Server is not null)
+                {
+                    Server.ChannelClasses.RemoveAll(m => m.Id == cc.Id);
+                }
+                await InvokeAsync(StateHasChanged);
+                break;
+        }
+    }
+
+    private async void OnChannelUpdateReceived(string serverId, ServerUpdateType updateType, Channel c)
+    {
+        if (serverId != ServerId || Server == null)
+        {
+            return;
+        }
+        var channelClass = Server.ChannelClasses.FirstOrDefault(cc => cc.Id == c.ChannelClassId);
+        switch (updateType)
+        {
+            case ServerUpdateType.ChannelAdded:
+                if (channelClass is not null && !channelClass.Channels.Any(m => m.Id == c.Id))
+                {
+                    channelClass.Channels.Add(c);
+                }
+                await InvokeAsync(StateHasChanged);
+                break;
+            case ServerUpdateType.ChannelRemoved:
+                if (channelClass is not null)
+                {
+                    channelClass.Channels.RemoveAll(m => m.Id == c.Id);
+                }
+                await InvokeAsync(StateHasChanged);
+                break;
         }
     }
 }

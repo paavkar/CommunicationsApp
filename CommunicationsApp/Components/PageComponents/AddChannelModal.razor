@@ -1,0 +1,103 @@
+﻿@implements IDialogContentComponent<Server>
+
+@inject IStringLocalizer<CommunicationsAppLoc> Localizer
+@inject CommunicationsHubService CHS
+@inject IServerService ServerService
+
+@* Header *@
+<FluentDialogHeader>
+    <FluentStack Orientation="Orientation.Vertical" VerticalAlignment="VerticalAlignment.Center"
+                 HorizontalAlignment="HorizontalAlignment.Center">
+        <FluentLabel Typo="Typography.PaneHeader">
+            @Dialog.Instance.Parameters.Title
+        </FluentLabel>
+    </FluentStack>
+</FluentDialogHeader>
+
+@* Footer *@
+<FluentDialogFooter>
+    <FluentStack HorizontalAlignment="HorizontalAlignment.SpaceBetween">
+        <FluentButton Appearance="Appearance.Accent" OnClick="@SaveAsync">@Localizer["Save"]</FluentButton>
+        <FluentButton Appearance="Appearance.Neutral" OnClick="@CancelAsync">@Localizer["Cancel"]</FluentButton>
+    </FluentStack>
+</FluentDialogFooter>
+
+@* Body *@
+<FluentDialogBody>
+    <FluentStack Orientation="Orientation.Vertical" Style="overflow-y: auto;">
+        <FluentSelect TOption="ChannelClass"
+            Label="@Localizer["SelectChannelClass"]"
+            Items="@Content.ChannelClasses"
+            Placeholder="@Localizer["MakeSelection"]"
+            OptionText="@(cc => cc.Name)"
+            SelectedOptionChanged="OnChannelClassChanged" />
+        <FluentTextField @bind-Value="Channel.Name" Required
+                         Placeholder="@Localizer["NewChannel"]" Style="width: 100%;"
+                         Label="@Localizer["ChannelName"]" />
+        <FluentTextArea @bind-Value="Channel.Description"
+                        Placeholder="@Localizer["OptionalChannelDescription"]" Style="width: 100%;" Rows="4"
+                        Label="@Localizer["OptionalChannelDescription"]" />
+        <FluentSwitch @bind-Value="Channel.IsPrivate" Label="@Localizer["Private"]">
+            <span slot="checked-message">Private</span>
+            <span slot="unchecked-message">Public</span>
+        </FluentSwitch>
+
+    </FluentStack>
+</FluentDialogBody>
+
+@code {
+    [Parameter]
+    public Server Content { get; set; } = default!;
+    [CascadingParameter]
+    public FluentDialog Dialog { get; set; } = default!;
+    private ChannelClass ChannelClass { get; set; }
+    private Channel Channel { get; set; } = new();
+    private bool AddChannel { get; set; } = false;
+
+    private void OnChannelClassChanged(ChannelClass selected)
+    {
+        ChannelClass = selected;
+        if (selected != null && selected.IsPrivate)
+            Channel.IsPrivate = true;
+    }
+
+
+    private async Task SaveAsync()
+    {
+        if (ChannelClass == null || string.IsNullOrEmpty(Channel.Name))
+        {
+            return;
+        }
+        if (Content.ChannelClasses.Any(cc => cc.Channels.Any(c => c.Name == Channel.Name)))
+        {
+            return;
+        }
+
+        Channel.Id = Guid.CreateVersion7().ToString();
+        Channel.ServerId = Content.Id;
+        Channel.ChannelClassId = ChannelClass.Id;
+        Channel.OrderNumber = ChannelClass.Channels.Count + 1;
+
+        var result = await ServerService.AddChannelAsync(ChannelClass.Id, Channel);
+        if (!result.Succeeded)
+        {
+            Console.WriteLine(result.ErrorMessage);
+            return;
+        }
+
+        ChannelClass.Channels.Add(Channel);
+        var signalResult = await CHS.NotifyChannelUpdateAsync(Content.Id, ServerUpdateType.ChannelAdded, Channel);
+        if (!signalResult.Succeeded)
+        {
+            Console.WriteLine(signalResult.ErrorMessage);
+            return;
+        }
+        var server = await ServerService.GetServerByIdAsync(Content.Id);
+        await Dialog.CloseAsync(server);
+    }
+
+    private async Task CancelAsync()
+    {
+        await Dialog.CloseAsync();
+    }
+}

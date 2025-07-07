@@ -241,10 +241,7 @@
                     {
                         foreach (var channel in cc.Channels)
                         {
-                            if (!channel.IsPrivate)
-                            {
-                                await ChatHubService.JoinBroadcastChannelAsync(channel.Id!);
-                            }
+                            await ChatHubService.JoinBroadcastChannelAsync(channel.Id!);
                         }
                     }
                     server.ChannelClasses.Add(cc);

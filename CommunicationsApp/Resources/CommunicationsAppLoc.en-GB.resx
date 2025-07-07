@@ -312,4 +312,10 @@
   <data name="AddAlsoChannel" xml:space="preserve">
     <value>Add also a channel?</value>
   </data>
+  <data name="SelectChannelClass" xml:space="preserve">
+    <value>Select new channel's class</value>
+  </data>
+  <data name="MakeSelection" xml:space="preserve">
+    <value>Make a selection...</value>
+  </data>
 </root>
