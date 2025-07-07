@@ -3,6 +3,7 @@
 @inject IStringLocalizer<CommunicationsAppLoc> Localizer
 @inject CommunicationsHubService CHS
 @inject IServerService ServerService
+@inject IToastService ToastService
 
 @* Header *@
 <FluentDialogHeader>
@@ -61,18 +62,28 @@
             Channel.IsPrivate = true;
     }
 
-
     private async Task SaveAsync()
     {
-        if (ChannelClass == null || string.IsNullOrEmpty(Channel.Name))
+        var errorCount = 0;
+        if (ChannelClass == null)
         {
-            return;
+            ToastService.ShowError(Localizer["ChannelClassNotSelected"]);
+            errorCount++;
+        }
+        if (string.IsNullOrWhiteSpace(Channel.Name))
+        {
+            ToastService.ShowError(Localizer["ChannelNameRequired"]);
+            errorCount++;
         }
         if (Content.ChannelClasses.Any(cc => cc.Channels.Any(c => c.Name == Channel.Name)))
         {
+            ToastService.ShowError(Localizer["ChannelNameUnique"]);
+            errorCount++;
+        }
+        if (errorCount > 0)
+        {
             return;
         }
-
         Channel.Id = Guid.CreateVersion7().ToString();
         Channel.ServerId = Content.Id;
         Channel.ChannelClassId = ChannelClass.Id;

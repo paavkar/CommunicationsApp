@@ -3,6 +3,7 @@
 @inject IStringLocalizer<CommunicationsAppLoc> Localizer
 @inject CommunicationsHubService CHS
 @inject IServerService ServerService
+@inject IToastService ToastService
 
 @* Header *@
 <FluentDialogHeader>
@@ -57,16 +58,32 @@
 
     private async Task SaveAsync()
     {
+        var errorCount = 0;
         if (string.IsNullOrWhiteSpace(ChannelClass.Name))
         {
-            Console.WriteLine(Localizer["ChannelClassNameRequired"]);
-            return;
+            ToastService.ShowError(Localizer["ChannelClassNameRequired"]);
+            errorCount++;
         }
         if (Content.ChannelClasses.Any(cc => cc.Name == ChannelClass.Name))
         {
-            return;
+            ToastService.ShowError(Localizer["ChannelClassNameUnique"]);
+            errorCount++;
         }
-        if (AddChannel && Content.ChannelClasses.Any(cc => cc.Channels.Any(c => c.Name == Channel.Name)))
+        if (AddChannel)
+        {
+            if (string.IsNullOrWhiteSpace(Channel.Name))
+            {
+                ToastService.ShowError(Localizer["ChannelNameRequired"]);
+                errorCount++;
+            }
+            if (Content.ChannelClasses.Any(cc => cc.Channels.Any(c => c.Name == Channel.Name)))
+            {
+                ToastService.ShowError(Localizer["ChannelNameUnique"]);
+                errorCount++;
+            }
+        }
+        
+        if (errorCount > 0)
         {
             return;
         }

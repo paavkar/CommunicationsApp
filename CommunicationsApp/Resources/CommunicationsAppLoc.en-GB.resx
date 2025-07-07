@@ -163,7 +163,7 @@
     <value>Email or username</value>
   </data>
   <data name="EmptyInvitation" xml:space="preserve">
-    <value>Invitation code cannot be empty</value>
+    <value>Invitation code cannot be empty.</value>
   </data>
   <data name="ForgotPassword" xml:space="preserve">
     <value>Forgot your password?</value>
@@ -317,5 +317,23 @@
   </data>
   <data name="MakeSelection" xml:space="preserve">
     <value>Make a selection...</value>
+  </data>
+  <data name="ChannelClassNameRequired" xml:space="preserve">
+    <value>Name for the channel class cannot be empty.</value>
+  </data>
+  <data name="ChannelClassNameUnique" xml:space="preserve">
+    <value>Name for the channel class must be unique within the server.</value>
+  </data>
+  <data name="ChannelNameUnique" xml:space="preserve">
+    <value>Name for the channel must be unique within the server.</value>
+  </data>
+  <data name="ChannelNameRequired" xml:space="preserve">
+    <value>Name for the channel cannot be empty.</value>
+  </data>
+  <data name="ChannelClassNotSelected" xml:space="preserve">
+    <value>You must choose a channel class for the channel.</value>
+  </data>
+  <data name="ServerNameRequired" xml:space="preserve">
+    <value>Name for the server cannot be empty.</value>
   </data>
 </root>

@@ -163,7 +163,7 @@
     <value>Sähköposti tai käyttäjänimi</value>
   </data>
   <data name="EmptyInvitation" xml:space="preserve">
-    <value>Kutsu ei voi olla tyhjä</value>
+    <value>Kutsu ei voi olla tyhjä.</value>
   </data>
   <data name="ForgotPassword" xml:space="preserve">
     <value>Unohditko salasanasi?</value>
@@ -317,5 +317,23 @@
   </data>
   <data name="MakeSelection" xml:space="preserve">
     <value>Tee valinta...</value>
+  </data>
+  <data name="ChannelClassNameRequired" xml:space="preserve">
+    <value>Kanavaluokan nimi ei voi olla tyhjä.</value>
+  </data>
+  <data name="ChannelClassNameUnique" xml:space="preserve">
+    <value>Kanavaluokan nimen täytyy olla uniikki palvelimella.</value>
+  </data>
+  <data name="ChannelNameUnique" xml:space="preserve">
+    <value>Kanavan nimen täytyy olla uniikki palvelimella.</value>
+  </data>
+  <data name="ChannelNameRequired" xml:space="preserve">
+    <value>Kanavan nimi ei voi olla tyhjä.</value>
+  </data>
+  <data name="ChannelClassNotSelected" xml:space="preserve">
+    <value>Sinun täytyy valita kanavaluokka kanavalle.</value>
+  </data>
+  <data name="ServerNameRequired" xml:space="preserve">
+    <value>Palvelimen nimi ei voi olla tyhjä.</value>
   </data>
 </root>

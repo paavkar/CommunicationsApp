@@ -6,6 +6,7 @@
 @inject AuthenticationStateProvider ASP
 @inject IServerService ServerService
 @inject IDialogService DialogService
+@inject IToastService ToastService
 @inject IUserService UserService
 
 @* Header *@
@@ -67,7 +68,7 @@
     {
         if (string.IsNullOrWhiteSpace(InvitationCode))
         {
-            Console.WriteLine(Localizer["EmptyInvitation"]);
+            ToastService.ShowError(Localizer["EmptyInvitation"]);
             return;
         }
         if (Uri.TryCreate(InvitationCode, UriKind.Absolute, out var uri))
@@ -76,13 +77,14 @@
         }
         if (User.Servers.Any(s => s.InvitationCode == InvitationCode || s.CustomInvitationCode == InvitationCode))
         {
-            Console.WriteLine(Localizer["AlreadyMember"]);
+            ToastService.ShowError(Localizer["AlreadyMember"]);
             return;
         }
 
         var serverResult = await ServerService.GetServerByInvitationAsync(InvitationCode);
         if (!serverResult.Succeeded)
         {
+            ToastService.ShowError(serverResult.ErrorMessage);
             return;
         }
         Server server = serverResult.Server;
