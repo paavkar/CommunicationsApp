@@ -307,5 +307,7 @@
         NavigationManager.LocationChanged -= OnLocationChanged;
         ChatHubService.ChannelMessageReceived -= OnChannelMessageReceived;
         ChatHubService.MemberUpdateReceived -= OnMemberUpdateReceived;
+        ChatHubService.ChannelClassUpdateReceived -= OnChannelClassUpdateReceived;
+        ChatHubService.ChannelUpdateReceived -= OnChannelUpdateReceived;
     }
 }

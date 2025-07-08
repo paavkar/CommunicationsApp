@@ -87,6 +87,9 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.UseMigrationsEndPoint();
+    using var scope = app.Services.CreateScope();
+    var cosmosFactory = scope.ServiceProvider.GetRequiredService<CosmosDbFactory>();
+    await cosmosFactory.InitializeDatabase();
 }
 else
 {

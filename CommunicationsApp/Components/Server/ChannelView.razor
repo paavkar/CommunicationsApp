@@ -6,6 +6,7 @@
 @inject IStringLocalizer<CommunicationsAppLoc> Localizer
 @inject CommunicationsHubService ChatHubService
 @inject NavigationManager NavigationManager
+@inject ICosmosDbService CosmosDbService
 @inject AuthenticationStateProvider ASP
 @inject IServerService ServerService
 @inject IToastService ToastService
@@ -279,6 +280,13 @@ else
         };
         NewMessage.Sender = Server!.Members.FirstOrDefault(m => m.UserId == UserId)!;
 
+        var messageResult = await CosmosDbService.SaveMessageAsync(NewMessage);
+        if (!messageResult.Succeeded)
+        {
+            ToastService.ShowError("There was an error saving the message. Try again later.");
+            Console.WriteLine(messageResult.ErrorMessage);
+            return;
+        }
         var result = await ChatHubService.SendMessageAsync(ServerId, ChannelId, NewMessage);
 
         if (!result.Succeeded)

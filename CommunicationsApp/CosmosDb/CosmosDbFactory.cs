@@ -22,22 +22,19 @@ namespace CommunicationsApp.CosmosDb
                 PropertyNamingPolicy = CosmosPropertyNamingPolicy.CamelCase,
             };
 
-            if (environment.Equals("Development"))
-            {
-                CosmosClient = new(account, key, new CosmosClientOptions()
+            CosmosClient = environment.Equals("Development")
+                ? new(account, key, new CosmosClientOptions()
+                {
+                    SerializerOptions = serializationOptions,
+                    HttpClientFactory = () => new HttpClient(new HttpClientHandler()
+                    {
+                        ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+                    }),
+                })
+                : new(connectionString, new CosmosClientOptions()
                 {
                     SerializerOptions = serializationOptions
                 });
-
-                InitializeDatabase().GetAwaiter().GetResult();
-            }
-            else
-            {
-                CosmosClient = new(connectionString, new CosmosClientOptions()
-                {
-                    SerializerOptions = serializationOptions
-                });
-            }
         }
 
         public async Task InitializeDatabase()

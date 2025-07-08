@@ -1,4 +1,5 @@
-﻿using CommunicationsApp.Data;
+﻿using CommunicationsApp.CosmosDb;
+using CommunicationsApp.Data;
 using CommunicationsApp.Interfaces;
 using CommunicationsApp.Models;
 using Dapper;
@@ -8,7 +9,10 @@ using Microsoft.Extensions.Caching.Hybrid;
 
 namespace CommunicationsApp.Services
 {
-    public class ServerService(IConfiguration configuration, HybridCache cache) : IServerService
+    public class ServerService(
+        IConfiguration configuration,
+        HybridCache cache,
+        ICosmosDbService cosmosDbService) : IServerService
     {
         private SqlConnection GetConnection()
         {
@@ -173,6 +177,8 @@ namespace CommunicationsApp.Services
                 {
                     channelClass.Channels = [.. channelClass.Channels.OrderBy(c => c.OrderNumber)];
                 }
+
+                await GetMessagesAsync(server, serverId!);
             }
 
             return server ?? null;
@@ -227,9 +233,31 @@ namespace CommunicationsApp.Services
 
             server = await GetServerWithMembersAsync(serverProfileQuery, new { serverId = server.Id }, server);
 
+            await GetMessagesAsync(server, server.Id!);
+
             await UpdateCacheAsync(server.Id, server);
 
             return new { Succeeded = true, Server = server };
+        }
+
+        public async Task GetMessagesAsync(Server server, string serverId)
+        {
+            var messagesResponse = await cosmosDbService.GetServerMessagesAsync(server.Id);
+            if (messagesResponse.Succeeded)
+            {
+                var serverMessages = messagesResponse.Messages as List<ChatMessage>;
+                foreach (var message in serverMessages)
+                {
+                    var channel = server.ChannelClasses
+                        .SelectMany(cc => cc.Channels)
+                        .FirstOrDefault(c => c.Id == message.Channel.Id);
+                    if (channel != null)
+                    {
+                        channel.Messages ??= [];
+                        channel.Messages.Add(message);
+                    }
+                }
+            }
         }
 
         public async Task<Server?> GetServerFromDatabaseAsync(string sql, object queryParameters)
