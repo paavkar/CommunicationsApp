@@ -7,9 +7,11 @@ using CommunicationsApp.Interfaces;
 using CommunicationsApp.Services;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.FluentUI.AspNetCore.Components;
+using System.Globalization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,6 +20,20 @@ builder.Logging
        .AddConsole()
        .AddDebug();
 
+var supportedCultures = new[] { "en-GB", "fi-FI" }
+    .Select(c => new CultureInfo(c))
+    .ToList();
+builder.Services.Configure<RequestLocalizationOptions>(options =>
+{
+    options.DefaultRequestCulture = new RequestCulture("en-GB");
+    options.SupportedCultures = supportedCultures;
+    options.SupportedUICultures = supportedCultures;
+
+    options.RequestCultureProviders.Insert(
+        0,
+        new CookieRequestCultureProvider()
+    );
+});
 
 builder.Services.AddHttpClient();
 builder.Services.AddFluentUIComponents();
@@ -100,14 +116,6 @@ else
 
 app.UseHttpsRedirection();
 
-var supportedCultures = new[] { "en-GB", "fi-FI" };
-var localizationOptions = new RequestLocalizationOptions()
-    .SetDefaultCulture(supportedCultures[0])
-    .AddSupportedCultures(supportedCultures)
-    .AddSupportedUICultures(supportedCultures);
-
-app.UseRequestLocalization(localizationOptions);
-
 app.UseAntiforgery();
 
 app.MapStaticAssets();
@@ -115,6 +123,7 @@ app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
 app.UseAuthentication();
+app.UseRequestLocalization();
 app.UseAuthorization();
 
 // Add additional endpoints required by the Identity /Account Razor components.

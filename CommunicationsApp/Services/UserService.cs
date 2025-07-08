@@ -33,28 +33,18 @@ namespace CommunicationsApp.Services
         public async Task<ApplicationUser> GetUserFromDatabaseAsync(string userId, bool refreshCache = false)
         {
             var userDictionary = new Dictionary<string, ApplicationUser>();
-            var getUserQuery = """
+            var getUserByIdQuery = """
                 SELECT 
-                    u.*, 
-                    sp.Id AS ServerProfileId, sp.*,
-                    usr.UserId AS UserServerRoleUserId, usr.RoleId AS UserServerRoleId, usr.ServerId AS UserServerRoleServerId, 
-                    sr.Id AS ServerRoleId, sr.ServerId AS SR_ServerId, sr.*,
-                    s.Id AS ServerId, s.*,
-                    cc.Id AS ChannelClassId, cc.*,
-                    c.Id AS ChannelId, c.*
+                    u.*,
+                    ac.Id AS AccountSettingsId, ac.*
                 FROM AspNetUsers u
-                LEFT JOIN ServerProfiles sp ON sp.UserId = u.Id
-                LEFT JOIN UserServerRoles usr ON usr.UserId = u.Id AND usr.ServerId = sp.ServerId
-                LEFT JOIN ServerRoles sr ON sr.Id = usr.RoleId
-                LEFT JOIN Servers s ON sp.ServerId = s.Id
-                LEFT JOIN ChannelClasses cc ON cc.ServerId = s.Id
-                LEFT JOIN Channels c ON c.ChannelClassId = cc.Id
+                LEFT JOIN AccountSettings ac ON ac.UserId = u.Id
                 WHERE u.Id = @userId
                 """;
             using var connection = GetConnection();
-            await connection.QueryAsync<ApplicationUser, ServerProfile, UserServerRole, ServerRole, Server, ChannelClass, Channel, ApplicationUser>(
-                getUserQuery,
-                (appUser, sp, usr, sr, s, cc, c) =>
+            await connection.QueryAsync<ApplicationUser, AccountSettings, ApplicationUser>(
+                getUserByIdQuery,
+                (appUser, ac) =>
                 {
                     if (!userDictionary.TryGetValue(appUser.Id, out var currentUser))
                     {
@@ -63,6 +53,38 @@ namespace CommunicationsApp.Services
                         currentUser.Servers ??= [];
                         userDictionary.Add(currentUser.Id, currentUser);
                     }
+
+                    if (ac != null && !string.IsNullOrWhiteSpace(ac.UserId) && ac.UserId == appUser.Id)
+                    {
+                        currentUser.AccountSettings = ac;
+                    }
+
+                    return currentUser;
+                },
+                new { userId },
+                splitOn: "AccountSettingsId"
+            );
+            var getUserQuery = """
+                SELECT 
+                    sp.*,
+                    usr.UserId AS UserServerRoleUserId, usr.RoleId AS UserServerRoleId, usr.ServerId AS UserServerRoleServerId, 
+                    sr.Id AS ServerRoleId, sr.ServerId AS SR_ServerId, sr.*,
+                    s.Id AS ServerId, s.*,
+                    cc.Id AS ChannelClassId, cc.*,
+                    c.Id AS ChannelId, c.*
+                FROM ServerProfiles sp
+                LEFT JOIN UserServerRoles usr ON usr.UserId = sp.UserId AND usr.ServerId = sp.ServerId
+                LEFT JOIN ServerRoles sr ON sr.Id = usr.RoleId
+                LEFT JOIN Servers s ON sp.ServerId = s.Id
+                LEFT JOIN ChannelClasses cc ON cc.ServerId = s.Id
+                LEFT JOIN Channels c ON c.ChannelClassId = cc.Id
+                WHERE sp.UserId = @userId
+                """;
+            await connection.QueryAsync<ServerProfile, UserServerRole, ServerRole, Server, ChannelClass, Channel, ApplicationUser>(
+                getUserQuery,
+                (sp, usr, sr, s, cc, c) =>
+                {
+                    userDictionary.TryGetValue(userId, out var currentUser);
 
                     if (sp != null && !string.IsNullOrWhiteSpace(sp.UserName))
                     {
@@ -111,8 +133,9 @@ namespace CommunicationsApp.Services
                     return currentUser;
                 },
                 new { userId },
-                splitOn: "ServerProfileId,UserServerRoleUserId,ServerRoleId,ServerId,ChannelClassId,ChannelId"
+                splitOn: "UserServerRoleUserId,ServerRoleId,ServerId,ChannelClassId,ChannelId"
             );
+
             var userWithAllData = userDictionary.FirstOrDefault().Value;
             var serverIds = userWithAllData.Servers.Select(s => s.Id).ToList();
             foreach (var server in userWithAllData.Servers)
@@ -178,6 +201,42 @@ namespace CommunicationsApp.Services
                 return;
             }
             await cache.SetAsync($"user_{user.Id}", user);
+        }
+
+        public async Task<dynamic> CreateAccountSettingsAsync(AccountSettings settings)
+        {
+            if (settings == null || string.IsNullOrWhiteSpace(settings.UserId))
+            {
+                return new { Succeeded = false, ErrorMessage = "Error with the given settings." };
+            }
+            var query = """
+                INSERT INTO AccountSettings (Id, UserId, PreferredLocale, DisplayServerMemberList, PreferredTheme)
+                VALUES (@Id, @UserId, @PreferredLocale, @DisplayServerMemberList, @PreferredTheme)
+                """;
+            using var connection = GetConnection();
+            var rowsAffected = await connection.ExecuteAsync(query, settings);
+
+            return rowsAffected > 0
+                ? new { Succeeded = true, Message = "Settings added successfully." }
+                : new { Succeeded = false, ErrorMessage = "There was an error adding settings." };
+        }
+
+        public async Task<dynamic> GetAccountSettingsAsync(string userId)
+        {
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                return new { Succeeded = false, ErrorMessage = "User ID cannot be null or empty." };
+            }
+            var query = """
+                SELECT * FROM AccountSettings WHERE UserId = @userId
+                """;
+            using var connection = GetConnection();
+            var settings = await connection.QueryFirstOrDefaultAsync<AccountSettings>(query, new { userId });
+
+
+            return settings == null 
+                ? new { Succeeded = false, ErrorMessage = "No settings found for the given user." }
+                : new { Succeeded = true, Settings = settings };
         }
     }
 }

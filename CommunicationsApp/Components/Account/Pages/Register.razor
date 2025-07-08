@@ -17,6 +17,7 @@
 @inject NavigationManager NavigationManager
 @inject IConfiguration Configuration
 @inject ILogger<Register> Logger
+@inject IUserService UserService
 
 <PageTitle>@Localizer["Register"]</PageTitle>
 
@@ -138,6 +139,23 @@
                 }
             }
             var addToRoleResult = await UserManager.AddToRoleAsync(user, "User");
+        }
+
+        AccountSettings accountSettings = new()
+        {
+            Id = Guid.CreateVersion7().ToString(),
+            UserId = user.Id,
+            PreferredLocale = "en-GB",
+            DisplayServerMemberList = false,
+            PreferredTheme = DesignThemeModes.System,
+        };
+
+        var accountSettingsResult = await UserService.CreateAccountSettingsAsync(accountSettings);
+
+        if (!accountSettingsResult.Succeeded)
+        {
+            identityErrors = [accountSettingsResult.ErrorMessage];
+            return;
         }
 
         Logger.LogInformation("User created a new account with password.");

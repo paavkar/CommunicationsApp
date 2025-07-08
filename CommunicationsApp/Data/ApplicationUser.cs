@@ -1,5 +1,6 @@
 using CommunicationsApp.Models;
 using Microsoft.AspNetCore.Identity;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace CommunicationsApp.Data
 {
@@ -16,5 +17,7 @@ namespace CommunicationsApp.Data
         // Navigation properties
         public List<Server> Servers { get; set; } = [];
         public List<ServerProfile> ServerProfiles { get; set; } = [];
+        [NotMapped]
+        public AccountSettings AccountSettings { get; set; }
     }
 }

@@ -4,12 +4,14 @@
 @using Microsoft.AspNetCore.Authentication
 @using Microsoft.AspNetCore.Identity
 @using CommunicationsApp.Data
+@using Microsoft.AspNetCore.Localization
 
 @inject IStringLocalizer<CommunicationsAppLoc> Localizer
 @inject SignInManager<ApplicationUser> SignInManager
 @inject UserManager<ApplicationUser> UserManager
 @inject IdentityRedirectManager RedirectManager
 @inject NavigationManager NavigationManager
+@inject IUserService UserService
 @inject ILogger<Login> Logger
 
 <PageTitle>@Localizer["LogIn"]</PageTitle>
@@ -109,6 +111,24 @@
         var result = await SignInManager.PasswordSignInAsync(user!, Input.Password, Input.RememberMe, lockoutOnFailure: false);
         if (result.Succeeded)
         {
+            var accountSettingsResult = await UserService.GetAccountSettingsAsync(user.Id);
+            if (accountSettingsResult.Succeeded)
+            {
+                AccountSettings accountSettings = accountSettingsResult.Settings;
+                var userCulture = accountSettings.PreferredLocale;
+                var culture = new RequestCulture(userCulture);
+                var cookieValue = CookieRequestCultureProvider.MakeCookieValue(culture);
+                HttpContext.Response.Cookies.Append(
+                    CookieRequestCultureProvider.DefaultCookieName,
+                    cookieValue,
+                    new CookieOptions
+                    {
+                        Expires = DateTimeOffset.UtcNow.AddYears(1),
+                        HttpOnly = true,
+                        IsEssential = true,
+                        SameSite = SameSiteMode.Lax
+                    });
+            }
             Logger.LogInformation("User logged in.");
             RedirectManager.RedirectTo(ReturnUrl);
         }
