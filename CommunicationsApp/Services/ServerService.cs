@@ -63,18 +63,6 @@ namespace CommunicationsApp.Services
                     """;
                 rowsAffected = await connection.ExecuteAsync(insertServerRoleQuery, serverRole, transaction);
 
-                UserServerRole userServerRole = new()
-                {
-                    UserId = user.Id,
-                    ServerId = server.Id,
-                    RoleId = serverRole.Id
-                };
-
-                var insertUserServerRoleQuery = """
-                    INSERT INTO UserServerRoles (UserId, ServerId, RoleId)
-                    VALUES (@UserId, @ServerId, @RoleId)
-                    """;
-                rowsAffected = await connection.ExecuteAsync(insertUserServerRoleQuery, userServerRole, transaction);
                 serverProfile.Roles ??= [];
                 serverProfile.Roles.Add(serverRole);
 
@@ -224,34 +212,11 @@ namespace CommunicationsApp.Services
 
                 if (rowsAffected <= 0)
                 {
+                    transaction.Rollback();
                     return new { Succeeded = false, ErrorMessage = "Failed to join server." };
                 }
 
-                var serverRole = server.Roles?.FirstOrDefault(r => r.Name == "@everyone");
-
-                if (serverRole != null)
-                {
-                    var insertUserServerRoleQuery = """
-                        INSERT INTO UserServerRoles (UserId, ServerId, RoleId)
-                        VALUES (@UserId, @ServerId, @RoleId)
-                        """;
-                    var userServerRole = new UserServerRole
-                    {
-                        UserId = profile.UserId,
-                        ServerId = server.Id,
-                        RoleId = serverRole.Id
-                    };
-                    rowsAffected = await connection.ExecuteAsync(insertUserServerRoleQuery, userServerRole, transaction);
-
-                    if (rowsAffected > 0)
-                    {
-                        transaction.Commit();
-                    }
-                }
-                else
-                {
-                    return new { Succeeded = false, ErrorMessage = "Default server role not found." };
-                }
+                transaction.Commit();
             }
             catch (Exception)
             {
@@ -269,7 +234,6 @@ namespace CommunicationsApp.Services
             server = await GetServerWithMembersAsync(serverProfileQuery, new { serverId = server.Id }, server);
 
             await GetMessagesAsync(server, server.Id!);
-
             await UpdateCacheAsync(server.Id, server);
 
             return new { Succeeded = true, Server = server };
@@ -338,6 +302,13 @@ namespace CommunicationsApp.Services
                     {
                         member.Roles ??= [];
                         member = currentServer.Members.FirstOrDefault(m => m.Id == member.Id) ?? member;
+
+                        // This would be replaced with role permissions once implemented
+                        if (role.Name == "@everyone" && !member.Roles.Any(r => r.Name == "@everyone"))
+                        {
+                            member.Roles.Add(role);
+                        }
+
                         if (userServerRole.RoleId != null && userServerRole.UserId == member.UserId)
                         {
                             var roleToAdd = currentServer.Roles.FirstOrDefault(r => r.Id == userServerRole.RoleId);
@@ -392,9 +363,17 @@ namespace CommunicationsApp.Services
                         member.Roles ??= [];
                         memberDictionary.Add(member.Id!, member);
                     }
-                    if (role != null && !string.IsNullOrWhiteSpace(role.Id) && member.Roles.All(r => r.Id != role.Id))
+                    if (role != null)
                     {
-                        member.Roles.Add(role);
+                        // This would be replaced with role permissions once implemented
+                        if (role.Name == "@everyone" && !member.Roles.Any(r => r.Name == "@everyone"))
+                        {
+                            member.Roles.Add(role);
+                        }
+                        if (!string.IsNullOrWhiteSpace(role.Id) && member.Roles.All(r => r.Id != role.Id))
+                        {
+                            member.Roles.Add(role);
+                        }
                     }
                     return member;
                 },
