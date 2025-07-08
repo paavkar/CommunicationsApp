@@ -11,12 +11,16 @@ namespace CommunicationsApp.Data
         public DbSet<Channel> Channels { get; set; } = null!;
         public DbSet<ServerRole> ServerRoles { get; set; } = null!;
         public DbSet<ServerProfile> ServerProfiles { get; set; } = null!;
+        public DbSet<AccountSettings> AccountSettings { get; set; } = null!;
+        public DbSet<ServerPermission> ServerPermissions { get; set; } = null!;
+        public DbSet<ServerRolePermission> ServerRolePermissions { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
-            modelBuilder.Entity<ChatMessage>()
-                .Ignore(c => c.Reactions);
+
+            modelBuilder.Entity<ServerRolePermission>()
+                .HasKey(srp => new { srp.RoleId, srp.PermissionId });
         }
     }
 }

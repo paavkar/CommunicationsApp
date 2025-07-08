@@ -138,9 +138,11 @@ else
                                                 Status="PresenceStatus.Available">
                                 </FluentPersona>
                                 <FluentStack Orientation="Orientation.Vertical">
-                                    <FluentLabel Style="font-size: 1.1em;" Color="Color.Custom"
-                                        CustomColor="@((member.Roles.Count > 0 ? member.Roles.FirstOrDefault().HexColour : ""))">
-                                        @member.DisplayName
+                                    <FluentStack>
+                                        <FluentLabel Style="font-size: 1.1em;" Color="Color.Custom"
+                                                     CustomColor="@((member.Roles.Count > 0 ? member.Roles.FirstOrDefault().HexColour : ""))">
+                                            @member.DisplayName
+                                        </FluentLabel>
                                         @if (member.UserId == Server.OwnerId)
                                         {
                                             <FluentIcon Id="serverOwner" Value="@(new Size20.Crown())" />
@@ -148,7 +150,7 @@ else
                                                 @Localizer["ServerOwner"]
                                             </FluentTooltip>
                                         }
-                                    </FluentLabel>
+                                    </FluentStack>
                                     <FluentLabel>@member.Status</FluentLabel>
                                 </FluentStack>
                             </FluentStack>

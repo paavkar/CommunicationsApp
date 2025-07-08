@@ -1,4 +1,6 @@
-﻿namespace CommunicationsApp.Models
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+namespace CommunicationsApp.Models
 {
     public class ServerRole
     {
@@ -7,6 +9,10 @@
         public string Name { get; set; } = string.Empty;
         public string HexColour { get; set; } = string.Empty;
         public int Hierarchy { get; set; }
+        public bool DisplaySeparately { get; set; }
+
+        [NotMapped]
+        public List<ServerPermission> Permissions { get; set; } = [];
 
         public override string ToString()
         {

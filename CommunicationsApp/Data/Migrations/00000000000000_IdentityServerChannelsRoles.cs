@@ -167,7 +167,8 @@ namespace CommunicationsApp.Migrations
                     ServerId = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     HexColour = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Hierarchy = table.Column<int>(type: "int", nullable: false)
+                    Hierarchy = table.Column<int>(type: "int", nullable: false),
+                    DisplaySeparately = table.Column<bool>(type: "bit", nullable: false)
                 },
                 constraints: table =>
                 {

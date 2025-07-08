@@ -58,8 +58,8 @@ namespace CommunicationsApp.Services
                 };
 
                 var insertServerRoleQuery = """
-                    INSERT INTO ServerRoles (Id, Name, ServerId, HexColour, Hierarchy)
-                    VALUES (@Id, @Name, @ServerId, @HexColour, @Hierarchy)
+                    INSERT INTO ServerRoles (Id, Name, ServerId, HexColour, Hierarchy, DisplaySeparately)
+                    VALUES (@Id, @Name, @ServerId, @HexColour, @Hierarchy, @DisplaySeparately)
                     """;
                 rowsAffected = await connection.ExecuteAsync(insertServerRoleQuery, serverRole, transaction);
 

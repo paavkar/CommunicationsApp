@@ -21,5 +21,10 @@
             ChannelRemoved,
             ChannelUpdated,
         }
+
+        public enum ServerPermissionType
+        {
+
+        }
     }
 }

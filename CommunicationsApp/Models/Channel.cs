@@ -1,4 +1,6 @@
-﻿namespace CommunicationsApp.Models
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+namespace CommunicationsApp.Models
 {
     public class Channel
     {
@@ -12,6 +14,7 @@
         public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 
         // Navigation properties
+        [NotMapped]
         public List<ChatMessage> Messages { get; set; } = [];
 
         public override string ToString()

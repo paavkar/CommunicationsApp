@@ -242,6 +242,9 @@ namespace CommunicationsApp.Migrations
 
             modelBuilder.Entity("CommunicationsApp.Models.ServerRole", b =>
             {
+                b.Property<bool>("DisplaySeparately")
+                    .HasColumnType("bit");
+
                 b.Property<string>("Id")
                     .HasColumnType("nvarchar(450)");
 
