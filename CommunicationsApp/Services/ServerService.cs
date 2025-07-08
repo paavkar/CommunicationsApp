@@ -51,7 +51,7 @@ namespace CommunicationsApp.Services
                 ServerRole serverRole = new()
                 {
                     Id = Guid.CreateVersion7().ToString(),
-                    Name = "owner",
+                    Name = "@everyone",
                     ServerId = server.Id,
                     HexColour = "",
                     Hierarchy = 1
@@ -216,12 +216,48 @@ namespace CommunicationsApp.Services
                 VALUES (@Id, @UserId, @UserName, @ServerId, @DisplayName, @ProfilePictureUrl, @BannerUrl, @CreatedAt, @JoinedAt, @Status, @Bio)
                 """;
             using var connection = GetConnection();
-            var rowsAffected = await connection.ExecuteAsync(insertServerProfileQuery, profile);
-            if (rowsAffected <= 0)
+            connection.Open();
+            using SqlTransaction transaction = connection.BeginTransaction();
+            try
             {
-                return new { Succeeded = false, ErrorMessage = "Failed to join server." };
-            }
+                var rowsAffected = await connection.ExecuteAsync(insertServerProfileQuery, profile, transaction);
 
+                if (rowsAffected <= 0)
+                {
+                    return new { Succeeded = false, ErrorMessage = "Failed to join server." };
+                }
+
+                var serverRole = server.Roles?.FirstOrDefault(r => r.Name == "@everyone");
+
+                if (serverRole != null)
+                {
+                    var insertUserServerRoleQuery = """
+                        INSERT INTO UserServerRoles (UserId, ServerId, RoleId)
+                        VALUES (@UserId, @ServerId, @RoleId)
+                        """;
+                    var userServerRole = new UserServerRole
+                    {
+                        UserId = profile.UserId,
+                        ServerId = server.Id,
+                        RoleId = serverRole.Id
+                    };
+                    rowsAffected = await connection.ExecuteAsync(insertUserServerRoleQuery, userServerRole, transaction);
+
+                    if (rowsAffected > 0)
+                    {
+                        transaction.Commit();
+                    }
+                }
+                else
+                {
+                    return new { Succeeded = false, ErrorMessage = "Default server role not found." };
+                }
+            }
+            catch (Exception)
+            {
+                transaction.Rollback();
+            }
+            
             var serverProfileQuery = """
                 SELECT sp.*, sr.Id AS ServerRoleId, sr.*
                 FROM ServerProfiles sp
@@ -276,12 +312,12 @@ namespace CommunicationsApp.Services
                         currentServer.Members ??= [];
                     }
 
-                    if (role != null && !string.IsNullOrEmpty(role.Id) && currentServer.Roles.All(r => r.Id != role.Id))
+                    if (role != null && !string.IsNullOrWhiteSpace(role.Id) && currentServer.Roles.All(r => r.Id != role.Id))
                     {
                         currentServer.Roles.Add(role);
                     }
 
-                    if (channelClass != null && !string.IsNullOrEmpty(channelClass.Id))
+                    if (channelClass != null && !string.IsNullOrWhiteSpace(channelClass.Id))
                     {
                         var existingChannelClass = currentServer.ChannelClasses.FirstOrDefault(cc => cc.Id == channelClass.Id);
                         if (existingChannelClass == null)
@@ -290,7 +326,7 @@ namespace CommunicationsApp.Services
                             existingChannelClass.Channels ??= [];
                             currentServer.ChannelClasses.Add(existingChannelClass);
                         }
-                        if (channel != null && !string.IsNullOrEmpty(channel.Id) &&
+                        if (channel != null && !string.IsNullOrWhiteSpace(channel.Id) &&
                             existingChannelClass.Channels.All(ch => ch.Id != channel.Id))
                         {
                             channel.Messages ??= [];
@@ -298,7 +334,7 @@ namespace CommunicationsApp.Services
                         }
                     }
 
-                    if (member != null && !string.IsNullOrEmpty(member.Id))
+                    if (member != null && !string.IsNullOrWhiteSpace(member.Id))
                     {
                         member.Roles ??= [];
                         member = currentServer.Members.FirstOrDefault(m => m.Id == member.Id) ?? member;
@@ -356,7 +392,7 @@ namespace CommunicationsApp.Services
                         member.Roles ??= [];
                         memberDictionary.Add(member.Id!, member);
                     }
-                    if (role != null && !string.IsNullOrEmpty(role.Id) && member.Roles.All(r => r.Id != role.Id))
+                    if (role != null && !string.IsNullOrWhiteSpace(role.Id) && member.Roles.All(r => r.Id != role.Id))
                     {
                         member.Roles.Add(role);
                     }
@@ -384,7 +420,7 @@ namespace CommunicationsApp.Services
 
         public async Task UpdateCacheAsync(string serverId, Server server)
         {
-            if (server == null || string.IsNullOrEmpty(serverId))
+            if (server == null || string.IsNullOrWhiteSpace(serverId))
             {
                 return;
             }

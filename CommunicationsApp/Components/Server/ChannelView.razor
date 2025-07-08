@@ -82,7 +82,7 @@ else
                                 </FluentPopover>
                                 <FluentCard Style="border-radius: 0; padding: 10px;">
                                     <FluentStack>
-                                        <FluentPersona Image="@(!string.IsNullOrEmpty(message.Sender.ProfilePictureUrl)
+                                        <FluentPersona Image="@(!string.IsNullOrWhiteSpace(message.Sender.ProfilePictureUrl)
                                                                 ? message.Sender.ProfilePictureUrl
                                                                 : new Size48.Person().ToDataUri(size: "25px", color: "white"))"
                                                         ImageSize="50px"
@@ -131,7 +131,7 @@ else
                         @foreach (var member in Server.Members)
                         {
                             <FluentStack HorizontalAlignment="HorizontalAlignment.Left">
-                                <FluentPersona Image="@(!string.IsNullOrEmpty(member.ProfilePictureUrl)
+                                <FluentPersona Image="@(!string.IsNullOrWhiteSpace(member.ProfilePictureUrl)
                                                         ? member.ProfilePictureUrl
                                                         : new Size48.Person().ToDataUri(size: "25px", color: "white"))"
                                                 ImageSize="50px"
@@ -186,7 +186,7 @@ else
         var authState = await ASP.GetAuthenticationStateAsync();
         UserId = authState.User.Claims.Where(c => c.Type.Contains("nameidentifier")).First().Value;
         TimeZoneOffset = await JS.InvokeAsync<int>("timeZoneHelper.getTimeZone");
-        if (string.IsNullOrEmpty(ServerId) || string.IsNullOrEmpty(ChannelId))
+        if (string.IsNullOrWhiteSpace(ServerId) || string.IsNullOrWhiteSpace(ChannelId))
         {
             return;
         }
@@ -263,7 +263,7 @@ else
     {
         if (string.IsNullOrWhiteSpace(NewMessage.Content))
             return;
-        if (string.IsNullOrEmpty(ServerId) || string.IsNullOrEmpty(ChannelId) || Channel == null)
+        if (string.IsNullOrWhiteSpace(ServerId) || string.IsNullOrWhiteSpace(ChannelId) || Channel == null)
             return;
         NewMessage.Id = Guid.CreateVersion7().ToString();
         NewMessage.SentAt = DateTimeOffset.UtcNow;

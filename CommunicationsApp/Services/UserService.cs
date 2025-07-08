@@ -64,7 +64,7 @@ namespace CommunicationsApp.Services
                         userDictionary.Add(currentUser.Id, currentUser);
                     }
 
-                    if (sp != null && !string.IsNullOrEmpty(sp.UserName))
+                    if (sp != null && !string.IsNullOrWhiteSpace(sp.UserName))
                     {
                         var currentSP = currentUser.ServerProfiles.FirstOrDefault(x => x.Id == sp.Id);
                         if (currentSP == null)
@@ -73,13 +73,13 @@ namespace CommunicationsApp.Services
                             currentSP.Roles ??= [];
                             currentUser.ServerProfiles.Add(currentSP);
                         }
-                        if (sr != null && !string.IsNullOrEmpty(sr.Id) && currentSP.Roles.All(x => x.Id != sr.Id))
+                        if (sr != null && !string.IsNullOrWhiteSpace(sr.Id) && currentSP.Roles.All(x => x.Id != sr.Id))
                         {
                             currentSP.Roles.Add(sr);
                         }
                     }
 
-                    if (s != null && !string.IsNullOrEmpty(s.Name))
+                    if (s != null && !string.IsNullOrWhiteSpace(s.Name))
                     {
                         var currentServer = currentUser.Servers.FirstOrDefault(x => x.Id == s.Id);
                         if (currentServer == null)
@@ -88,7 +88,7 @@ namespace CommunicationsApp.Services
                             currentUser.Servers.Add(s);
                             currentServer = s;
                         }
-                        if (cc != null && !string.IsNullOrEmpty(cc.Id))
+                        if (cc != null && !string.IsNullOrWhiteSpace(cc.Id))
                         {
                             var currentCC = currentServer.ChannelClasses.FirstOrDefault(x => x.Id == cc.Id);
                             if (currentCC == null)
@@ -97,7 +97,7 @@ namespace CommunicationsApp.Services
                                 currentServer.ChannelClasses.Add(cc);
                                 currentCC = cc;
                             }
-                            if (c != null && !string.IsNullOrEmpty(c.Id))
+                            if (c != null && !string.IsNullOrWhiteSpace(c.Id))
                             {
                                 if (currentCC.Channels.All(x => x.Id != c.Id))
                                 {
@@ -145,7 +145,7 @@ namespace CommunicationsApp.Services
                         memberDictionary.Add(member.Id!, member);
                     }
 
-                    if (role != null && !string.IsNullOrEmpty(role.Id) && member.Roles.All(r => r.Id != role.Id))
+                    if (role != null && !string.IsNullOrWhiteSpace(role.Id) && member.Roles.All(r => r.Id != role.Id))
                     {
                         member.Roles.Add(role);
                     }
@@ -173,7 +173,7 @@ namespace CommunicationsApp.Services
 
         public async Task UpdateCacheAsync(ApplicationUser user)
         {
-            if (user == null || string.IsNullOrEmpty(user.Id))
+            if (user == null || string.IsNullOrWhiteSpace(user.Id))
             {
                 return;
             }

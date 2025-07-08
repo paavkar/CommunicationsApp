@@ -2,7 +2,7 @@
 @inject IJSRuntime JS
 
 <FluentStack Orientation="Orientation.Vertical">
-    <FluentPersona Image="@(!string.IsNullOrEmpty(Profile.ProfilePictureUrl)
+    <FluentPersona Image="@(!string.IsNullOrWhiteSpace(Profile.ProfilePictureUrl)
                                     ? Profile.ProfilePictureUrl
                                     : new Size48.Person().ToDataUri(size: "40px", color: "white"))"
                 ImageSize="80px"

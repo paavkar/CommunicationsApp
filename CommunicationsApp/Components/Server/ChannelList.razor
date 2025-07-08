@@ -99,7 +99,7 @@ else
         CommunicationsHubService.ChannelUpdateReceived += OnChannelUpdateReceived;
         var authState = await ASP.GetAuthenticationStateAsync();
         UserId = authState.User.Claims.Where(c => c.Type.Contains("nameidentifier")).First().Value;
-        if (!string.IsNullOrEmpty(ServerId) && !string.IsNullOrEmpty(UserId))
+        if (!string.IsNullOrWhiteSpace(ServerId) && !string.IsNullOrWhiteSpace(UserId))
         {
             Server = await ServerService.GetServerByIdAsync(ServerId);
             if (Server is null)

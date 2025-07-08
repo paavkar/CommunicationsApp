@@ -46,7 +46,7 @@
     protected override void OnInitialized()
     {
         TooltipText = Localizer["CopyLink"];
-        InvitationLink = $"{NavigationManager.BaseUri}{(string.IsNullOrEmpty(Content.CustomInvitationCode)
+        InvitationLink = $"{NavigationManager.BaseUri}{(string.IsNullOrWhiteSpace(Content.CustomInvitationCode)
                                          ? Content.InvitationCode
                                          : Content.CustomInvitationCode)}";
     }

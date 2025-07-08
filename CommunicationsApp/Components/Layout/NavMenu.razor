@@ -44,7 +44,7 @@
                                             <FluentTooltip Anchor="@buttonId" Position="TooltipPosition.Right">
                                                 @server.Name
                                             </FluentTooltip>
-                                            @if (!string.IsNullOrEmpty(server.IconUrl))
+                                            @if (!string.IsNullOrWhiteSpace(server.IconUrl))
                                             {
                                                 <img src="@server.IconUrl" alt="@server.Name" width="50" />
                                             }
@@ -79,7 +79,7 @@
                 <FluentStack Style="position: sticky; bottom: 0; z-index: 10;">
                     <FluentCard Height="5em" Width="100%" Style="padding: 10px; margin: 0 0.4em 0.4em">
                         <FluentStack>
-                            <FluentPersona Image="@(!string.IsNullOrEmpty(User?.ProfilePictureUrl)
+                            <FluentPersona Image="@(!string.IsNullOrWhiteSpace(User?.ProfilePictureUrl)
                                                     ? User.ProfilePictureUrl
                                                     : new Size48.Person().ToDataUri(size: "25px", color: "white"))"
                                        ImageSize="50px"

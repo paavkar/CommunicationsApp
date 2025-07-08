@@ -81,7 +81,7 @@
         {
             Profile.DisplayName = User.DisplayName;
         }
-        if (string.IsNullOrEmpty(Profile.Status))
+        if (string.IsNullOrWhiteSpace(Profile.Status))
         {
             Profile.Status = User.Status;
         }
