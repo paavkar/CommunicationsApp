@@ -1,5 +1,4 @@
-﻿using CommunicationsApp.Data;
-using static CommunicationsApp.Models.Enums;
+﻿using static CommunicationsApp.Models.Enums;
 
 namespace CommunicationsApp.Models
 {

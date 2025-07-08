@@ -131,7 +131,7 @@ namespace CommunicationsApp.Services
                 LEFT JOIN ServerRoles sr ON sr.Id = usr.RoleId
                 WHERE sp.ServerId IN @serverIds
                 """;
-            
+
             var memberDictionary = new Dictionary<string, ServerProfile>();
 
             await connection.QueryAsync<ServerProfile, ServerRole, ServerProfile>(

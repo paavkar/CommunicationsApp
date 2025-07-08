@@ -6,7 +6,7 @@ namespace CommunicationsApp.CosmosDb
     public class CosmosDbService(CosmosDbFactory cosmosDbFactory) : ICosmosDbService
     {
         private Container MessageContainer => cosmosDbFactory.CosmosClient.GetContainer(cosmosDbFactory.DatabaseName, "messages");
-        
+
         public async Task<dynamic> GetServerMessagesAsync(string serverId)
         {
             if (string.IsNullOrWhiteSpace(serverId))
@@ -48,7 +48,7 @@ namespace CommunicationsApp.CosmosDb
             try
             {
                 var addResponse = await MessageContainer.CreateItemAsync(message, new PartitionKey(message.PartitionKey));
-                
+
                 if (addResponse.StatusCode != System.Net.HttpStatusCode.Created)
                 {
                     return new

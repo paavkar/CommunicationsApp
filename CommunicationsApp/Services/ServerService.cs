@@ -3,7 +3,6 @@ using CommunicationsApp.Data;
 using CommunicationsApp.Interfaces;
 using CommunicationsApp.Models;
 using Dapper;
-using Microsoft.Azure.Cosmos;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Caching.Hybrid;
 

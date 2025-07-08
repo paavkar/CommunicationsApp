@@ -1,18 +1,16 @@
-using System.Security.Claims;
-using System.Text.Json;
 using CommunicationsApp.Components.Account.Pages;
 using CommunicationsApp.Components.Account.Pages.Manage;
 using CommunicationsApp.Data;
-using CommunicationsApp.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Primitives;
 using Microsoft.JSInterop;
+using System.Security.Claims;
+using System.Text.Json;
 
 namespace Microsoft.AspNetCore.Routing
 {
@@ -44,16 +42,14 @@ namespace Microsoft.AspNetCore.Routing
                 return TypedResults.Challenge(properties, [provider]);
             });
 
-            accountGroup.MapPost("/Logout", async(
+            accountGroup.MapPost("/Logout", async (
                 ClaimsPrincipal user,
-                [FromServices] SignInManager < ApplicationUser > signInManager,
-                [FromServices] HybridCache cache,
-                [FromServices] IJSRuntime jsRuntime
+                [FromServices] SignInManager<ApplicationUser> signInManager,
+                [FromServices] HybridCache cache
                 /*[FromForm] string returnUrl*/) =>
             {
                 await signInManager.SignOutAsync();
                 await cache.RemoveAsync($"user_{signInManager.UserManager.GetUserId(user)}");
-                //await jsRuntime.InvokeVoidAsync("localStorageHelper.clear");
                 return TypedResults.LocalRedirect($"~/");
             });
 

@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
-using Microsoft.FluentUI.AspNetCore.Components;
 using System.Text;
 using System.Text.Json;
 using static CommunicationsApp.Models.Enums;
@@ -28,7 +27,8 @@ namespace CommunicationsApp.Services
                 HubConnection = new HubConnectionBuilder()
                   .WithUrl(
                     navigationManager.ToAbsoluteUri("/chathub"),
-                    opts => {
+                    opts =>
+                    {
                         opts.Transports = HttpTransportType.WebSockets;
                         opts.SkipNegotiation = true;
                     })

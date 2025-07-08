@@ -1,7 +1,6 @@
 using CommunicationsApp.Models;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
-using System.Data;
 
 namespace CommunicationsApp.Data
 {

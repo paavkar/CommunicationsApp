@@ -1,6 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
-
-namespace CommunicationsApp.Models
+﻿namespace CommunicationsApp.Models
 {
     public class Channel
     {
