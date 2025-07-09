@@ -11,8 +11,8 @@ Technologies used:
 - Blazor,
 - Dapper,
 - Fluent UI,
-- SignalR,
-- MS SQL Server.
+- MS SQL Server,
+- SignalR.
 
 HybridCache is used to cache user and server info to minimize database calls.
 
@@ -35,9 +35,12 @@ The application expects the following variables to be set up:
   "COSMOSDB_DATABASE": "<COSMOS_DB_NAME>",
   "COSMOSDB_ENDPOINT": "<COSMOS_DB_ENDPOINT>",
   "COSMOSDB_KEY": "<COSMOS_DB_KEY>",
-  "COSMOS_DB_CONNECTION_STRING": "<COSMOS_DB_CONNECTION_STRING>"
+  "COSMOS_DB_CONNECTION_STRING": "<COSMOS_DB_CONNECTION_STRING>",
+  "AdminEmail": "<YOUR_EMAIL_FOR_ADMIN>"
 }
 ```
+`AdminEmail` is required for the function of the application (currently you don't need a real email account to register).
+
 If you're using the Cosmos DB Emulator, you're able to use its default values.  
 The values being
 
