@@ -24,7 +24,28 @@
 
         public enum ServerPermissionType
         {
-
+            DisplayChannels = 0,
+            ManageChannels,
+            ManageRoles,
+            ViewLogs,
+            ManageServer,
+            CreateInvite,
+            ChangeNickname,
+            ManageNicknames,
+            KickApproveMembers,
+            BanMembers,
+            TimeoutMembers,
+            SendMessages,
+            SendMessagesToThreads,
+            CreatePublicThreads,
+            CreatePrivateThreads,
+            EmbedLinks,
+            AttachFiles,
+            AddReactions,
+            ManageMessages,
+            ManageThreads,
+            ReadMessageHistory,
+            AdminPrivileges,
         }
     }
 }

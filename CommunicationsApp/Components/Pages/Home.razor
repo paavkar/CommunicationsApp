@@ -1,7 +1,8 @@
 ﻿@page "/channels/@me"
+@rendermode InteractiveServer
 
-@inject IUserService UserService
-@inject IdentityUserAccessor UserAccessor
+@inject IServerService ServerService
+@inject IStringLocalizer<CommunicationsAppLoc> Localizer
 
 @attribute [Authorize]
 
@@ -12,18 +13,20 @@
         <h1>Hello, world!</h1>
 
         Welcome to your new app.
+        <AuthorizeView Roles="Administrator">
+            <Authorized>
+                <FluentButton Appearance="Appearance.Accent" OnClick="AddServerPermissions">
+                    @Localizer["AddServerPermissions"]
+                </FluentButton>
+            </Authorized>
+        </AuthorizeView>
     </FluentStack>
 </FluentStack>
 
 
 @code {
-    public ApplicationUser? User { get; set; }
-    [CascadingParameter]
-    public HttpContext HttpContext { get; set; } = default!;
-
-    protected override async Task OnInitializedAsync()
+    public async Task AddServerPermissions()
     {
-        User = await UserAccessor.GetRequiredUserAsync(HttpContext);
-        
+        var result = await ServerService.AddServerPermissionsAsync();
     }
 }

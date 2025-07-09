@@ -62,7 +62,7 @@
                                     </FluentCard>
                                 }
                             }
-                            <AddServer />
+                            <AddServer ServerPermissionsExist="@ServerPermissionsExist" />
                         </FluentStack>
                     </Authorized>
                 </AuthorizeView>
@@ -133,6 +133,7 @@
     public bool OpenSettingsMenu { get; set; } = false;
     public bool RenderMenu { get; set; } = false;
     public bool IsLoading = true;
+    public bool ServerPermissionsExist { get; set; }
 
     protected override void OnInitialized()
     {
@@ -153,7 +154,7 @@
         if (UserId != null)
         {
             User = await UserService.GetUserByIdAsync(UserId);
-
+            
             foreach (var server in User.Servers)
             {
                 await ChatHubService.JoinBroadcastChannelAsync(server.Id!);
@@ -166,6 +167,10 @@
                 }
             }
         }
+        var serverPermissions = await ServerService.GetServerPermissionsAsync();
+        ServerPermissionsExist = serverPermissions.Count > 0
+            ? true
+            : false;
         IsLoading = false;
     }
 

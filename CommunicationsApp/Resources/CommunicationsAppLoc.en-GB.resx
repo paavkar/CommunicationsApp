@@ -336,4 +336,10 @@
   <data name="ServerNameRequired" xml:space="preserve">
     <value>Name for the server cannot be empty.</value>
   </data>
+  <data name="AddServerPermissionsFirst" xml:space="preserve">
+    <value>Administrator account must add available server permissions first.</value>
+  </data>
+  <data name="AddServerPermissions" xml:space="preserve">
+    <value>Add available server permissions.</value>
+  </data>
 </root>

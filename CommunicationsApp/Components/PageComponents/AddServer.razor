@@ -1,20 +1,28 @@
 ﻿@rendermode InteractiveServer
 @inject IDialogService DialogService
 @inject IStringLocalizer<CommunicationsAppLoc> Localizer
+@inject IServerService ServerService
 
 <FluentCard Id="addServerCard" Style="display: flex; padding: 0; height: 3.5em; width: 3.5em; margin: 0 auto;
                                       justify-content: center;">
     <FluentTooltip Anchor="btnAddServer" Position="TooltipPosition.Right">
-        @Localizer["AddServer"]
+        <FluentLabel>@Localizer["AddServer"]</FluentLabel>
+        @if (!ServerPermissionsExist)
+        {
+            <FluentLabel>@Localizer["AddServerPermissionsFirst"]</FluentLabel>
+        }
     </FluentTooltip>
-    <FluentButton Id="btnAddServer" OnClick="@OpenAddServerModal" 
-        Style="width: 2em; margin: 0 auto; align-self: center;"
+    <FluentButton Id="btnAddServer" OnClick="@OpenAddServerModal" Disabled="@(!ServerPermissionsExist)"
+                  Style="width: 2em; margin: 0 auto; align-self: center;"
                   BackgroundColor="rgba(0,0,0,0)">
         <FluentIcon Id="addServerIcon" Value="@(new Size28.Add())" />
     </FluentButton>
 </FluentCard>
 
 @code {
+    [Parameter]
+    public bool ServerPermissionsExist { get; set; }
+
     private async void OpenAddServerModal()
     {
         var dialog = await DialogService.ShowDialogAsync<AddServerModal>(new DialogParameters()

@@ -336,4 +336,10 @@
   <data name="ServerNameRequired" xml:space="preserve">
     <value>Palvelimen nimi ei voi olla tyhjä.</value>
   </data>
+  <data name="AddServerPermissionsFirst" xml:space="preserve">
+    <value>Admin-käyttäjän täytyy lisätä palvelinoikeudet ensin.</value>
+  </data>
+  <data name="AddServerPermissions" xml:space="preserve">
+    <value>Lisää käyttäjien palvelinoikeudet.</value>
+  </data>
 </root>

@@ -5,6 +5,7 @@ using CommunicationsApp.Models;
 using Dapper;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Caching.Hybrid;
+using static CommunicationsApp.Models.Enums;
 
 namespace CommunicationsApp.Services
 {
@@ -62,6 +63,60 @@ namespace CommunicationsApp.Services
                     VALUES (@Id, @Name, @ServerId, @HexColour, @Hierarchy, @DisplaySeparately)
                     """;
                 rowsAffected = await connection.ExecuteAsync(insertServerRoleQuery, serverRole, transaction);
+
+                var serverPermissions = await GetServerPermissionsAsync();
+                List<ServerPermission> defaultPermissions = [];
+
+                foreach (var permission in serverPermissions)
+                {
+                    switch (permission.PermissionType)
+                    {
+                        case ServerPermissionType.DisplayChannels:
+                            defaultPermissions.Add(permission);
+                            break;
+                        case ServerPermissionType.ChangeNickname:
+                            defaultPermissions.Add(permission);
+                            break;
+                        case ServerPermissionType.SendMessages:
+                            defaultPermissions.Add(permission);
+                            break;
+                        case ServerPermissionType.SendMessagesToThreads:
+                            defaultPermissions.Add(permission);
+                            break;
+                        case ServerPermissionType.CreatePublicThreads:
+                            defaultPermissions.Add(permission);
+                            break;
+                        case ServerPermissionType.CreatePrivateThreads:
+                            defaultPermissions.Add(permission);
+                            break;
+                        case ServerPermissionType.EmbedLinks:
+                            defaultPermissions.Add(permission);
+                            break;
+                        case ServerPermissionType.AttachFiles:
+                            defaultPermissions.Add(permission);
+                            break;
+                        case ServerPermissionType.AddReactions:
+                            defaultPermissions.Add(permission);
+                            break;
+                        case ServerPermissionType.ReadMessageHistory:
+                            defaultPermissions.Add(permission);
+                            break;
+                        default:
+                            break;
+                    }
+                }
+
+                var insertRolePermissionsQuery = """
+                    INSERT INTO ServerRolePermissions (RoleId, PermissionId)
+                    VALUES (@RoleId, @PermissionId)
+                    """;
+
+                foreach (var permission in defaultPermissions)
+                {
+                    rowsAffected = await connection.ExecuteAsync(insertRolePermissionsQuery,
+                        new ServerRolePermission() { RoleId = serverRole .Id, PermissionId = permission.Id},
+                        transaction);
+                }
 
                 serverProfile.Roles ??= [];
                 serverProfile.Roles.Add(serverRole);
@@ -222,7 +277,7 @@ namespace CommunicationsApp.Services
             {
                 transaction.Rollback();
             }
-            
+
             var serverProfileQuery = """
                 SELECT sp.*, sr.Id AS ServerRoleId, sr.*
                 FROM ServerProfiles sp
@@ -333,6 +388,45 @@ namespace CommunicationsApp.Services
                 splitOn: "ServerRoleId,UserMemberRoleId,ChannelClassId,ChannelId,ServerProfileId"
             );
             var serverWithAllData = serverDictionary.FirstOrDefault().Value;
+
+            var getServerPermissionsQuery = """
+                SELECT 
+                    sp.*,
+                    srp.*
+                FROM ServerPermissions sp
+                LEFT JOIN ServerRolePermissions srp ON srp.PermissionId = sp.Id
+                WHERE srp.RoleId IN (SELECT Id FROM ServerRoles WHERE ServerId = @serverId)
+                """;
+
+            await connection.QueryAsync<ServerPermission, ServerRolePermission, ServerPermission>(
+                getServerPermissionsQuery,
+                (permission, rolePermission) =>
+                {
+                    if (serverWithAllData.Roles != null)
+                    {
+                        var role = serverWithAllData.Roles.FirstOrDefault(r => r.Id == rolePermission.RoleId);
+                        if (role != null && !role.Permissions.Any(p => p.Id == permission.Id))
+                        {
+                            role.Permissions.Add(permission);
+                        }
+                    }
+                    return permission;
+                },
+                new { serverId = serverWithAllData.Id },
+                splitOn: "RoleId"
+            );
+
+            foreach (var role in serverWithAllData.Roles)
+            {
+                foreach (var member in serverWithAllData.Members)
+                {
+                    var memberRole = member.Roles.FirstOrDefault(r => r.Id == role.Id);
+                    if (memberRole == null)
+                    {
+                        memberRole.Permissions = [.. role.Permissions];
+                    }
+                }
+            }
 
             serverWithAllData.ChannelClasses = [.. serverWithAllData.ChannelClasses.OrderBy(cc => cc.OrderNumber)];
             foreach (var channelClass in serverWithAllData.ChannelClasses)
@@ -511,6 +605,50 @@ namespace CommunicationsApp.Services
                 Console.WriteLine($"Error: {e.Message}");
                 return new { Succeeded = false, ErrorMessage = e.Message };
             }
+        }
+
+        public async Task<dynamic> AddServerPermissionsAsync()
+        {
+            foreach (Enums.ServerPermissionType permission in Enum.GetValues<Enums.ServerPermissionType>())
+            {
+                var insertServerPermissionQuery = """
+                    INSERT INTO ServerPermissions (Id, PermissionType, PermissionName)
+                    SELECT @Id, @PermissionType, @PermissionName
+                    WHERE NOT EXISTS (
+                        SELECT 1 FROM ServerPermissions WHERE PermissionName = @PermissionName
+                    )
+                    """;
+                using var connection = GetConnection();
+                connection.Open();
+                using SqlTransaction transaction = connection.BeginTransaction();
+                try
+                {
+                    var rowsAffected = await connection.ExecuteAsync(insertServerPermissionQuery, new
+                    {
+                        Id = Guid.CreateVersion7().ToString(),
+                        PermissionType = permission,
+                        PermissionName = permission.ToString()
+                    }, transaction);
+                    transaction.Commit();
+                }
+                catch (Exception e)
+                {
+                    transaction.Rollback();
+                    Console.WriteLine($"Error: {e.Message}");
+                    return new { Succeeded = false, ErrorMessage = e.Message };
+                }
+            }
+            return new { Succeeded = true, Message = "Server permissions added successfully." };
+        }
+
+        public async Task<List<ServerPermission>> GetServerPermissionsAsync()
+        {
+            var getServerPermissionsQuery = """
+                SELECT * FROM ServerPermissions
+                """;
+            using var connection = GetConnection();
+            var serverPermissions = await connection.QueryAsync<ServerPermission>(getServerPermissionsQuery);
+            return serverPermissions.ToList();
         }
     }
 }
