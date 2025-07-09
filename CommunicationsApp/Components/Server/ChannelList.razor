@@ -63,22 +63,25 @@ else
             </FluentCard>
         </FluentStack>
 
-        <FluentStack Orientation="Orientation.Vertical" Id="ChannelListChannels"
-                     Style="width: 100%; flex-grow: 1; height: 100%; overflow-y: auto; scrollbar-width: thin;">
-            <FluentNavMenu @bind-Expanded="@ChannelClassesExpanded">
-                @foreach (var channelClass in Server.ChannelClasses)
-                {
-                    <FluentNavGroup Title="@channelClass.Name" Expanded="true">
-                        @foreach (var channel in channelClass.Channels)
-                        {
-                            <FluentNavLink Href="@($"channels/{Server.Id}/{channel.Id}")">
-                                @channel.Name
-                            </FluentNavLink>
-                        }
-                    </FluentNavGroup>
-                }
-            </FluentNavMenu>
-        </FluentStack>
+        @if (Permissions.Any(p => p.PermissionType == ServerPermissionType.DisplayChannels))
+        {
+            <FluentStack Orientation="Orientation.Vertical" Id="ChannelListChannels"
+                         Style="width: 100%; flex-grow: 1; height: 100%; overflow-y: auto; scrollbar-width: thin;">
+                <FluentNavMenu @bind-Expanded="@ChannelClassesExpanded">
+                    @foreach (var channelClass in Server.ChannelClasses)
+                    {
+                        <FluentNavGroup Title="@channelClass.Name" Expanded="true">
+                            @foreach (var channel in channelClass.Channels)
+                            {
+                                <FluentNavLink Href="@($"channels/{Server.Id}/{channel.Id}")">
+                                    @channel.Name
+                                </FluentNavLink>
+                            }
+                        </FluentNavGroup>
+                    }
+                </FluentNavMenu>
+            </FluentStack>
+        }
     }
 }
 
@@ -92,6 +95,7 @@ else
     public bool OpenServerMenu = false;
     public bool ChannelClassesExpanded = true;
     public LoadingState LoadingState { get; set; } = new();
+    public List<ServerPermission> Permissions = [];
 
     protected override async Task OnInitializedAsync()
     {
@@ -109,6 +113,7 @@ else
             }
             User = await UserService.GetUserByIdAsync(UserId);
             IsServerOwner = Server.OwnerId == UserId;
+            Permissions = Server.Members.FirstOrDefault(m => m.UserId == UserId).Roles.SelectMany(r => r.Permissions).ToList();
             LoadingState.IsLoading = false;
         }
     }

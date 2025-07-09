@@ -333,6 +333,7 @@ namespace CommunicationsApp.Services
 
                     if (role != null && !string.IsNullOrWhiteSpace(role.Id) && currentServer.Roles.All(r => r.Id != role.Id))
                     {
+                        role.Permissions ??= [];
                         currentServer.Roles.Add(role);
                     }
 
@@ -358,7 +359,6 @@ namespace CommunicationsApp.Services
                         member.Roles ??= [];
                         member = currentServer.Members.FirstOrDefault(m => m.Id == member.Id) ?? member;
 
-                        // This would be replaced with role permissions once implemented
                         if (role.Name == "@everyone" && !member.Roles.Any(r => r.Name == "@everyone"))
                         {
                             member.Roles.Add(role);
@@ -421,7 +421,7 @@ namespace CommunicationsApp.Services
                 foreach (var member in serverWithAllData.Members)
                 {
                     var memberRole = member.Roles.FirstOrDefault(r => r.Id == role.Id);
-                    if (memberRole == null)
+                    if (memberRole != null)
                     {
                         memberRole.Permissions = [.. role.Permissions];
                     }
@@ -459,13 +459,15 @@ namespace CommunicationsApp.Services
                     }
                     if (role != null)
                     {
-                        // This would be replaced with role permissions once implemented
-                        if (role.Name == "@everyone" && !member.Roles.Any(r => r.Name == "@everyone"))
+                        role.Permissions ??= [];
+                        if (!member.Roles.Any(r => r.Name == "@everyone"))
                         {
-                            member.Roles.Add(role);
+                            var everyoneRole = server.Roles.FirstOrDefault(r => r.Name == "@everyone");
+                            member.Roles.Add(everyoneRole);
                         }
                         if (!string.IsNullOrWhiteSpace(role.Id) && member.Roles.All(r => r.Id != role.Id))
                         {
+                            role.Permissions = server.Roles.FirstOrDefault(r => r.Id == role.Id).Permissions;
                             member.Roles.Add(role);
                         }
                     }
