@@ -22,147 +22,162 @@ else
 {
     if (Server is not null && Channel is not null)
     {
-        <FluentStack HorizontalGap="4"
-            Style="position: sticky;
-                    top: 0em;
-                    min-height: 4em;
-                    border-bottom: solid 0.1em;
-                    align-items: center;
-                    z-index: 1;
-                    justify-content: space-between;">
-            <FluentStack HorizontalGap="4">
-                <FluentLabel Style="margin-left: 0.5em; font-size: 1.8em;">#</FluentLabel>
-                <FluentLabel Weight="FontWeight.Bold">
-                    @Channel!.Name
-                </FluentLabel>
-                <FluentLabel>•</FluentLabel>
-                <FluentLabel Style="font-size: 0.9em;">@Channel!.Description</FluentLabel>
-            </FluentStack>
-            <FluentButton BackgroundColor="rgba(0,0,0,0)" Id="btnDisplayMemberList"
-                                OnClick="@(() => DisplayMemberList = !DisplayMemberList)"
-                                Style="justify-self: flex-end;">
+        if (Permissions.Any(p => p.PermissionType == ServerPermissionType.DisplayChannels))
+        {
+            <FluentStack HorizontalGap="4"
+                         Style="position: sticky;
+                                top: 0em;
+                                min-height: 4em;
+                                border-bottom: solid 0.1em;
+                                align-items: center;
+                                z-index: 1;
+                                justify-content: space-between;">
+                <FluentStack HorizontalGap="4">
+                    <FluentLabel Style="margin-left: 0.5em; font-size: 1.8em;">#</FluentLabel>
+                    <FluentLabel Weight="FontWeight.Bold">
+                        @Channel!.Name
+                    </FluentLabel>
+                    <FluentLabel>•</FluentLabel>
+                    <FluentLabel Style="font-size: 0.9em;">@Channel!.Description</FluentLabel>
+                </FluentStack>
+                <FluentButton BackgroundColor="rgba(0,0,0,0)" Id="btnDisplayMemberList"
+                              OnClick="@(() => DisplayMemberList = !DisplayMemberList)"
+                              Style="justify-self: flex-end;">
                     <FluentIcon Value="@(new Size24.PeopleCommunity())" Slot="start" />
                     <FluentTooltip Anchor="btnDisplayMemberList" Position="TooltipPosition.Left">
-                    @(DisplayMemberList ? Localizer["HideMemberList"] : Localizer["DisplayMemberList"])
+                        @(DisplayMemberList? Localizer["HideMemberList"] : Localizer["DisplayMemberList"])
                     </FluentTooltip>
                 </FluentButton>
-        </FluentStack>
-    
-        <FluentStack Style="flex-grow: 1; overflow: hidden; width: 100%;" HorizontalGap="0">
-            <FluentStack Orientation="Orientation.Vertical" Style="flex-grow: 1; height: 100%;" VerticalGap="0">
-                <FluentStack Orientation="Orientation.Vertical" Style="height: 100%; overflow-y: auto;" 
-                    Id="channelMessageView">
-                    <FluentStack Orientation="Orientation.Vertical"
-                                    HorizontalAlignment="HorizontalAlignment.Center"
-                                    Style="margin-top: 1em;">
-                        <FluentLabel Weight="FontWeight.Bold"
-                                        Typo="Typography.Subject"
-                                        Alignment="HorizontalAlignment.Center">
-                            @Localizer["WelcomeToChannel"] #@Channel.Name!
-                        </FluentLabel>
-                        <FluentLabel>
-                            This is where the fun begins
-                        </FluentLabel>
-                    </FluentStack>
-                    <FluentStack Orientation="Orientation.Vertical" Style="flex-grow: 1;">
-                        @foreach (var message in Channel!.Messages)
-                        {
-                            var displayNameId = $"senderDisplayName-{message.Id}";
-                            var popoverId = $"popover-{message.Id}";
+            </FluentStack>
 
-                            <FluentStack>
-                                <FluentPopover AnchorId=@displayNameId 
-                                    Open="@(OpenPopoverId == popoverId)"
-                                    OpenChanged="@((bool isOpen) => OnPopoverOpenChanged(popoverId, isOpen))"
-                                    Style="width: 300px; border-radius: 0.5em;"
-                                               VerticalPosition="VerticalPosition.Top" VerticalThreshold="200">
-                                    <Body>
-                                        <ProfileCard Profile="@message.Sender" />
-                                    </Body>
-                                </FluentPopover>
-                                <FluentCard Style="border-radius: 0; padding: 10px;">
-                                    <FluentStack>
-                                        <FluentPersona Image="@(!string.IsNullOrWhiteSpace(message.Sender.ProfilePictureUrl)
-                                                                ? message.Sender.ProfilePictureUrl
-                                                                : new Size48.Person().ToDataUri(size: "25px", color: "white"))"
-                                                        ImageSize="50px"
-                                                        Status="PresenceStatus.Available">
-                                        </FluentPersona>
-                                        <FluentStack Orientation="Orientation.Vertical" VerticalGap="0">
-                                            <FluentStack>
-                                                <FluentLabel Id=@displayNameId Weight="FontWeight.Bold"
-                                                    Style="font-size: 1.1em; cursor: pointer;"
-                                                 @onclick="() => OnPopoverOpenChanged(popoverId, OpenPopoverId != popoverId)">
-                                                    @message.Sender.DisplayName
-                                                </FluentLabel>
-                                                <FluentLabel Style="font-size: 0.9em;">
-                                                    @message.SentAt.AddHours(TimeZoneOffset).ToString("dd.MM.yyy HH:mm")
+            <FluentStack Style="flex-grow: 1; overflow: hidden; width: 100%;" HorizontalGap="0">
+                <FluentStack Orientation="Orientation.Vertical" Style="flex-grow: 1; height: 100%;" VerticalGap="0">
+                    <FluentStack Orientation="Orientation.Vertical" Style="height: 100%; overflow-y: auto;"
+                                 Id="channelMessageView">
+                        <FluentStack Orientation="Orientation.Vertical"
+                                     HorizontalAlignment="HorizontalAlignment.Center"
+                                     Style="margin-top: 1em;">
+                            <FluentLabel Weight="FontWeight.Bold"
+                                         Typo="Typography.Subject"
+                                         Alignment="HorizontalAlignment.Center">
+                                @Localizer["WelcomeToChannel"] #@Channel.Name!
+                            </FluentLabel>
+                            <FluentLabel>
+                                This is where the fun begins
+                            </FluentLabel>
+                        </FluentStack>
+                        <FluentStack Orientation="Orientation.Vertical" Style="flex-grow: 1;">
+                            @foreach (var message in Channel!.Messages)
+                            {
+                                var displayNameId = $"senderDisplayName-{message.Id}";
+                                var popoverId = $"popover-{message.Id}";
+
+                                <FluentStack>
+                                    <FluentPopover AnchorId=@displayNameId
+                                                   Open="@(OpenPopoverId == popoverId)"
+                                                   OpenChanged="@((bool isOpen) => OnPopoverOpenChanged(popoverId, isOpen))"
+                                                   Style="width: 300px; border-radius: 0.5em;"
+                                                   VerticalPosition="VerticalPosition.Top" VerticalThreshold="200">
+                                        <Body>
+                                            <ProfileCard Profile="@message.Sender" />
+                                        </Body>
+                                    </FluentPopover>
+                                    <FluentCard Style="border-radius: 0; padding: 10px;">
+                                        <FluentStack>
+                                            <FluentPersona Image="@(!string.IsNullOrWhiteSpace(message.Sender.ProfilePictureUrl)
+                                                                    ? message.Sender.ProfilePictureUrl
+                                                                    : new Size48.Person().ToDataUri(size: "25px", color: "white"))"
+                                                           ImageSize="50px"
+                                                           Status="PresenceStatus.Available">
+                                            </FluentPersona>
+                                            <FluentStack Orientation="Orientation.Vertical" VerticalGap="0">
+                                                <FluentStack>
+                                                    <FluentLabel Id=@displayNameId Weight="FontWeight.Bold"
+                                                                 Style="font-size: 1.1em; cursor: pointer;"
+                                                                 @onclick="() => OnPopoverOpenChanged(popoverId, OpenPopoverId != popoverId)">
+                                                        @message.Sender.DisplayName
+                                                    </FluentLabel>
+                                                    <FluentLabel Style="font-size: 0.9em;">
+                                                        @message.SentAt.AddHours(TimeZoneOffset).ToString("dd.MM.yyy HH:mm")
+                                                    </FluentLabel>
+                                                </FluentStack>
+                                                <FluentLabel Style="white-space: pre-wrap;">
+                                                    @message.Content
                                                 </FluentLabel>
                                             </FluentStack>
-                                            <FluentLabel Style="white-space: pre-wrap;">
-                                                @message.Content
-                                            </FluentLabel>
                                         </FluentStack>
-                                    </FluentStack>
-                                </FluentCard>
-                            </FluentStack>
-                        }
-                        <FluentStack Id="endOfMessages" Style="height: 5px;" />
-                    </FluentStack>
-                </FluentStack>
-                <FluentStack Style="height: 5em; position: relative; width: 100%; position: sticky; bottom: 0;
-                                    align-self: start; padding-bottom: 1em;" Id="textAreaStack">
-                    <FluentTextArea @bind-Value="NewMessage.Content"
-                                    Disabled="@(!Permissions.Any(
-                                                p => p.PermissionType == ServerPermissionType.SendMessages))"
-                                    Placeholder="@($"{Localizer["SendMessage"]} #{Channel.Name}")"
-                                    Style="width: 100%; padding: 0 1em;"
-                                    Id="channelMessageTextArea"
-                                    Maxlength="400" />
-                    <FluentButton OnClick="SendMessageAsync"
-                                    Disabled="@(!Permissions.Any(
-                                                p => p.PermissionType == ServerPermissionType.SendMessages))"
-                                    Style="position: absolute; right: 1.5em; bottom: 1em; background: transparent; border: none;">
-                        <FluentIcon Value="@(new Size20.Send())" />
-                    </FluentButton>
-                </FluentStack>
-            </FluentStack>
-            @if (DisplayMemberList)
-            {
-                <FluentStack Orientation="Orientation.Vertical"
-                    Style="height: 100%; width: 28em; overflow-y: auto; border-left: solid 0.1em; scrollbar-width: thin;">
-                    <FluentStack Orientation="Orientation.Vertical" Style="padding: 0.5em;">
-                        @foreach (var member in Server.Members)
-                        {
-                            <FluentStack HorizontalAlignment="HorizontalAlignment.Left">
-                                <FluentPersona Image="@(!string.IsNullOrWhiteSpace(member.ProfilePictureUrl)
-                                                        ? member.ProfilePictureUrl
-                                                        : new Size48.Person().ToDataUri(size: "25px", color: "white"))"
-                                                ImageSize="50px"
-                                                Status="PresenceStatus.Available">
-                                </FluentPersona>
-                                <FluentStack Orientation="Orientation.Vertical">
-                                    <FluentStack>
-                                        <FluentLabel Style="font-size: 1.1em;" Color="Color.Custom"
-                                                     CustomColor="@((member.Roles.Count > 0 ? member.Roles.FirstOrDefault().HexColour : ""))">
-                                            @member.DisplayName
-                                        </FluentLabel>
-                                        @if (member.UserId == Server.OwnerId)
-                                        {
-                                            <FluentIcon Id="serverOwner" Value="@(new Size20.Crown())" />
-                                            <FluentTooltip Anchor="serverOwner">
-                                                @Localizer["ServerOwner"]
-                                            </FluentTooltip>
-                                        }
-                                    </FluentStack>
-                                    <FluentLabel>@member.Status</FluentLabel>
+                                    </FluentCard>
                                 </FluentStack>
-                            </FluentStack>
-                        }
+                            }
+                            <FluentStack Id="endOfMessages" Style="height: 5px;" />
+                        </FluentStack>
+                    </FluentStack>
+                    <FluentStack Style="height: 5em; position: relative; width: 100%; position: sticky; bottom: 0;
+                                                align-self: start; padding-bottom: 1em;" Id="textAreaStack">
+                        <FluentTextArea @bind-Value="NewMessage.Content"
+                                        Disabled="@(!Permissions.Any(
+                                                    p => p.PermissionType == ServerPermissionType.SendMessages))"
+                                        Placeholder="@($"{Localizer["SendMessage"]} #{Channel.Name}")"
+                                        Style="width: 100%; padding: 0 1em;"
+                                        Id="channelMessageTextArea"
+                                        Maxlength="400" />
+                        <FluentButton OnClick="SendMessageAsync"
+                                      Disabled="@(!Permissions.Any(
+                                                  p => p.PermissionType == ServerPermissionType.SendMessages))"
+                                      Style="position: absolute; right: 1.5em; bottom: 1em; background: transparent;
+                                            border: none;">
+                            <FluentIcon Value="@(new Size20.Send())" />
+                        </FluentButton>
                     </FluentStack>
                 </FluentStack>
-            }
-        </FluentStack>
+                @if (DisplayMemberList)
+                {
+                    <FluentStack Orientation="Orientation.Vertical"
+                                    Style="height: 100%; width: 28em; overflow-y: auto; border-left: solid 0.1em; scrollbar-width: thin;">
+                        <FluentStack Orientation="Orientation.Vertical" Style="padding: 0.5em;">
+                            @foreach (var member in Server.Members)
+                            {
+                                <FluentStack HorizontalAlignment="HorizontalAlignment.Left">
+                                    <FluentPersona Image="@(!string.IsNullOrWhiteSpace(member.ProfilePictureUrl)
+                                                            ? member.ProfilePictureUrl
+                                                            : new Size48.Person().ToDataUri(size: "25px", color: "white"))"
+                                                    ImageSize="50px"
+                                                    Status="PresenceStatus.Available">
+                                    </FluentPersona>
+                                    <FluentStack Orientation="Orientation.Vertical">
+                                        <FluentStack>
+                                            <FluentLabel Style="font-size: 1.1em;" Color="Color.Custom"
+                                                CustomColor="@((member.Roles.Count > 0 
+                                                            ? member.Roles.FirstOrDefault().HexColour
+                                                            : ""))">
+                                                    @member.DisplayName
+                                            </FluentLabel>
+                                            @if (member.UserId == Server.OwnerId)
+                                            {
+                                                <FluentIcon Id="serverOwner" Value="@(new Size20.Crown())" />
+                                                <FluentTooltip Anchor="serverOwner">
+                                                    @Localizer["ServerOwner"]
+                                                </FluentTooltip>
+                                            }
+                                        </FluentStack>
+                                        <FluentLabel>@member.Status</FluentLabel>
+                                    </FluentStack>
+                                </FluentStack>
+                            }
+                        </FluentStack>
+                    </FluentStack>
+                }
+            </FluentStack>
+        }
+        else
+        {
+            <FluentStack HorizontalAlignment="HorizontalAlignment.Center" Style="margin-top: 1em;">
+                <FluentIcon Value="@(new Size28.Info())" Color="Color.Error" />
+                <FluentLabel Typo="Typography.H4">
+                    @Localizer["NoViewChannelsPermission"]
+                </FluentLabel>
+            </FluentStack>
+        }
     }
 }
 

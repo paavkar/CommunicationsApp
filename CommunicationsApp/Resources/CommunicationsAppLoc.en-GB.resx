@@ -342,4 +342,7 @@
   <data name="AddServerPermissions" xml:space="preserve">
     <value>Add available server permissions.</value>
   </data>
+  <data name="NoViewChannelsPermission" xml:space="preserve">
+    <value>You do not have permission to view channels.</value>
+  </data>
 </root>

@@ -342,4 +342,7 @@
   <data name="AddServerPermissions" xml:space="preserve">
     <value>Lisää käyttäjien palvelinoikeudet.</value>
   </data>
+  <data name="NoViewChannelsPermission" xml:space="preserve">
+    <value>Sinulla ei ole oikeutta nähdä kanavia.</value>
+  </data>
 </root>
