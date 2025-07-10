@@ -1,10 +1,11 @@
 using Asp.Versioning;
 using CommunicationsApp.Components;
 using CommunicationsApp.Components.Account;
-using CommunicationsApp.CosmosDb;
+using CommunicationsApp.Infrastructure.CosmosDb;
 using CommunicationsApp.Data;
-using CommunicationsApp.Interfaces;
-using CommunicationsApp.Services;
+using CommunicationsApp.Core.Models;
+using CommunicationsApp.Application.Interfaces;
+using CommunicationsApp.Infrastructure.Services;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Localization;
@@ -130,6 +131,6 @@ app.UseAuthorization();
 app.MapAdditionalIdentityEndpoints();
 app.MapControllers();
 
-app.MapHub<CommunicationsApp.Hubs.CommunicationsHub>("/chathub");
+app.MapHub<CommunicationsApp.Infrastructure.Hubs.CommunicationsHub>("/chathub");
 
 app.Run();

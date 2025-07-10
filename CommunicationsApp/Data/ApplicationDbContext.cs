@@ -1,4 +1,4 @@
-using CommunicationsApp.Models;
+using CommunicationsApp.Core.Models;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 

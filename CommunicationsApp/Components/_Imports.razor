@@ -13,12 +13,13 @@
 @using Microsoft.FluentUI.AspNetCore.Components
 @using CommunicationsApp.Data
 @using CommunicationsApp.Components.Account
-@using CommunicationsApp.Interfaces
+@using CommunicationsApp.Application.Interfaces
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.SignalR.Client
-@using CommunicationsApp.Models
-@using CommunicationsApp.Services
+@using CommunicationsApp.Core.Models
+@using CommunicationsApp.Infrastructure.Services
 @using CommunicationsApp.Components.PageComponents
 @using Microsoft.FluentUI.AspNetCore.Components.Icons.Regular
 @using Microsoft.Extensions.Localization
-@using CommunicationsApp.CosmosDb
+@using CommunicationsApp.Infrastructure.CosmosDb
+@using static CommunicationsApp.Core.Models.Enums

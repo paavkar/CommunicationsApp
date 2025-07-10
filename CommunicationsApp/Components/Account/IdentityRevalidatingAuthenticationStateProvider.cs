@@ -1,4 +1,4 @@
-using CommunicationsApp.Data;
+using CommunicationsApp.Core.Models;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server;
 using Microsoft.AspNetCore.Identity;

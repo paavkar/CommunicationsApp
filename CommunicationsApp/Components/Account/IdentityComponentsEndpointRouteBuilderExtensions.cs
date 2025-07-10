@@ -1,6 +1,6 @@
 using CommunicationsApp.Components.Account.Pages;
 using CommunicationsApp.Components.Account.Pages.Manage;
-using CommunicationsApp.Data;
+using CommunicationsApp.Core.Models;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Http.Extensions;
@@ -8,7 +8,6 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Primitives;
-using Microsoft.JSInterop;
 using System.Security.Claims;
 using System.Text.Json;
 

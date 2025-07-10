@@ -1,4 +1,4 @@
-using CommunicationsApp.Data;
+using CommunicationsApp.Core.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 
