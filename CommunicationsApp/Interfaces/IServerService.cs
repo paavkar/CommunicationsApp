@@ -7,7 +7,6 @@ namespace CommunicationsApp.Interfaces
     {
         Task<Server> CreateServerAsync(Server server, ApplicationUser user);
         Task<Server?> GetServerByIdAsync(string serverId);
-        Task<Server?> GetServerFromDatabaseAsync(string serverId);
         Task UpdateCacheAsync(string serverId, Server server);
         Task<dynamic> GetServerByInvitationAsync(string invitationCode);
         Task<dynamic> JoinServerAsync(Server server, ServerProfile profile);

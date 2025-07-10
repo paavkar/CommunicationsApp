@@ -389,6 +389,11 @@ namespace CommunicationsApp.Services
             );
             var serverWithAllData = serverDictionary.FirstOrDefault().Value;
 
+            if (serverWithAllData == null)
+            {
+                return null;
+            }
+
             var getServerPermissionsQuery = """
                 SELECT 
                     sp.*,

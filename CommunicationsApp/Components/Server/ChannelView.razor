@@ -22,7 +22,7 @@ else
 {
     if (Server is not null && Channel is not null)
     {
-        if (Permissions.Any(p => p.PermissionType == ServerPermissionType.DisplayChannels))
+        if (Permissions.Any(p => p.PermissionType == ServerPermissionType.DisplayChannels) || UserId == Server.OwnerId)
         {
             <FluentStack HorizontalGap="4"
                          Style="position: sticky;
@@ -116,14 +116,16 @@ else
                                                 align-self: start; padding-bottom: 1em;" Id="textAreaStack">
                         <FluentTextArea @bind-Value="NewMessage.Content"
                                         Disabled="@(!Permissions.Any(
-                                                    p => p.PermissionType == ServerPermissionType.SendMessages))"
+                                                    p => p.PermissionType == ServerPermissionType.SendMessages) &&
+                                                    UserId != Server.OwnerId)"
                                         Placeholder="@($"{Localizer["SendMessage"]} #{Channel.Name}")"
                                         Style="width: 100%; padding: 0 1em;"
                                         Id="channelMessageTextArea"
                                         Maxlength="400" />
                         <FluentButton OnClick="SendMessageAsync"
                                       Disabled="@(!Permissions.Any(
-                                                  p => p.PermissionType == ServerPermissionType.SendMessages))"
+                                                  p => p.PermissionType == ServerPermissionType.SendMessages) &&
+                                                  UserId != Server.OwnerId)"
                                       Style="position: absolute; right: 1.5em; bottom: 1em; background: transparent;
                                             border: none;">
                             <FluentIcon Value="@(new Size20.Send())" />

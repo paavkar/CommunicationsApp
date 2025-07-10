@@ -63,7 +63,7 @@ else
             </FluentCard>
         </FluentStack>
 
-        @if (Permissions.Any(p => p.PermissionType == ServerPermissionType.DisplayChannels))
+        @if (Permissions.Any(p => p.PermissionType == ServerPermissionType.DisplayChannels) || UserId == Server.OwnerId)
         {
             <FluentStack Orientation="Orientation.Vertical" Id="ChannelListChannels"
                          Style="width: 100%; flex-grow: 1; height: 100%; overflow-y: auto; scrollbar-width: thin;">
