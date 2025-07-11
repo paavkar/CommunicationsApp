@@ -210,7 +210,7 @@ namespace CommunicationsApp.Infrastructure.Services
         {
             if (settings == null || string.IsNullOrWhiteSpace(settings.UserId))
             {
-                return new { Succeeded = false, ErrorMessage = "Error with the given settings." };
+                return new AccountSettingsResult { Succeeded = false, ErrorMessage = "Error with the given settings." };
             }
             var query = """
                 INSERT INTO AccountSettings (Id, UserId, PreferredLocale, DisplayServerMemberList, PreferredTheme)
@@ -228,7 +228,7 @@ namespace CommunicationsApp.Infrastructure.Services
         {
             if (string.IsNullOrWhiteSpace(userId))
             {
-                return new { Succeeded = false, ErrorMessage = "User ID cannot be null or empty." };
+                return new AccountSettingsResult { Succeeded = false, ErrorMessage = "User ID cannot be null or empty." };
             }
             var query = """
                 SELECT * FROM AccountSettings WHERE UserId = @userId

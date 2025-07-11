@@ -8,6 +8,7 @@ using static CommunicationsApp.Core.Models.Enums;
 using Microsoft.Extensions.Configuration;
 using CommunicationsApp.SharedKernel.Localization;
 using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Logging;
 
 namespace CommunicationsApp.Infrastructure.Services
 {
@@ -15,7 +16,8 @@ namespace CommunicationsApp.Infrastructure.Services
         IConfiguration configuration,
         HybridCache cache,
         ICosmosDbService cosmosDbService,
-        IStringLocalizer<CommunicationsAppLoc> localizer) : IServerService
+        IStringLocalizer<CommunicationsAppLoc> localizer,
+        ILogger<ServerService> logger) : IServerService
     {
         private SqlConnection GetConnection()
         {
@@ -179,7 +181,7 @@ namespace CommunicationsApp.Infrastructure.Services
             catch (Exception e)
             {
                 transaction.Rollback();
-                Console.WriteLine($"Error: {e.Message}");
+                logger.LogError(e, "Error in {Method}", nameof(CreateServerAsync));
                 return null!;
             }
         }
@@ -269,13 +271,14 @@ namespace CommunicationsApp.Infrastructure.Services
                 if (rowsAffected <= 0)
                 {
                     transaction.Rollback();
-                    return new { Succeeded = false, ErrorMessage = "Failed to join server." };
+                    return new ServerResult { Succeeded = false, ErrorMessage = "Failed to join server." };
                 }
 
                 transaction.Commit();
             }
-            catch (Exception)
+            catch (Exception e)
             {
+                logger.LogError(e, "Error in {Method}", nameof(JoinServerAsync));
                 transaction.Rollback();
             }
 
@@ -537,7 +540,7 @@ namespace CommunicationsApp.Infrastructure.Services
             catch (Exception e)
             {
                 transaction.Rollback();
-                Console.WriteLine($"Error: {e.Message}");
+                logger.LogError(e, "Error in {Method}", nameof(LeaveServerAsync));
                 return new ServerResult { Succeeded = false, ErrorMessage = e.Message };
             }
         }
@@ -571,7 +574,7 @@ namespace CommunicationsApp.Infrastructure.Services
             catch (Exception e)
             {
                 transaction.Rollback();
-                Console.WriteLine($"Error: {e.Message}");
+                logger.LogError(e, "Error in {Method}", nameof(AddChannelClassAsync));
                 return new ChannelClassResult { Succeeded = false, ErrorMessage = e.Message };
             }
         }
@@ -582,7 +585,7 @@ namespace CommunicationsApp.Infrastructure.Services
             var channelClass = server.ChannelClasses.FirstOrDefault(cc => cc.Id == channelClassId);
             if (channelClass == null)
             {
-                return new { Succeeded = false, ErrorMessage = "Channel class not found." };
+                return new ChannelResult { Succeeded = false, ErrorMessage = "Channel class not found." };
             }
             channelClass.Channels.Add(channel);
             var insertChannelQuery = """
@@ -610,7 +613,7 @@ namespace CommunicationsApp.Infrastructure.Services
             catch (Exception e)
             {
                 transaction.Rollback();
-                Console.WriteLine($"Error: {e.Message}");
+                logger.LogError(e, "Error in {Method}", nameof(AddChannelAsync));
                 return new ChannelClassResult { Succeeded = false, ErrorMessage = e.Message };
             }
         }
@@ -642,7 +645,7 @@ namespace CommunicationsApp.Infrastructure.Services
                 catch (Exception e)
                 {
                     transaction.Rollback();
-                    Console.WriteLine($"Error: {e.Message}");
+                    logger.LogError(e, "Error in {Method}", nameof(AddServerPermissionsAsync));
                     return new ServerPermissionResult { Succeeded = false, ErrorMessage = e.Message };
                 }
             }
@@ -656,7 +659,7 @@ namespace CommunicationsApp.Infrastructure.Services
                 """;
             using var connection = GetConnection();
             var serverPermissions = await connection.QueryAsync<ServerPermission>(getServerPermissionsQuery);
-            return serverPermissions.ToList();
+            return [.. serverPermissions];
         }
     }
 }

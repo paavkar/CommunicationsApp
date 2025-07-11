@@ -171,7 +171,7 @@ namespace CommunicationsApp.Infrastructure.Services
             try
             {
                 await HubConnection.InvokeAsync("NotifyChannelClassUpdate", serverId, updateType, cc);
-                return new { Succeeded = true };
+                return new SignalRResult { Succeeded = true };
             }
             catch (HubException hubEx)
             {
