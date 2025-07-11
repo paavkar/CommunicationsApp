@@ -1,6 +1,7 @@
 ﻿@implements IDisposable
 @using CommunicationsApp.Components.Server
 @using static CommunicationsApp.Core.Models.Enums
+@using CommunicationsApp.SharedKernel.Localization
 
 @rendermode @(new InteractiveServerRenderMode(prerender: false))
 @inject IStringLocalizer<CommunicationsAppLoc> Localizer

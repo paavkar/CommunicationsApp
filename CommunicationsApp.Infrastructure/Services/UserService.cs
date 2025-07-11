@@ -1,15 +1,18 @@
 ﻿using CommunicationsApp.Application.Interfaces;
 using CommunicationsApp.Core.Models;
+using CommunicationsApp.SharedKernel.Localization;
 using Dapper;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Localization;
 
 namespace CommunicationsApp.Infrastructure.Services
 {
     public class UserService(
         IConfiguration configuration,
-        HybridCache cache) : IUserService
+        HybridCache cache,
+        IStringLocalizer<CommunicationsAppLoc> localizer) : IUserService
     {
         private SqlConnection GetConnection()
         {

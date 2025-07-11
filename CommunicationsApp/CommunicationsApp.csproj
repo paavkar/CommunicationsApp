@@ -8,6 +8,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Resources\**" />
+    <Content Remove="Resources\**" />
+    <EmbeddedResource Remove="Resources\**" />
+    <None Remove="Resources\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Asp.Versioning.Mvc.ApiExplorer" Version="8.1.0" />
     <PackageReference Include="Dapper" Version="2.1.66" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.0-preview.5.25277.114" />
@@ -31,6 +38,7 @@
   <ItemGroup>
     <ProjectReference Include="..\CommunicationsApp.Application\CommunicationsApp.Application.csproj" />
     <ProjectReference Include="..\CommunicationsApp.Infrastructure\CommunicationsApp.Infrastructure.csproj" />
+    <ProjectReference Include="..\CommunicationsApp.SharedKernel\CommunicationsApp.SharedKernel.csproj" />
   </ItemGroup>
 
 </Project>

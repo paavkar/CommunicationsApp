@@ -14,10 +14,12 @@
     <PackageReference Include="Microsoft.Azure.Cosmos" Version="3.53.0-preview.0" />
     <PackageReference Include="Microsoft.Data.SqlClient" Version="6.0.2" />
     <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="6.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Localization.Abstractions" Version="9.0.7" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\CommunicationsApp.Application\CommunicationsApp.Application.csproj" />
+    <ProjectReference Include="..\CommunicationsApp.SharedKernel\CommunicationsApp.SharedKernel.csproj" />
   </ItemGroup>
 
 </Project>

@@ -24,6 +24,11 @@ builder.Logging
 var supportedCultures = new[] { "en-GB", "fi-FI" }
     .Select(c => new CultureInfo(c))
     .ToList();
+
+builder.Services.AddLocalization(options =>
+{
+    options.ResourcesPath = "";
+});
 builder.Services.Configure<RequestLocalizationOptions>(options =>
 {
     options.DefaultRequestCulture = new RequestCulture("en-GB");
@@ -92,11 +97,6 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<CosmosDbFactory>();
 builder.Services.AddScoped<ICosmosDbService, CosmosDbService>();
 builder.Services.AddScoped<CommunicationsHubService>();
-
-builder.Services.AddLocalization(options =>
-{
-    options.ResourcesPath = "Resources";
-});
 
 var app = builder.Build();
 

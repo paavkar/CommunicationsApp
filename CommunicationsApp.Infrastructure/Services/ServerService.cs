@@ -6,13 +6,16 @@ using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Caching.Hybrid;
 using static CommunicationsApp.Core.Models.Enums;
 using Microsoft.Extensions.Configuration;
+using CommunicationsApp.SharedKernel.Localization;
+using Microsoft.Extensions.Localization;
 
 namespace CommunicationsApp.Infrastructure.Services
 {
     public class ServerService(
         IConfiguration configuration,
         HybridCache cache,
-        ICosmosDbService cosmosDbService) : IServerService
+        ICosmosDbService cosmosDbService,
+        IStringLocalizer<CommunicationsAppLoc> localizer) : IServerService
     {
         private SqlConnection GetConnection()
         {
