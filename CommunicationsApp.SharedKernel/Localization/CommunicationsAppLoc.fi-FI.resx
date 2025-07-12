@@ -345,4 +345,13 @@
   <data name="NoViewChannelsPermission" xml:space="preserve">
     <value>Sinulla ei ole oikeutta nähdä kanavia.</value>
   </data>
+  <data name="TextChannels" xml:space="preserve">
+    <value>tekstikanavat</value>
+  </data>
+  <data name="General" xml:space="preserve">
+    <value>Yleinen</value>
+  </data>
+  <data name="GeneralDescription" xml:space="preserve">
+    <value>Tekstikanava yleiselle keskustelulle</value>
+  </data>
 </root>

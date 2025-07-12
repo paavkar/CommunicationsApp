@@ -345,4 +345,13 @@
   <data name="NoViewChannelsPermission" xml:space="preserve">
     <value>You do not have permission to view channels.</value>
   </data>
+  <data name="TextChannels" xml:space="preserve">
+    <value>text channels</value>
+  </data>
+  <data name="General" xml:space="preserve">
+    <value>General</value>
+  </data>
+  <data name="GeneralDescription" xml:space="preserve">
+    <value>General discussion channel</value>
+  </data>
 </root>

@@ -138,7 +138,7 @@ namespace CommunicationsApp.Infrastructure.Services
                 ChannelClass channelClass = new()
                 {
                     Id = Guid.CreateVersion7().ToString(),
-                    Name = "text channels",
+                    Name = localizer["TextChannels"],
                     ServerId = server.Id!,
                     OrderNumber = 1,
                     IsPrivate = false
@@ -158,10 +158,10 @@ namespace CommunicationsApp.Infrastructure.Services
                     Channel defaultChannel = new()
                     {
                         Id = Guid.CreateVersion7().ToString(),
-                        Name = "general",
+                        Name = localizer["General"].ToString().ToLower(),
                         ServerId = server.Id!,
                         ChannelClassId = channelClass.Id,
-                        Description = "General discussion channel",
+                        Description = localizer["GeneralDescription"],
                         IsPrivate = false,
                         OrderNumber = 1
                     };
