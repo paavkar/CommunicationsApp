@@ -6,6 +6,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Logging;
 using System.Data;
 
 namespace CommunicationsApp.Infrastructure.Services
@@ -13,7 +14,8 @@ namespace CommunicationsApp.Infrastructure.Services
     public class UserService(
         IConfiguration configuration,
         HybridCache cache,
-        IStringLocalizer<CommunicationsAppLoc> localizer) : IUserService
+        IStringLocalizer<CommunicationsAppLoc> localizer,
+        ILogger<UserService> logger) : IUserService
     {
         private SqlConnection GetConnection()
         {
@@ -40,6 +42,10 @@ namespace CommunicationsApp.Infrastructure.Services
             await conn.OpenAsync();
 
             var user = await GetUserWithSettingsAsync(conn, userId);
+            if (user is null)
+            {
+                return null!;
+            }
             var (profiles, servers) = await GetServerProfilesAsync(conn, userId);
             var memberLookup = await GetServerMembersAsync(conn, profiles.Select(sp => sp.ServerId!));
 
@@ -91,9 +97,15 @@ namespace CommunicationsApp.Infrastructure.Services
                 splitOn: "AccountSettingsId"
             );
 
-            return userDictionary.Count == 0 
-                ? throw new KeyNotFoundException($"User '{userId}' not found in database.") 
-                : userDictionary.Values.First();
+            if (userDictionary.Count == 0)
+            {
+                logger.LogError("No user found with the given ID {Method}", nameof(GetUserWithSettingsAsync));
+                return null!;
+            }
+            else
+            {
+                return userDictionary.Values.First();
+            }
         }
 
         public async Task<(List<ServerProfile> Profiles, List<Server> Servers)> GetServerProfilesAsync(
