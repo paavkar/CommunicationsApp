@@ -6,6 +6,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Localization;
+using System.Data;
 
 namespace CommunicationsApp.Infrastructure.Services
 {
@@ -33,10 +34,30 @@ namespace CommunicationsApp.Infrastructure.Services
             return cachedUser;
         }
 
-        public async Task<ApplicationUser> GetUserFromDatabaseAsync(string userId, bool refreshCache = false)
+        public async Task<ApplicationUser> GetUserFromDatabaseAsync(string userId)
         {
-            var userDictionary = new Dictionary<string, ApplicationUser>();
-            var getUserByIdQuery = """
+            using var conn = GetConnection();
+            await conn.OpenAsync();
+
+            var user = await GetUserWithSettingsAsync(conn, userId);
+            var (profiles, servers) = await GetServerProfilesAsync(conn, userId);
+            var memberLookup = await GetServerMembersAsync(conn, profiles.Select(sp => sp.ServerId!));
+
+            user.ServerProfiles = profiles;
+            user.Servers = servers;
+
+            foreach (var server in user.Servers)
+            {
+                if (memberLookup.TryGetValue(server.Id!, out var members))
+                    server.Members = members;
+            }
+
+            return user;
+        }
+
+        public async Task<ApplicationUser> GetUserWithSettingsAsync(IDbConnection connection, string userId)
+        {
+            var sql = """
                 SELECT 
                     u.*,
                     ac.Id AS AccountSettingsId, ac.*
@@ -44,9 +65,11 @@ namespace CommunicationsApp.Infrastructure.Services
                 LEFT JOIN AccountSettings ac ON ac.UserId = u.Id
                 WHERE u.Id = @userId
                 """;
-            using var connection = GetConnection();
+
+            var userDictionary = new Dictionary<string, ApplicationUser>();
+
             await connection.QueryAsync<ApplicationUser, AccountSettings, ApplicationUser>(
-                getUserByIdQuery,
+                sql,
                 (appUser, ac) =>
                 {
                     if (!userDictionary.TryGetValue(appUser.Id, out var currentUser))
@@ -67,6 +90,15 @@ namespace CommunicationsApp.Infrastructure.Services
                 new { userId },
                 splitOn: "AccountSettingsId"
             );
+
+            return userDictionary.Count == 0 
+                ? throw new KeyNotFoundException($"User '{userId}' not found in database.") 
+                : userDictionary.Values.First();
+        }
+
+        public async Task<(List<ServerProfile> Profiles, List<Server> Servers)> GetServerProfilesAsync(
+            IDbConnection connection,  string userId)
+        {
             var getUserQuery = """
                 SELECT 
                     sp.*,
@@ -83,73 +115,82 @@ namespace CommunicationsApp.Infrastructure.Services
                 LEFT JOIN Channels c ON c.ChannelClassId = cc.Id
                 WHERE sp.UserId = @userId
                 """;
-            await connection.QueryAsync<ServerProfile, UserServerRole, ServerRole, Server, ChannelClass, Channel, ApplicationUser>(
+            var profileDict = new Dictionary<string, ServerProfile>();
+            var serverDict = new Dictionary<string, Server>();
+
+            await connection.QueryAsync<ServerProfile, UserServerRole, ServerRole, Server, ChannelClass, Channel, ServerProfile>(
                 getUserQuery,
                 (sp, usr, sr, s, cc, c) =>
                 {
-                    userDictionary.TryGetValue(userId, out var currentUser);
-
-                    if (sp != null && !string.IsNullOrWhiteSpace(sp.UserName))
+                    if (!profileDict.TryGetValue(sp.Id, out var currentSp))
                     {
-                        var currentSP = currentUser.ServerProfiles.FirstOrDefault(x => x.Id == sp.Id);
-                        if (currentSP == null)
-                        {
-                            currentSP = sp;
-                            currentSP.Roles ??= [];
-                            currentUser.ServerProfiles.Add(currentSP);
-                        }
-                        if (sr != null && !string.IsNullOrWhiteSpace(sr.Id) && currentSP.Roles.All(x => x.Id != sr.Id))
-                        {
-                            currentSP.Roles.Add(sr);
-                        }
+                        currentSp = sp;
+                        currentSp.Roles ??= [];
+                        profileDict.Add(sp.Id, currentSp);
+                    }
+                    if (sr != null && !string.IsNullOrWhiteSpace(sr.Id) && currentSp.Roles.All(x => x.Id != sr.Id))
+                    {
+                        currentSp.Roles.Add(sr);
                     }
 
-                    if (s != null && !string.IsNullOrWhiteSpace(s.Name))
+                    if (s is not null && !string.IsNullOrWhiteSpace(s.Id))
                     {
-                        var currentServer = currentUser.Servers.FirstOrDefault(x => x.Id == s.Id);
-                        if (currentServer == null)
+                        if (!serverDict.TryGetValue(s.Id, out var currentServer))
                         {
                             s.ChannelClasses ??= [];
-                            currentUser.Servers.Add(s);
+                            serverDict.Add(s.Id, s);
                             currentServer = s;
                         }
-                        if (cc != null && !string.IsNullOrWhiteSpace(cc.Id))
+
+                        if (cc is not null && !string.IsNullOrWhiteSpace(cc.Id))
                         {
-                            var currentCC = currentServer.ChannelClasses.FirstOrDefault(x => x.Id == cc.Id);
-                            if (currentCC == null)
+                            var classList = currentServer.ChannelClasses!;
+                            var foundCc = classList.FirstOrDefault(x => x.Id == cc.Id);
+                            if (foundCc == null)
                             {
                                 cc.Channels ??= [];
-                                currentServer.ChannelClasses.Add(cc);
-                                currentCC = cc;
+                                classList.Add(cc);
+                                foundCc = cc;
                             }
-                            if (c != null && !string.IsNullOrWhiteSpace(c.Id))
+
+                            if (c is not null && !string.IsNullOrWhiteSpace(c.Id) &&
+                                foundCc.Channels!.All(x => x.Id != c.Id))
                             {
-                                if (currentCC.Channels.All(x => x.Id != c.Id))
-                                {
-                                    c.Messages ??= [];
-                                    currentCC.Channels.Add(c);
-                                }
+                                foundCc.Channels.Add(c);
                             }
                         }
                     }
 
-                    return currentUser;
+                    return currentSp;
                 },
                 new { userId },
                 splitOn: "UserServerRoleUserId,ServerRoleId,ServerId,ChannelClassId,ChannelId"
             );
 
-            var userWithAllData = userDictionary.FirstOrDefault().Value;
-            var serverIds = userWithAllData.Servers.Select(s => s.Id).ToList();
-            foreach (var server in userWithAllData.Servers)
-            {
-                server.ChannelClasses = [.. server.ChannelClasses.OrderBy(cc => cc.OrderNumber)];
-                foreach (var channelClass in server.ChannelClasses)
-                {
-                    channelClass.Channels = [.. channelClass.Channels.OrderBy(c => c.OrderNumber)];
-                }
-            }
+            var profiles = profileDict.Values
+                              .OrderBy(sp => sp.DisplayName)
+                              .ToList();
 
+            var servers = serverDict.Values
+                                      .Select(s =>
+                                      {
+                                          s.ChannelClasses = [.. s.ChannelClasses!.OrderBy(cc => cc.OrderNumber)];
+
+                                          foreach (var cls in s.ChannelClasses!)
+                                          {
+                                              cls.Channels = [.. cls.Channels!.OrderBy(c => c.OrderNumber)];
+                                          }
+
+                                          return s;
+                                      })
+                                      .OrderBy(s => s.Name)
+                                      .ToList();
+            return (profiles, servers);
+        }
+
+        public async Task<Dictionary<string, List<ServerProfile>>> GetServerMembersAsync(IDbConnection connection,
+            IEnumerable<string> serverIds)
+        {
             var serverProfileQuery = """
                 SELECT sp.*, sr.Id AS ServerRoleId, sr.*
                 FROM ServerProfiles sp
@@ -180,21 +221,9 @@ namespace CommunicationsApp.Infrastructure.Services
                 new { serverIds },
                 splitOn: "ServerRoleId"
             );
-            var groupedProfiles = memberDictionary.Values
+            return memberDictionary.Values
                 .GroupBy(sp => sp.ServerId)
                 .ToDictionary(g => g.Key, g => g.ToList());
-
-            foreach (var server in userWithAllData.Servers)
-            {
-                server.Members ??= [];
-
-                if (groupedProfiles.TryGetValue(server.Id!, out var profiles))
-                {
-                    server.Members.AddRange(profiles);
-                }
-            }
-
-            return userWithAllData;
         }
 
         public async Task UpdateCacheAsync(ApplicationUser user)
