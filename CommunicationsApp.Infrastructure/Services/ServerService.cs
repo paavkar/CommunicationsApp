@@ -1,14 +1,16 @@
-﻿using CommunicationsApp.Infrastructure.CosmosDb;
-using CommunicationsApp.Application.Interfaces;
+﻿using CommunicationsApp.Application.Interfaces;
 using CommunicationsApp.Core.Models;
+using CommunicationsApp.Infrastructure.CosmosDb;
+using CommunicationsApp.SharedKernel.Localization;
 using Dapper;
+using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.Azure.Cosmos;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Caching.Hybrid;
-using static CommunicationsApp.Core.Models.Enums;
 using Microsoft.Extensions.Configuration;
-using CommunicationsApp.SharedKernel.Localization;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
+using static CommunicationsApp.Core.Models.Enums;
 
 namespace CommunicationsApp.Infrastructure.Services
 {
@@ -17,7 +19,8 @@ namespace CommunicationsApp.Infrastructure.Services
         HybridCache cache,
         ICosmosDbService cosmosDbService,
         IStringLocalizer<CommunicationsAppLoc> localizer,
-        ILogger<ServerService> logger) : IServerService
+        ILogger<ServerService> logger,
+        AuthenticationStateProvider asp) : IServerService
     {
         private SqlConnection GetConnection()
         {
@@ -188,6 +191,8 @@ namespace CommunicationsApp.Infrastructure.Services
 
         public async Task<Server?> GetServerByIdAsync(string serverId)
         {
+            var authState = await asp.GetAuthenticationStateAsync();
+            var authenticatedUserId = authState.User.Claims.Where(c => c.Type.Contains("nameidentifier")).First().Value;
             var cachedServer = await cache.GetOrCreateAsync<Server>(
                 $"server_{serverId}",
                 factory: async entry =>
@@ -195,7 +200,7 @@ namespace CommunicationsApp.Infrastructure.Services
                     return await GetServerFromDatabaseAsync(serverId);
                 }
             );
-            return cachedServer;
+            return cachedServer.Members.Select(m => m.UserId).Any(m => m == authenticatedUserId) ? cachedServer : null;
         }
 
         public async Task<Server?> GetServerFromDatabaseAsync(string serverId)
