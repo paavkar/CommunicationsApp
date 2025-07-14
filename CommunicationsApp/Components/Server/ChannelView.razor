@@ -11,7 +11,7 @@
 @inject IToastService ToastService
 @inject IJSRuntime JS
 
-@if (LoadingState.IsLoading)
+@if (IsLoading)
 {
     <FluentStack Style="width: 100%; height: 100%; justify-content: center; align-items: center;">
         <FluentProgressRing></FluentProgressRing>
@@ -187,7 +187,7 @@ else
     public string? ServerId { get; set; }
     [Parameter]
     public string? ChannelId { get; set; }
-    public LoadingState LoadingState { get; set; } = new();
+    public bool IsLoading { get; set; } = true;
     public Server? Server { get; set; }
     public Channel? Channel { get; set; }
     public ChatMessage NewMessage { get; set; } = new();
@@ -231,7 +231,7 @@ else
         await JS.InvokeVoidAsync("titleHelper.setTitle", TitleString);
         Permissions = Server.Members.FirstOrDefault(m => m.UserId == UserId).Roles.SelectMany(r => r.Permissions).ToList();
 
-        LoadingState.IsLoading = false;
+        IsLoading = false;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

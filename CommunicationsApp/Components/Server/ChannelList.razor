@@ -8,7 +8,7 @@
 @inject IDialogService DialogService
 @inject IUserService UserService
 
-@if (LoadingState.IsLoading)
+@if (IsLoading)
 {
     <FluentStack Style="width: 100%; height: 100%; justify-content: center; align-items: center;">
         <FluentProgressRing></FluentProgressRing>
@@ -36,9 +36,17 @@ else
                         @Localizer["InvitePeople"]
                         <FluentIcon Value="@(new Size20.PeopleAdd())" Slot="end" />
                     </FluentMenuItem>
-                    @if (IsServerOwner)
+                    @if (Permissions.Any(p => p.PermissionType == ServerPermissionType.ManageServer) ||
+                        Permissions.Any(p => p.PermissionType == ServerPermissionType.ManageChannels) ||
+                        IsServerOwner)
                     {
                         <FluentDivider />
+
+                        <FluentMenuItem OnClick="@ManageServer">
+                            @Localizer["ManageServer"]
+                            <FluentIcon Value="@(new Size20.Settings())" Slot="end" />
+                        </FluentMenuItem>
+
                         <FluentMenuItem OnClick="@AddChannelClass">
                             @Localizer["AddChannelClass"]
                             <FluentIcon Value="@(new Size20.CollectionsAdd())" Slot="end" />
@@ -93,7 +101,7 @@ else
     public bool IsServerOwner { get; set; } = false;
     public bool OpenServerMenu = false;
     public bool ChannelClassesExpanded = true;
-    public LoadingState LoadingState { get; set; } = new();
+    public bool IsLoading { get; set; } = true;
     public List<ServerPermission> Permissions = [];
 
     protected override async Task OnInitializedAsync()
@@ -113,7 +121,7 @@ else
             User = await UserService.GetUserByIdAsync(UserId);
             IsServerOwner = Server.OwnerId == UserId;
             Permissions = Server.Members.FirstOrDefault(m => m.UserId == UserId).Roles.SelectMany(r => r.Permissions).ToList();
-            LoadingState.IsLoading = false;
+            IsLoading = false;
         }
     }
 
@@ -170,6 +178,20 @@ else
         }
     }
 
+    private async Task ManageServer()
+    {
+        var dialog = await DialogService.ShowDialogAsync<ManageServerModal>(Server, new DialogParameters()
+        {
+            Width = "100vw",
+            Height = "99.8vh"
+        });
+        var dialogResult = await dialog.Result;
+        if (dialogResult.Cancelled)
+        {
+            return;
+        }
+    }
+    
     private async Task AddChannelClass()
     {
         var dialog = await DialogService.ShowDialogAsync<AddChannelClassModal>(Server, new DialogParameters()

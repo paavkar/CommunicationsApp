@@ -1,0 +1,69 @@
+﻿@implements IDialogContentComponent<Server>
+@using CommunicationsApp.Components.PageComponents.ManageServer
+
+@inject IStringLocalizer<CommunicationsAppLoc> Localizer
+@inject CommunicationsHubService ChatHubService
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider ASP
+@inject IServerService ServerService
+@inject IUserService UserService
+
+@* Header *@
+@* <FluentDialogHeader>
+    <FluentStack Orientation="Orientation.Vertical" VerticalAlignment="VerticalAlignment.Center"
+                 HorizontalAlignment="HorizontalAlignment.Center">
+        <FluentLabel Typo="Typography.PaneHeader">
+            @Dialog.Instance.Parameters.Title
+        </FluentLabel>
+    </FluentStack>
+</FluentDialogHeader> *@
+
+@* Footer *@
+<FluentDialogFooter Style="padding: 0;">
+    <FluentStack>
+    </FluentStack>
+</FluentDialogFooter>
+
+@* Body *@
+<FluentDialogBody>
+    <FluentStack Style="height: 100%;">
+        <FluentStack Orientation="Orientation.Vertical" Style="overflow-y: auto;
+                                                               border-right: solid 0.1em;
+                                                               width: 30em;
+                                                               height: 100%;">
+            <FluentButton OnClick="@(() => SelectedView = ManageServerView.General)">@Localizer["General"]</FluentButton>
+            <FluentButton OnClick="@(() => SelectedView = ManageServerView.Members)">@Localizer["Members"]</FluentButton>
+            <FluentButton OnClick="@(() => SelectedView = ManageServerView.Roles)">@Localizer["Roles"]</FluentButton>
+        </FluentStack>
+        <FluentStack Orientation="Orientation.Vertical" Style="overflow-y: auto">
+            @switch (SelectedView)
+            {
+                case ManageServerView.General:
+                    <ManageInfo Server=Content />
+                    break;
+                case ManageServerView.Members:
+                    <ManageMembers Server=Content />
+                    break;
+                case ManageServerView.Roles:
+                    <ManageRoles Server=Content />
+                    break;
+                default:
+                    break;
+            }
+        </FluentStack>
+    </FluentStack>
+    
+</FluentDialogBody>
+
+@code {
+    [Parameter]
+    public Server Content { get; set; } = default!;
+    [CascadingParameter]
+    public FluentDialog Dialog { get; set; } = default!;
+    public ManageServerView SelectedView { get; set; } = ManageServerView.General;
+
+    protected override async Task OnInitializedAsync()
+    {
+
+    }
+}

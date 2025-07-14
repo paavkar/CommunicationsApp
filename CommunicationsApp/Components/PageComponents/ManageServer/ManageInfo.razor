@@ -1,0 +1,8 @@
+﻿@inject IStringLocalizer<CommunicationsAppLoc> Localizer
+
+<h3>@Localizer["General"]</h3>
+
+@code {
+    [Parameter]
+    public Server Server { get; set; } = default!;
+}

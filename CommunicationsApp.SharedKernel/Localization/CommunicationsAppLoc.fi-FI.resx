@@ -354,4 +354,16 @@
   <data name="GeneralDescription" xml:space="preserve">
     <value>Tekstikanava yleiselle keskustelulle</value>
   </data>
+  <data name="ManageServer" xml:space="preserve">
+    <value>Hallitse palvelinta</value>
+  </data>
+  <data name="Members" xml:space="preserve">
+    <value>Jäsenet</value>
+  </data>
+  <data name="Roles" xml:space="preserve">
+    <value>Roolit</value>
+  </data>
+  <data name="ServerMembers" xml:space="preserve">
+    <value>Palvelimen jäsenet</value>
+  </data>
 </root>

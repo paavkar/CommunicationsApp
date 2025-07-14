@@ -354,4 +354,16 @@
   <data name="GeneralDescription" xml:space="preserve">
     <value>General discussion channel</value>
   </data>
+  <data name="ManageServer" xml:space="preserve">
+    <value>Manage server</value>
+  </data>
+  <data name="Members" xml:space="preserve">
+    <value>Members</value>
+  </data>
+  <data name="Roles" xml:space="preserve">
+    <value>Roles</value>
+  </data>
+  <data name="ServerMembers" xml:space="preserve">
+    <value>Server's members</value>
+  </data>
 </root>
