@@ -1,4 +1,6 @@
-﻿@inject IStringLocalizer<CommunicationsAppLoc> Localizer
+﻿@using System.Text;
+@using System.Text.Json;
+@inject IStringLocalizer<CommunicationsAppLoc> Localizer
 @inject IServerService ServerService
 
 @switch (Page)

@@ -38,17 +38,18 @@ else
                         @Localizer["InvitePeople"]
                         <FluentIcon Value="@(new Size20.PeopleAdd())" Slot="end" />
                     </FluentMenuItem>
-                    @if (Permissions.Any(p => p.PermissionType == ServerPermissionType.ManageServer) ||
-                        Permissions.Any(p => p.PermissionType == ServerPermissionType.ManageChannels) ||
-                        IsServerOwner)
-                    {
-                        <FluentDivider />
 
+                    <FluentDivider />
+
+                    @if (CanManageServer)
+                    {
                         <FluentMenuItem OnClick="@ManageServer">
                             @Localizer["ManageServer"]
                             <FluentIcon Value="@(new Size20.Settings())" Slot="end" />
                         </FluentMenuItem>
-
+                    }
+                    @if (CanManageChannels)
+                    {
                         <FluentMenuItem OnClick="@AddChannelClass">
                             @Localizer["AddChannelClass"]
                             <FluentIcon Value="@(new Size20.CollectionsAdd())" Slot="end" />
@@ -59,9 +60,12 @@ else
                             <FluentIcon Value="@(new Size20.AddCircle())" Slot="end" />
                         </FluentMenuItem>
                     }
-                    @if (!IsServerOwner)
+                    @if ((CanManageChannels || CanManageServer) && !IsServerOwner)
                     {
                         <FluentDivider />
+                    }
+                    @if (!IsServerOwner)
+                    {
                         <FluentMenuItem OnClick="@LeaveServerAsync">
                             <FluentLabel Color="Color.Error">@Localizer["LeaveServer"]</FluentLabel>
                             <FluentIcon Value="@(new Size20.DoorArrowRight())" Color="Color.Error" Slot="end" />
@@ -105,6 +109,8 @@ else
     public bool ChannelClassesExpanded = true;
     public bool IsLoading { get; set; } = true;
     public List<ServerPermission> Permissions = [];
+    public bool CanManageServer { get; set; }
+    public bool CanManageChannels { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
@@ -124,6 +130,20 @@ else
             User = await UserService.GetUserByIdAsync(UserId);
             IsServerOwner = Server.OwnerId == UserId;
             Permissions = Server.Members.FirstOrDefault(m => m.UserId == UserId).Roles.SelectMany(r => r.Permissions).ToList();
+
+            CanManageServer = Permissions.Any(p => (p.PermissionType == ServerPermissionType.ManageServer) ||
+                (p.PermissionType == ServerPermissionType.ManageRoles) ||
+                (p.PermissionType == ServerPermissionType.KickApproveMembers) ||
+                (p.PermissionType == ServerPermissionType.CreateInvite) ||
+                (p.PermissionType == ServerPermissionType.BanMembers) ||
+                (p.PermissionType == ServerPermissionType.ManageNicknames) ||
+                (p.PermissionType == ServerPermissionType.TimeoutMembers) ||
+                (p.PermissionType == ServerPermissionType.AdminPrivileges)) || IsServerOwner;
+
+            CanManageChannels = Permissions.Any(p => (p.PermissionType == ServerPermissionType.ManageChannels) ||
+                (p.PermissionType == ServerPermissionType.AdminPrivileges)) ||
+                        IsServerOwner;
+
             IsLoading = false;
         }
     }
