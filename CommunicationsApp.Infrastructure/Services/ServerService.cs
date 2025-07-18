@@ -1,10 +1,11 @@
-﻿using CommunicationsApp.Application.Interfaces;
+﻿using CommunicationsApp.Application.DTOs;
+using CommunicationsApp.Application.Interfaces;
 using CommunicationsApp.Core.Models;
 using CommunicationsApp.Infrastructure.CosmosDb;
+using CommunicationsApp.Infrastructure.Services.ResultModels;
 using CommunicationsApp.SharedKernel.Localization;
 using Dapper;
 using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.Azure.Cosmos;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Configuration;
@@ -122,7 +123,7 @@ namespace CommunicationsApp.Infrastructure.Services
                 foreach (var permission in defaultPermissions)
                 {
                     rowsAffected = await connection.ExecuteAsync(insertRolePermissionsQuery,
-                        new ServerRolePermission() { RoleId = serverRole .Id, PermissionId = permission.Id},
+                        new ServerRolePermission() { RoleId = serverRole.Id, PermissionId = permission.Id },
                         transaction);
                 }
 
@@ -665,6 +666,45 @@ namespace CommunicationsApp.Infrastructure.Services
             using var connection = GetConnection();
             var serverPermissions = await connection.QueryAsync<ServerPermission>(getServerPermissionsQuery);
             return [.. serverPermissions];
+        }
+
+        public async Task<dynamic> UpdateServerNameDescriptionAsync(string serverId, ServerInfoUpdate update)
+        {
+            var updateServerQuery = """
+                UPDATE Servers
+                SET Name = @Name, Description = @Description
+                WHERE Id = @serverId
+                """;
+            using var connection = GetConnection();
+            try
+            {
+                var rowsAffected = await connection.ExecuteAsync(updateServerQuery,
+                    new { Name = update.Name, Description = update.Description, serverId });
+                if (rowsAffected > 0)
+                {
+                    var server = await GetServerByIdAsync(serverId);
+                    if (server != null)
+                    {
+                        server.Name = update.Name;
+                        server.Description = update.Description;
+                        await UpdateCacheAsync(serverId, server);
+                    }
+                    return new ResultBaseModel { Succeeded = true };
+                }
+                else
+                {
+                    return new ResultBaseModel
+                    {
+                        Succeeded = false,
+                        ErrorMessage = localizer["ServerInfoUpdateError"]
+                    };
+                }
+            }
+            catch (Exception e)
+            {
+                logger.LogError(e, "Error updating the server in {Method}", nameof(UpdateServerNameDescriptionAsync));
+                return new ResultBaseModel { Succeeded = false, ErrorMessage = e.Message };
+            }
         }
     }
 }

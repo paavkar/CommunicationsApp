@@ -1,15 +1,10 @@
 ﻿using CommunicationsApp.Core.Models;
-using System;
-using System.Collections.Generic;
-using System.Text;
+using CommunicationsApp.Infrastructure.Services.ResultModels;
 
 namespace CommunicationsApp.Infrastructure.Services
 {
-    public class AccountSettingsResult
+    public class AccountSettingsResult : ResultBaseModel
     {
-        public bool Succeeded { get; set; }
-        public string? ErrorMessage { get; set; }
         public AccountSettings? Settings { get; set; }
-
     }
 }

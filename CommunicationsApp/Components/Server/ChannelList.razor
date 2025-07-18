@@ -1,5 +1,7 @@
 ﻿@rendermode InteractiveServer
 
+@implements IDisposable
+
 @inject CommunicationsHubService CommunicationsHubService
 @inject IStringLocalizer<CommunicationsAppLoc> Localizer
 @inject NavigationManager NavigationManager
@@ -108,6 +110,7 @@ else
     {
         CommunicationsHubService.ChannelClassUpdateReceived += OnChannelClassUpdateReceived;
         CommunicationsHubService.ChannelUpdateReceived += OnChannelUpdateReceived;
+        CommunicationsHubService.ServerInfoUpdateReceived += OnServerInfoUpdateReceived;
         var authState = await ASP.GetAuthenticationStateAsync();
         UserId = authState.User.Claims.Where(c => c.Type.Contains("nameidentifier")).First().Value;
         if (!string.IsNullOrWhiteSpace(ServerId) && !string.IsNullOrWhiteSpace(UserId))
@@ -191,7 +194,7 @@ else
             return;
         }
     }
-    
+
     private async Task AddChannelClass()
     {
         var dialog = await DialogService.ShowDialogAsync<AddChannelClassModal>(Server, new DialogParameters()
@@ -267,5 +270,28 @@ else
                 await InvokeAsync(StateHasChanged);
                 break;
         }
+    }
+
+    private async void OnServerInfoUpdateReceived(
+        string serverId, ServerUpdateType updateType, ServerInfoUpdate update)
+    {
+        switch (updateType)
+        {
+            case ServerUpdateType.ServerNameDescriptionUpdated:
+                if (ServerId == serverId)
+                {
+                    Server.Name = update.Name;
+                    Server.Description = update.Description;
+                }
+                break;
+        }
+        await InvokeAsync(StateHasChanged); 
+    }
+
+    public void Dispose()
+    {
+        CommunicationsHubService.ChannelClassUpdateReceived -= OnChannelClassUpdateReceived;
+        CommunicationsHubService.ChannelUpdateReceived -= OnChannelUpdateReceived;
+        CommunicationsHubService.ServerInfoUpdateReceived -= OnServerInfoUpdateReceived;
     }
 }

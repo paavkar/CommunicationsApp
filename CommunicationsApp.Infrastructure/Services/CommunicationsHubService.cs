@@ -1,4 +1,5 @@
-﻿using CommunicationsApp.Core.Models;
+﻿using CommunicationsApp.Application.DTOs;
+using CommunicationsApp.Core.Models;
 using CommunicationsApp.Infrastructure.Services.Models;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Http.Connections;
@@ -20,6 +21,7 @@ namespace CommunicationsApp.Infrastructure.Services
         public event Action<string, ServerUpdateType, ServerProfile>? MemberUpdateReceived;
         public event Action<string, ServerUpdateType, ChannelClass>? ChannelClassUpdateReceived;
         public event Action<string, ServerUpdateType, Channel>? ChannelUpdateReceived;
+        public event Action<string, ServerUpdateType, ServerInfoUpdate>? ServerInfoUpdateReceived;
         public event Action<string, string>? DataReady;
 
         private void EnsureHubConnection()
@@ -68,6 +70,13 @@ namespace CommunicationsApp.Infrastructure.Services
                     (serverId, updateType, c) =>
                     {
                         ChannelUpdateReceived?.Invoke(serverId, updateType, c);
+                    });
+
+                HubConnection.On<string, ServerUpdateType, ServerInfoUpdate>(
+                    "ServerInfoUpdate",
+                    (serverId, updateType, update) =>
+                    {
+                        ServerInfoUpdateReceived?.Invoke(serverId, updateType, update);
                     });
             }
         }
@@ -195,6 +204,31 @@ namespace CommunicationsApp.Infrastructure.Services
             try
             {
                 await HubConnection.InvokeAsync("NotifyChannelUpdate", serverId, updateType, c);
+                return new SignalRResult { Succeeded = true };
+            }
+            catch (HubException hubEx)
+            {
+                logger.LogError(hubEx, "SignalR hub error");
+                return new SignalRResult { Succeeded = false, ErrorMessage = hubEx.Message };
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "General error while sending message");
+                return new SignalRResult { Succeeded = false, ErrorMessage = ex.Message };
+            }
+        }
+
+        public async Task<dynamic> NotifyServerInfoUpdateAsync(
+            string serverId, ServerUpdateType updateType, ServerInfoUpdate update)
+        {
+            EnsureHubConnection();
+            if (HubConnection.State != HubConnectionState.Connected)
+            {
+                return null!;
+            }
+            try
+            {
+                await HubConnection.InvokeAsync("NotifyServerInfoUpdate", serverId, updateType, update);
                 return new SignalRResult { Succeeded = true };
             }
             catch (HubException hubEx)

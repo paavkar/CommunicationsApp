@@ -179,24 +179,9 @@ namespace CommunicationsApp.Infrastructure.Services
                 splitOn: "UserServerRoleUserId,ServerRoleId,ServerId,ChannelClassId,ChannelId"
             );
 
-            var profiles = profileDict.Values
-                              .OrderBy(sp => sp.DisplayName)
-                              .ToList();
+            var profiles = profileDict.Values.ToList();
+            var servers = serverDict.Values.ToList();
 
-            var servers = serverDict.Values
-                                      .Select(s =>
-                                      {
-                                          s.ChannelClasses = [.. s.ChannelClasses!.OrderBy(cc => cc.OrderNumber)];
-
-                                          foreach (var cls in s.ChannelClasses!)
-                                          {
-                                              cls.Channels = [.. cls.Channels!.OrderBy(c => c.OrderNumber)];
-                                          }
-
-                                          return s;
-                                      })
-                                      .OrderBy(s => s.Name)
-                                      .ToList();
             return (profiles, servers);
         }
 

@@ -1,4 +1,5 @@
-﻿using CommunicationsApp.Core.Models;
+﻿using CommunicationsApp.Application.DTOs;
+using CommunicationsApp.Core.Models;
 
 namespace CommunicationsApp.Application.Interfaces
 {
@@ -14,5 +15,6 @@ namespace CommunicationsApp.Application.Interfaces
         Task<dynamic> AddChannelAsync(string channelClassId, Channel channel);
         Task<dynamic> AddServerPermissionsAsync();
         Task<List<ServerPermission>> GetServerPermissionsAsync();
+        Task<dynamic> UpdateServerNameDescriptionAsync(string serverId, ServerInfoUpdate update);
     }
 }

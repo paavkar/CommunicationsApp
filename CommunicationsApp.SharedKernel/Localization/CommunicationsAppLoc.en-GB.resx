@@ -366,4 +366,19 @@
   <data name="ServerMembers" xml:space="preserve">
     <value>Server's members</value>
   </data>
+  <data name="Name" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="Description" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="DescriptionPlaceholder" xml:space="preserve">
+    <value>Tell something about this server (meaning, who is the target user).</value>
+  </data>
+  <data name="ServerInfoUpdateError" xml:space="preserve">
+    <value>There was an error updating the server info and/or description.</value>
+  </data>
+  <data name="Revert" xml:space="preserve">
+    <value>Revert</value>
+  </data>
 </root>

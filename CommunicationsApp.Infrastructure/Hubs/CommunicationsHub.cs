@@ -1,4 +1,5 @@
-﻿using CommunicationsApp.Core.Models;
+﻿using CommunicationsApp.Application.DTOs;
+using CommunicationsApp.Core.Models;
 using Microsoft.AspNetCore.SignalR;
 using static CommunicationsApp.Core.Models.Enums;
 
@@ -43,6 +44,12 @@ namespace CommunicationsApp.Infrastructure.Hubs
         {
             return Clients.Group(serverId)
                           .SendAsync("ChannelUpdate", serverId, updateType, c);
+        }
+
+        public Task NotifyServerInfoUpdate(string serverId, ServerUpdateType updateType, ServerInfoUpdate update)
+        {
+            return Clients.Group(serverId)
+                           .SendAsync("ServerInfoUpdate", serverId, updateType, update);
         }
     }
 }

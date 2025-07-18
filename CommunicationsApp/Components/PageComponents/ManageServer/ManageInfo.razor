@@ -1,8 +1,78 @@
-﻿@inject IStringLocalizer<CommunicationsAppLoc> Localizer
+﻿@using CommunicationsApp.Application.DTOs
+
+@implements IDisposable
+
+@inject IStringLocalizer<CommunicationsAppLoc> Localizer
+@inject CommunicationsHubService CHS
+@inject IServerService ServerService
 
 <h3>@Localizer["General"]</h3>
+
+<FluentTextField @bind-Value=ServerUpdate.Name 
+                 Label="@Localizer["Name"]" Placeholder="@Server.Name"
+                 Style="width: 20em;" Maxlength="100"/>
+
+<FluentTextArea @bind-Value=ServerUpdate.Description
+                 Label="@Localizer["Description"]"
+                 Placeholder="@Localizer["DescriptionPlaceholder"]"
+                 Rows="5" Cols="50" Maxlength="300" />
+
+<FluentStack>
+    <FluentButton Appearance="Appearance.Neutral" OnClick="RevertChanges">
+        @Localizer["Revert"]
+    </FluentButton>
+
+    <FluentButton Appearance="Appearance.Accent" OnClick="SaveAsync">
+        @Localizer["Save"]
+    </FluentButton>
+</FluentStack>
 
 @code {
     [Parameter]
     public Server Server { get; set; } = default!;
+    public ServerInfoUpdate ServerUpdate {get; set;} = new();
+
+    protected override void OnInitialized()
+    {
+        ServerUpdate.Name = Server.Name;
+        ServerUpdate.Description = Server.Description;
+        CHS.ServerInfoUpdateReceived += OnServerInfoUpdateReceived;
+    }
+
+    public void RevertChanges()
+    {
+        ServerUpdate.Name = Server.Name;
+        ServerUpdate.Description = Server.Description;
+    }
+
+    public async Task SaveAsync()
+    {
+        var result = await ServerService.UpdateServerNameDescriptionAsync(Server.Id, ServerUpdate);
+
+        if (result.Succeeded)
+        {
+            await CHS.NotifyServerInfoUpdateAsync(Server.Id, ServerUpdateType.ServerNameDescriptionUpdated, ServerUpdate);
+        }
+    }
+
+    private async void OnServerInfoUpdateReceived(
+        string serverId, ServerUpdateType updateType, ServerInfoUpdate update)
+    {
+        switch (updateType)
+        {
+            case ServerUpdateType.ServerNameDescriptionUpdated:
+                if (Server.Id == serverId)
+                {
+                    Server.Name = update.Name;
+                    Server.Description = update.Description;
+                }
+                break;
+        }
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        CHS.ServerInfoUpdateReceived -= OnServerInfoUpdateReceived;
+    }
 }

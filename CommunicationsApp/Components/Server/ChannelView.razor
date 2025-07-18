@@ -250,10 +250,17 @@ else
             Channel.Messages.Add(message);
             await InvokeAsync(StateHasChanged);
             await Task.Delay(100);
-            bool autoScroll = await JS.InvokeAsync<bool>("chatScroll.shouldScroll", "channelMessageView");
-            if (autoScroll)
+            try
             {
-                await JS.InvokeVoidAsync("chatScroll.scrollToBottom", "endOfMessages");
+                bool autoScroll = await JS.InvokeAsync<bool>("chatScroll.shouldScroll", "channelMessageView");
+                if (autoScroll)
+                {
+                    await JS.InvokeVoidAsync("chatScroll.scrollToBottom", "endOfMessages");
+                }
+            }
+            catch (Exception)
+            {
+                Console.WriteLine();
             }
         }
     }

@@ -366,4 +366,19 @@
   <data name="ServerMembers" xml:space="preserve">
     <value>Palvelimen jäsenet</value>
   </data>
+  <data name="Name" xml:space="preserve">
+    <value>Nimi</value>
+  </data>
+  <data name="Description" xml:space="preserve">
+    <value>Kuvaus</value>
+  </data>
+  <data name="DescriptionPlaceholder" xml:space="preserve">
+    <value>Kerro jotain palvelimesta (tarkoitus, kenelle suunnattu ym.).</value>
+  </data>
+  <data name="ServerInfoUpdateError" xml:space="preserve">
+    <value>Palvelimen nimen ja/tai kuvauksen päivityksessä ilmeni ongelma.</value>
+  </data>
+  <data name="Revert" xml:space="preserve">
+    <value>Palauta</value>
+  </data>
 </root>
