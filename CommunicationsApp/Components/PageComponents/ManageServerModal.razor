@@ -30,10 +30,26 @@
         <FluentStack Orientation="Orientation.Vertical" Style="overflow-y: auto;
                                                                border-right: solid 0.1em;
                                                                width: 30em;
-                                                               height: 100%;">
-            <FluentButton OnClick="@(() => SelectedView = ManageServerView.General)">@Localizer["General"]</FluentButton>
-            <FluentButton OnClick="@(() => SelectedView = ManageServerView.Members)">@Localizer["Members"]</FluentButton>
-            <FluentButton OnClick="@(() => SelectedView = ManageServerView.Roles)">@Localizer["Roles"]</FluentButton>
+                                                               height: 100%;
+                                                               padding-right: 1em;">
+            <FluentCard Style="padding: 5px; height: 3em; cursor: pointer;"
+                onclick="@(() => SetView(ManageServerView.General))">
+                <FluentStack VerticalAlignment="VerticalAlignment.Center" Style="height: 100%;">
+                    <FluentLabel>@Localizer["General"]</FluentLabel>
+                </FluentStack>
+            </FluentCard>
+            <FluentCard Style="padding: 5px; height: 3em; cursor: pointer;"
+                        onclick="@(() => SetView(ManageServerView.Members))">
+                <FluentStack VerticalAlignment="VerticalAlignment.Center" Style="height: 100%;">
+                    <FluentLabel>@Localizer["Members"]</FluentLabel>
+                </FluentStack>
+            </FluentCard>
+            <FluentCard Style="padding: 5px; height: 3em; cursor: pointer;"
+                        onclick="@(() => SetView(ManageServerView.Roles))">
+                <FluentStack VerticalAlignment="VerticalAlignment.Center" Style="height: 100%;">
+                    <FluentLabel>@Localizer["Roles"]</FluentLabel>
+                </FluentStack>
+            </FluentCard>
         </FluentStack>
         <FluentStack Orientation="Orientation.Vertical" Style="height: 100%; overflow: hidden;">
             @switch (SelectedView)
@@ -45,7 +61,7 @@
                     <ManageMembers Server=Content />
                     break;
                 case ManageServerView.Roles:
-                    <ManageRoles Server=Content />
+                    <ManageRoles @key=@(DateTime.Now) Server=Content />
                     break;
                 default:
                     break;
@@ -62,8 +78,8 @@
     public FluentDialog Dialog { get; set; } = default!;
     public ManageServerView SelectedView { get; set; } = ManageServerView.General;
 
-    protected override async Task OnInitializedAsync()
+    public void SetView(ManageServerView selected)
     {
-
+        SelectedView = selected;
     }
 }

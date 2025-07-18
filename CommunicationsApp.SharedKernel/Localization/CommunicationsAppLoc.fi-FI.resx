@@ -459,4 +459,10 @@
   <data name="AdminPrivileges" xml:space="preserve">
     <value>Järjestelmänvalvojan oikeudet</value>
   </data>
+  <data name="UnsavedChanges" xml:space="preserve">
+    <value>Sinulla on tallentamattomia muutoksia.</value>
+  </data>
+  <data name="Return" xml:space="preserve">
+    <value>Takaisin</value>
+  </data>
 </root>

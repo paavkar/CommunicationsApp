@@ -6,12 +6,14 @@
     case ServerRolesPage.MainPage:
         <FluentLabel Typo="Typography.H3">@Localizer["Roles"]</FluentLabel>
         <FluentLabel>@Localizer["RolesDescription"]</FluentLabel>
-        <FluentCard Style="cursor: pointer;" @onclick=@(EditRole)>
-            <FluentStack>
+        <FluentCard Style="cursor: pointer; height: 7em;" @onclick=@(() => EditRole())>
+            <FluentStack VerticalAlignment="VerticalAlignment.Center">
                 <FluentIcon Value=@(new Size24.PeopleLock()) />
                 <FluentStack Orientation="Orientation.Vertical">
                     <FluentLabel>@Localizer["DefaultPermissions"]</FluentLabel>
-                    <FluentLabel>@("@everyone") • @Localizer["EveryoneRoleDescription"].ToString().ToLower()</FluentLabel>
+                    <FluentLabel>
+                        @("@everyone") • @Localizer["EveryoneRoleDescription"].ToString().ToLower()
+                    </FluentLabel>
                 </FluentStack>
                 <FluentSpacer />
                 <FluentIcon Value=@(new Size24.IosArrowRtl()) />
@@ -22,10 +24,21 @@
         <FluentStack Style="height: 100%;">
             <FluentStack Orientation="Orientation.Vertical"
                          Style="height: 100%; overflow-y: auto; border-right: solid 0.1em;
-                                width: 30em; margin-bottom: 4em;">
+                                width: 30em; margin-bottom: 4em; padding-right: 1em;">
+                <FluentStack>
+                    <FluentStack Style="cursor: pointer;" onclick=@(ReturnToMain)>
+                        <FluentIcon Value="@(new Size24.ArrowLeft())" />
+                        <FluentLabel Typo="Typography.H5">@Localizer["Return"].ToString().ToUpper()</FluentLabel>
+                    </FluentStack>
+                </FluentStack>
                 @foreach (var role in Server.Roles)
                 {
-                    <FluentLabel>@role.Name</FluentLabel>
+                    <FluentCard Style="padding: 5px; height: 3em; cursor: pointer;"
+                                @onclick=@(() => EditRole(role.Name))>
+                        <FluentStack Style="height: 100%;" VerticalAlignment="VerticalAlignment.Center">
+                            <FluentLabel Typo="Typography.H6">@role.Name</FluentLabel>
+                        </FluentStack>
+                    </FluentCard>
                 }
             </FluentStack>
             <FluentStack Orientation="Orientation.Vertical" Style="height: 100%;">
@@ -41,11 +54,14 @@
                         <FluentStack Orientation="Orientation.Vertical">
                             <FluentStack onclick="@(() => OnPermissionChanged(permission))"
                                 Style="cursor: pointer;">
-                                <FluentLabel>@Localizer[permission.PermissionName]</FluentLabel>
+                                <FluentLabel Typo="Typography.H5">
+                                    @Localizer[permission.PermissionName]
+                                </FluentLabel>
                                 <FluentSpacer />
                                 <FluentSwitch Value=@(RolePermissions.Select(p => p.Id).Contains(permission.Id)) />
                             </FluentStack>
                         </FluentStack>
+                        <FluentDivider Style="width: 100%;" Role="DividerRole.Presentation"></FluentDivider>
                     }
                 </FluentStack>
             </FluentStack>
@@ -53,18 +69,19 @@
         @if (RoleEdited)
         {
             <FluentCard Style="position: sticky; bottom: 0em; padding: 5px; display: flex;">
-            <FluentStack Style="">
+                <FluentStack VerticalAlignment="VerticalAlignment.Center">
+                    <FluentLabel>@Localizer["UnsavedChanges"]</FluentLabel>
                     <FluentSpacer />
-                    <FluentButton>
-                        @Localizer["Cancel"]
+                    <FluentButton OnClick="RevertChanges">
+                        @Localizer["Revert"]
                     </FluentButton>
 
-                    <FluentButton>
+                    <FluentButton Appearance="Appearance.Accent" OnClick="SaveAsync">
                         @Localizer["Save"]
                     </FluentButton>
 
                 </FluentStack>
-                </FluentCard>
+            </FluentCard>
         }
         break;
 }
@@ -74,22 +91,30 @@
     public Server Server { get; set; } = default!;
     public List<ServerPermission> Permissions { get; set; }
     public ServerRolesPage Page { get; set; } = ServerRolesPage.MainPage;
-    public string ViewedRole { get; set; } = "@everyone";
     public ServerRole Role { get; set; }
     public List<ServerPermission> RolePermissions { get; set; } = [];
     public bool RoleEdited = false;
+    public string RoleName { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
         Permissions = await ServerService.GetServerPermissionsAsync();
     }
 
-    public void EditRole()
+    public void ReturnToMain()
+    {
+        Page = ServerRolesPage.MainPage;
+        StateHasChanged();
+    }
+
+    public void EditRole(string viewedRole = "@everyone")
     {
         Page = ServerRolesPage.RoleView;
-        Role = Server.Roles.FirstOrDefault(r => r.Name == ViewedRole)!;
+        Role = Server.Roles.FirstOrDefault(r => r.Name == viewedRole)!;
         Role.Permissions.OrderBy(p => p.Id);
         RolePermissions = [.. Role.Permissions];
+        RoleName = Role.Name;
+        RoleEdited = false;
     }
 
     private void OnPermissionChanged(ServerPermission permission)
@@ -108,6 +133,13 @@
             ? false
             : true;
         StateHasChanged();
+    }
+
+    public void RevertChanges()
+    {
+        RolePermissions = [.. Role.Permissions];
+        RoleName = Role.Name;
+        RoleEdited = false;
     }
 
     public async Task SaveAsync()

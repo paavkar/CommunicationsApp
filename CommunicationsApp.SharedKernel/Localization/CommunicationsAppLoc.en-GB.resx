@@ -459,4 +459,10 @@
   <data name="AdminPrivileges" xml:space="preserve">
     <value>Admin privileges</value>
   </data>
+  <data name="UnsavedChanges" xml:space="preserve">
+    <value>You have unsaved changes.</value>
+  </data>
+  <data name="Return" xml:space="preserve">
+    <value>Return</value>
+  </data>
 </root>
