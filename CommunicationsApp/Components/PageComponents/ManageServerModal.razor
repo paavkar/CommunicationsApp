@@ -25,7 +25,7 @@
 </FluentDialogFooter>
 
 @* Body *@
-<FluentDialogBody>
+<FluentDialogBody Style="height: 100%; overflow-y: auto;">
     <FluentStack Style="height: 100%;">
         <FluentStack Orientation="Orientation.Vertical" Style="overflow-y: auto;
                                                                border-right: solid 0.1em;
@@ -35,7 +35,7 @@
             <FluentButton OnClick="@(() => SelectedView = ManageServerView.Members)">@Localizer["Members"]</FluentButton>
             <FluentButton OnClick="@(() => SelectedView = ManageServerView.Roles)">@Localizer["Roles"]</FluentButton>
         </FluentStack>
-        <FluentStack Orientation="Orientation.Vertical" Style="overflow-y: auto">
+        <FluentStack Orientation="Orientation.Vertical" Style="height: 100%; overflow: hidden;">
             @switch (SelectedView)
             {
                 case ManageServerView.General:

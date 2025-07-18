@@ -381,4 +381,82 @@
   <data name="Revert" xml:space="preserve">
     <value>Revert</value>
   </data>
+  <data name="RolesDescription" xml:space="preserve">
+    <value>Use roles to group server members and set up permissions.</value>
+  </data>
+  <data name="DefaultPermissions" xml:space="preserve">
+    <value>Default permissions</value>
+  </data>
+  <data name="EveryoneRoleDescription" xml:space="preserve">
+    <value>Applies to all server members</value>
+  </data>
+  <data name="EditRole" xml:space="preserve">
+    <value>Edit role</value>
+  </data>
+  <data name="DisplayChannels" xml:space="preserve">
+    <value>Display channels</value>
+  </data>
+  <data name="ManageChannels" xml:space="preserve">
+    <value>Manage channels</value>
+  </data>
+  <data name="ManageRoles" xml:space="preserve">
+    <value>Manage roles</value>
+  </data>
+  <data name="ViewLogs" xml:space="preserve">
+    <value>View logs</value>
+  </data>
+  <data name="Manage server" xml:space="preserve">
+    <value>Manage server</value>
+  </data>
+  <data name="CreateInvite" xml:space="preserve">
+    <value>Create invitations</value>
+  </data>
+  <data name="ChangeNickname" xml:space="preserve">
+    <value>Change display name</value>
+  </data>
+  <data name="ManageNicknames" xml:space="preserve">
+    <value>Manage display names</value>
+  </data>
+  <data name="KickApproveMembers" xml:space="preserve">
+    <value>Kick members, and approve and reject member applications</value>
+  </data>
+  <data name="BanMembers" xml:space="preserve">
+    <value>Ban members</value>
+  </data>
+  <data name="TimeoutMembers" xml:space="preserve">
+    <value>Timeout members</value>
+  </data>
+  <data name="SendMessages" xml:space="preserve">
+    <value>Send messages</value>
+  </data>
+  <data name="SendMessagesToThreads" xml:space="preserve">
+    <value>Send messages to threads</value>
+  </data>
+  <data name="CreatePublicThreads" xml:space="preserve">
+    <value>Create public threads</value>
+  </data>
+  <data name="CreatePrivateThreads" xml:space="preserve">
+    <value>Create private threads</value>
+  </data>
+  <data name="EmbedLinks" xml:space="preserve">
+    <value>Embed links</value>
+  </data>
+  <data name="AttachFiles" xml:space="preserve">
+    <value>Attach files</value>
+  </data>
+  <data name="AddReactions" xml:space="preserve">
+    <value>Add reactions</value>
+  </data>
+  <data name="ManageMessages" xml:space="preserve">
+    <value>Manage messages</value>
+  </data>
+  <data name="ManageThreads" xml:space="preserve">
+    <value>Manage threads</value>
+  </data>
+  <data name="ReadMessageHistory" xml:space="preserve">
+    <value>Read message history</value>
+  </data>
+  <data name="AdminPrivileges" xml:space="preserve">
+    <value>Admin privileges</value>
+  </data>
 </root>

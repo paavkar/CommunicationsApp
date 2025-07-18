@@ -18,11 +18,13 @@
                  Rows="5" Cols="50" Maxlength="300" />
 
 <FluentStack>
-    <FluentButton Appearance="Appearance.Neutral" OnClick="RevertChanges">
+    <FluentButton Appearance="Appearance.Neutral" OnClick="RevertChanges"
+        Disabled=@((ServerUpdate.Name == Server.Name) && (ServerUpdate.Description == Server.Description))>
         @Localizer["Revert"]
     </FluentButton>
 
-    <FluentButton Appearance="Appearance.Accent" OnClick="SaveAsync">
+    <FluentButton Appearance="Appearance.Accent" OnClick="SaveAsync"
+        Disabled=@(string.IsNullOrWhiteSpace(ServerUpdate.Name))>
         @Localizer["Save"]
     </FluentButton>
 </FluentStack>
@@ -30,7 +32,7 @@
 @code {
     [Parameter]
     public Server Server { get; set; } = default!;
-    public ServerInfoUpdate ServerUpdate {get; set;} = new();
+    public ServerInfoUpdate ServerUpdate { get; set; } = new();
 
     protected override void OnInitialized()
     {

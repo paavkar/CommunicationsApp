@@ -1,9 +1,117 @@
 ﻿@inject IStringLocalizer<CommunicationsAppLoc> Localizer
+@inject IServerService ServerService
 
-<h3>@Localizer["Roles"]</h3>
+@switch (Page)
+{
+    case ServerRolesPage.MainPage:
+        <FluentLabel Typo="Typography.H3">@Localizer["Roles"]</FluentLabel>
+        <FluentLabel>@Localizer["RolesDescription"]</FluentLabel>
+        <FluentCard Style="cursor: pointer;" @onclick=@(EditRole)>
+            <FluentStack>
+                <FluentIcon Value=@(new Size24.PeopleLock()) />
+                <FluentStack Orientation="Orientation.Vertical">
+                    <FluentLabel>@Localizer["DefaultPermissions"]</FluentLabel>
+                    <FluentLabel>@("@everyone") • @Localizer["EveryoneRoleDescription"].ToString().ToLower()</FluentLabel>
+                </FluentStack>
+                <FluentSpacer />
+                <FluentIcon Value=@(new Size24.IosArrowRtl()) />
+            </FluentStack>
+        </FluentCard>
+        break;
+    case ServerRolesPage.RoleView:
+        <FluentStack Style="height: 100%;">
+            <FluentStack Orientation="Orientation.Vertical"
+                         Style="height: 100%; overflow-y: auto; border-right: solid 0.1em;
+                                width: 30em; margin-bottom: 4em;">
+                @foreach (var role in Server.Roles)
+                {
+                    <FluentLabel>@role.Name</FluentLabel>
+                }
+            </FluentStack>
+            <FluentStack Orientation="Orientation.Vertical" Style="height: 100%;">
+                <FluentStack Style="position: sticky: z-index: 10;">
+                    <FluentLabel Typo="Typography.H4">
+                        @Localizer["EditRole"] - @Role.Name
+                    </FluentLabel>
+                </FluentStack>
+                <FluentStack Orientation="Orientation.Vertical"
+                             Style="height: 100%; overflow-y: auto; margin-bottom: 4em;">
+                    @foreach (var permission in Permissions)
+                    {
+                        <FluentStack Orientation="Orientation.Vertical">
+                            <FluentStack onclick="@(() => OnPermissionChanged(permission))"
+                                Style="cursor: pointer;">
+                                <FluentLabel>@Localizer[permission.PermissionName]</FluentLabel>
+                                <FluentSpacer />
+                                <FluentSwitch Value=@(RolePermissions.Select(p => p.Id).Contains(permission.Id)) />
+                            </FluentStack>
+                        </FluentStack>
+                    }
+                </FluentStack>
+            </FluentStack>
+        </FluentStack>
+        @if (RoleEdited)
+        {
+            <FluentCard Style="position: sticky; bottom: 0em; padding: 5px; display: flex;">
+            <FluentStack Style="">
+                    <FluentSpacer />
+                    <FluentButton>
+                        @Localizer["Cancel"]
+                    </FluentButton>
+
+                    <FluentButton>
+                        @Localizer["Save"]
+                    </FluentButton>
+
+                </FluentStack>
+                </FluentCard>
+        }
+        break;
+}
 
 @code {
     [Parameter]
     public Server Server { get; set; } = default!;
+    public List<ServerPermission> Permissions { get; set; }
+    public ServerRolesPage Page { get; set; } = ServerRolesPage.MainPage;
+    public string ViewedRole { get; set; } = "@everyone";
+    public ServerRole Role { get; set; }
+    public List<ServerPermission> RolePermissions { get; set; } = [];
+    public bool RoleEdited = false;
 
+    protected override async Task OnInitializedAsync()
+    {
+        Permissions = await ServerService.GetServerPermissionsAsync();
+    }
+
+    public void EditRole()
+    {
+        Page = ServerRolesPage.RoleView;
+        Role = Server.Roles.FirstOrDefault(r => r.Name == ViewedRole)!;
+        Role.Permissions.OrderBy(p => p.Id);
+        RolePermissions = [.. Role.Permissions];
+    }
+
+    private void OnPermissionChanged(ServerPermission permission)
+    {
+        if (RolePermissions.Select(p => p.Id).Contains(permission.Id))
+        {
+            RolePermissions.RemoveAll(p => p.Id == permission.Id);
+        }
+        else
+        {
+            RolePermissions.Add(permission);
+        }
+        RolePermissions = [.. RolePermissions.OrderBy(p => p.Id)];
+
+        RoleEdited = RolePermissions.SequenceEqual(Role.Permissions)
+            ? false
+            : true;
+        StateHasChanged();
+    }
+
+    public async Task SaveAsync()
+    {
+        
+    }
 }

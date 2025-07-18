@@ -355,7 +355,7 @@
     <value>Tekstikanava yleiselle keskustelulle</value>
   </data>
   <data name="ManageServer" xml:space="preserve">
-    <value>Hallitse palvelinta</value>
+    <value>Hallinnoi palvelinta</value>
   </data>
   <data name="Members" xml:space="preserve">
     <value>Jäsenet</value>
@@ -380,5 +380,83 @@
   </data>
   <data name="Revert" xml:space="preserve">
     <value>Palauta</value>
+  </data>
+  <data name="RolesDescription" xml:space="preserve">
+    <value>Käytä rooleja palvelimen jäsenten ryhmittelemiseen ja käyttöoikeuksien määrittämiseen.</value>
+  </data>
+  <data name="DefaultPermissions" xml:space="preserve">
+    <value>Oletusoikeudet</value>
+  </data>
+  <data name="EveryoneRoleDescription" xml:space="preserve">
+    <value>Koskevat kaikkia palvelimen jäseniä</value>
+  </data>
+  <data name="EditRole" xml:space="preserve">
+    <value>Muokkaa roolia</value>
+  </data>
+  <data name="DisplayChannels" xml:space="preserve">
+    <value>Näytä kanavat</value>
+  </data>
+  <data name="ManageChannels" xml:space="preserve">
+    <value>Hallinnoi kanavia</value>
+  </data>
+  <data name="ManageRoles" xml:space="preserve">
+    <value>Hallinnoi rooleja</value>
+  </data>
+  <data name="ViewLogs" xml:space="preserve">
+    <value>Katso valvontalokia</value>
+  </data>
+  <data name="Manage server" xml:space="preserve">
+    <value>Hallinnoi palvelinta</value>
+  </data>
+  <data name="CreateInvite" xml:space="preserve">
+    <value>Luo kutsuja</value>
+  </data>
+  <data name="ChangeNickname" xml:space="preserve">
+    <value>Muuta näyttönimeä</value>
+  </data>
+  <data name="ManageNicknames" xml:space="preserve">
+    <value>Hallinnoi näyttönimiä</value>
+  </data>
+  <data name="KickApproveMembers" xml:space="preserve">
+    <value>Jäsenien erottaminen ja jäsenhakemusten hyväksyntä ja hylkäys</value>
+  </data>
+  <data name="BanMembers" xml:space="preserve">
+    <value>Anna porttikieltoja jäsenille</value>
+  </data>
+  <data name="TimeoutMembers" xml:space="preserve">
+    <value>Aseta jäseniä jäähylle</value>
+  </data>
+  <data name="SendMessages" xml:space="preserve">
+    <value>Lähetä viestejä</value>
+  </data>
+  <data name="SendMessagesToThreads" xml:space="preserve">
+    <value>Lähetä viestejä ketjuihin</value>
+  </data>
+  <data name="CreatePublicThreads" xml:space="preserve">
+    <value>Luo julkisia ketjuja</value>
+  </data>
+  <data name="CreatePrivateThreads" xml:space="preserve">
+    <value>Luo yksityisiä ketjuja</value>
+  </data>
+  <data name="EmbedLinks" xml:space="preserve">
+    <value>Upota linkkejä</value>
+  </data>
+  <data name="AttachFiles" xml:space="preserve">
+    <value>Liitä tiedostoja</value>
+  </data>
+  <data name="AddReactions" xml:space="preserve">
+    <value>Lisää reaktioita</value>
+  </data>
+  <data name="ManageMessages" xml:space="preserve">
+    <value>Hallinnoi viestejä</value>
+  </data>
+  <data name="ManageThreads" xml:space="preserve">
+    <value>Hallinnoi ketjuja</value>
+  </data>
+  <data name="ReadMessageHistory" xml:space="preserve">
+    <value>Lue viestihistoriaa</value>
+  </data>
+  <data name="AdminPrivileges" xml:space="preserve">
+    <value>Järjestelmänvalvojan oikeudet</value>
   </data>
 </root>
