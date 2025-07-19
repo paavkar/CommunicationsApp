@@ -510,4 +510,7 @@
   <data name="ChooseAtMost" xml:space="preserve">
     <value>Choose at most {0}</value>
   </data>
+  <data name="NewRoleMembersMessage" xml:space="preserve">
+    <value>{0} new members will be linked with the role.</value>
+  </data>
 </root>

@@ -510,4 +510,7 @@
   <data name="ChooseAtMost" xml:space="preserve">
     <value>Valitse enintään {0}</value>
   </data>
+  <data name="NewRoleMembersMessage" xml:space="preserve">
+    <value>{0} uutta jäsentä tullaan linkittämään rooliin.</value>
+  </data>
 </root>

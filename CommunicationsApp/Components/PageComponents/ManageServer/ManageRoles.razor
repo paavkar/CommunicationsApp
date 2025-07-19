@@ -144,10 +144,18 @@
                                     <FluentSearch @ref=MemberSearch @bind-Value="@MemberSearchValue"
                                                   @bind-Value:after=HandleMemberSearchInput
                                                   Placeholder="@Localizer["SearchMembers"]" />
-                                    <FluentButton Appearance="Appearance.Accent" OnClick="AddMembersToRole">
+                                    <FluentButton Appearance="Appearance.Accent"
+                                                  OnClick="@(AddMembersToRole)">
                                         @Localizer["AddMembers"]
                                     </FluentButton>
                                 </FluentStack>
+
+                                @if (DisplayNewRoleMemberCount)
+                                {
+                                    <FluentLabel Style="margin-top: 1em;">
+                                        @Localizer["NewRoleMembersMessage", NewMembers.ToList().Count]
+                                    </FluentLabel>
+                                }
 
                                 @if (AddMembers)
                                 {
@@ -258,6 +266,7 @@
     public bool AddMembers { get; set; }
     public IEnumerable<ServerProfile> NewMembers { get; set; } = [];
     public bool RoleDisplaySeparately { get; set; }
+    public bool DisplayNewRoleMemberCount { get; set; } = true;
 
     bool SelectFromEntireRow = true;
     DataGridSelectMode Mode = DataGridSelectMode.Multiple;
@@ -285,6 +294,10 @@
     private void HandleRowClick(FluentDataGridRow<ServerProfile> row)
     {
         ServerProfile clicked = row.Item;
+        if (NewMembers.ToList().Count >= 30)
+        {
+            return;
+        }
         NewMembers.Append(clicked);
         RoleEdited = true;
     }
@@ -319,8 +332,16 @@
 
     public async Task AddMembersToRole()
     {
+        if (AddMembers)
+        {
+            AddMembers = false;
+            DisplayNewRoleMemberCount = true;
+            FilteredMembers = [.. RoleMembers];
+            return;
+        }
         FilteredMembers = Server.Members.Where(m => m.Roles.All(r => r.Name != Role.Name)).ToList();
         AddMembers = true;
+        DisplayNewRoleMemberCount = false;
     }
 
     public async Task HandleMemberSearchInput()
