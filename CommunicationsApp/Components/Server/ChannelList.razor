@@ -117,6 +117,7 @@ else
         CommunicationsHubService.ChannelClassUpdateReceived += OnChannelClassUpdateReceived;
         CommunicationsHubService.ChannelUpdateReceived += OnChannelUpdateReceived;
         CommunicationsHubService.ServerInfoUpdateReceived += OnServerInfoUpdateReceived;
+        CommunicationsHubService.ServerRoleUpdateReceived += OnServerRoleUpdated;
         var authState = await ASP.GetAuthenticationStateAsync();
         UserId = authState.User.Claims.Where(c => c.Type.Contains("nameidentifier")).First().Value;
         if (!string.IsNullOrWhiteSpace(ServerId) && !string.IsNullOrWhiteSpace(UserId))
@@ -129,20 +130,8 @@ else
             }
             User = await UserService.GetUserByIdAsync(UserId);
             IsServerOwner = Server.OwnerId == UserId;
-            Permissions = Server.Members.FirstOrDefault(m => m.UserId == UserId).Roles.SelectMany(r => r.Permissions).ToList();
 
-            CanManageServer = Permissions.Any(p => (p.PermissionType == ServerPermissionType.ManageServer) ||
-                (p.PermissionType == ServerPermissionType.ManageRoles) ||
-                (p.PermissionType == ServerPermissionType.KickApproveMembers) ||
-                (p.PermissionType == ServerPermissionType.CreateInvite) ||
-                (p.PermissionType == ServerPermissionType.BanMembers) ||
-                (p.PermissionType == ServerPermissionType.ManageNicknames) ||
-                (p.PermissionType == ServerPermissionType.TimeoutMembers) ||
-                (p.PermissionType == ServerPermissionType.AdminPrivileges)) || IsServerOwner;
-
-            CanManageChannels = Permissions.Any(p => (p.PermissionType == ServerPermissionType.ManageChannels) ||
-                (p.PermissionType == ServerPermissionType.AdminPrivileges)) ||
-                        IsServerOwner;
+            SetPermissions();
 
             IsLoading = false;
         }
@@ -308,10 +297,64 @@ else
         await InvokeAsync(StateHasChanged); 
     }
 
+    private async void OnServerRoleUpdated(
+        string serverId, ServerUpdateType updateType, ServerRole role)
+    {
+        if (ServerId != serverId)
+        {
+            return;
+        }
+        var existingRole = Server.Roles.FirstOrDefault(r => r.Id == role.Id);
+        var userRole = Server.Members.FirstOrDefault(m => m.UserId == UserId)
+                        .Roles.FirstOrDefault(r => r.Id == role.Id);
+        switch (updateType)
+        {
+            case ServerUpdateType.RoleUpdated:
+                if (existingRole != null)
+                {
+                    existingRole.Name = role.Name;
+                    existingRole.HexColour = role.HexColour;
+                    existingRole.Hierarchy = role.Hierarchy;
+                    existingRole.DisplaySeparately = role.DisplaySeparately;
+                    existingRole.Permissions = [.. role.Permissions];
+                }
+                if (userRole != null)
+                {
+                    userRole.Name = role.Name;
+                    userRole.HexColour = role.HexColour;
+                    userRole.Hierarchy = role.Hierarchy;
+                    userRole.DisplaySeparately = role.DisplaySeparately;
+                    userRole.Permissions = [.. role.Permissions];
+                }
+                break;
+        }
+        SetPermissions();
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void SetPermissions()
+    {
+        Permissions = Server.Members.FirstOrDefault(m => m.UserId == UserId).Roles.SelectMany(r => r.Permissions).ToList();
+        CanManageServer = Permissions.Any(p => (p.PermissionType == ServerPermissionType.ManageServer) ||
+                (p.PermissionType == ServerPermissionType.ManageRoles) ||
+                (p.PermissionType == ServerPermissionType.KickApproveMembers) ||
+                (p.PermissionType == ServerPermissionType.CreateInvite) ||
+                (p.PermissionType == ServerPermissionType.BanMembers) ||
+                (p.PermissionType == ServerPermissionType.ManageNicknames) ||
+                (p.PermissionType == ServerPermissionType.TimeoutMembers) ||
+                (p.PermissionType == ServerPermissionType.AdminPrivileges)) || IsServerOwner;
+
+        CanManageChannels = Permissions.Any(p => (p.PermissionType == ServerPermissionType.ManageChannels) ||
+            (p.PermissionType == ServerPermissionType.AdminPrivileges)) ||
+                    IsServerOwner;
+    }
+
     public void Dispose()
     {
         CommunicationsHubService.ChannelClassUpdateReceived -= OnChannelClassUpdateReceived;
         CommunicationsHubService.ChannelUpdateReceived -= OnChannelUpdateReceived;
         CommunicationsHubService.ServerInfoUpdateReceived -= OnServerInfoUpdateReceived;
+        CommunicationsHubService.ServerRoleUpdateReceived -= OnServerRoleUpdated;
     }
 }

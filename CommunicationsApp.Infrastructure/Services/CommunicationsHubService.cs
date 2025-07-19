@@ -22,6 +22,7 @@ namespace CommunicationsApp.Infrastructure.Services
         public event Action<string, ServerUpdateType, ChannelClass>? ChannelClassUpdateReceived;
         public event Action<string, ServerUpdateType, Channel>? ChannelUpdateReceived;
         public event Action<string, ServerUpdateType, ServerInfoUpdate>? ServerInfoUpdateReceived;
+        public event Action<string, ServerUpdateType, ServerRole>? ServerRoleUpdateReceived;
         public event Action<string, string>? DataReady;
 
         private void EnsureHubConnection()
@@ -77,6 +78,13 @@ namespace CommunicationsApp.Infrastructure.Services
                     (serverId, updateType, update) =>
                     {
                         ServerInfoUpdateReceived?.Invoke(serverId, updateType, update);
+                    });
+
+                HubConnection.On<string, ServerUpdateType, ServerRole>(
+                    "ServerRoleUpdate",
+                    (serverId, updateType, role) =>
+                    {
+                        ServerRoleUpdateReceived?.Invoke(serverId, updateType, role);
                     });
             }
         }
@@ -229,6 +237,31 @@ namespace CommunicationsApp.Infrastructure.Services
             try
             {
                 await HubConnection.InvokeAsync("NotifyServerInfoUpdate", serverId, updateType, update);
+                return new SignalRResult { Succeeded = true };
+            }
+            catch (HubException hubEx)
+            {
+                logger.LogError(hubEx, "SignalR hub error");
+                return new SignalRResult { Succeeded = false, ErrorMessage = hubEx.Message };
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "General error while sending message");
+                return new SignalRResult { Succeeded = false, ErrorMessage = ex.Message };
+            }
+        }
+
+        public async Task<dynamic> NotifyServerRoleUpdateAsync(
+            string serverId, ServerUpdateType updateType, ServerRole role)
+        {
+            EnsureHubConnection();
+            if (HubConnection.State != HubConnectionState.Connected)
+            {
+                return null!;
+            }
+            try
+            {
+                await HubConnection.InvokeAsync("NotifyServerRoleUpdate", serverId, updateType, role);
                 return new SignalRResult { Succeeded = true };
             }
             catch (HubException hubEx)

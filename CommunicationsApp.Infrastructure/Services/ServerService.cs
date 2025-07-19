@@ -706,5 +706,79 @@ namespace CommunicationsApp.Infrastructure.Services
                 return new ResultBaseModel { Succeeded = false, ErrorMessage = e.Message };
             }
         }
+
+        public async Task<dynamic> UpdateRoleAsync(string serverId, ServerRole role)
+        {
+            var updateRoleQuery = """
+                UPDATE ServerRoles
+                SET Name = @Name, HexColour = @HexColour, Hierarchy = @Hierarchy, DisplaySeparately = @DisplaySeparately
+                WHERE Id = @Id AND ServerId = @ServerId
+                """;
+            using var connection = GetConnection();
+            connection.Open();
+            using SqlTransaction transaction = connection.BeginTransaction();
+            try
+            {
+                var rowsAffected = connection.Execute(updateRoleQuery, role, transaction);
+                if (rowsAffected > 0)
+                {
+                    var updatePermissionQuery = """
+                            INSERT INTO ServerRolePermissions (RoleId, PermissionId)
+                            SELECT @RoleId, @PermissionId
+                            WHERE NOT EXISTS (SELECT 1
+                                              FROM ServerRolePermissions
+                                              WHERE RoleId = @RoleId
+                                              AND PermissionId = @PermissionId)
+                            """;
+                    foreach (var permission in role.Permissions)
+                    {
+                        rowsAffected += await connection.ExecuteAsync(updatePermissionQuery,
+                            new { RoleId = role.Id, PermissionId = permission.Id }, transaction);
+                    }
+                }
+                if (rowsAffected > 0)
+                {
+                    transaction.Commit();
+                    var server = await GetServerByIdAsync(serverId);
+                    if (server != null)
+                    {
+                        var existingRole = server.Roles.FirstOrDefault(r => r.Id == role.Id);
+                        if (existingRole != null)
+                        {
+                            existingRole.Name = role.Name;
+                            existingRole.HexColour = role.HexColour;
+                            existingRole.Hierarchy = role.Hierarchy;
+                            existingRole.DisplaySeparately = role.DisplaySeparately;
+                            existingRole.Permissions = [.. role.Permissions];
+                        }
+                        var userServerRoles = server.Members
+                            .SelectMany(m => m.Roles)
+                            .Where(r => r.Id == role.Id)
+                            .ToList();
+                        foreach (var userServerRole in userServerRoles)
+                        {
+                            userServerRole.Name = role.Name;
+                            userServerRole.HexColour = role.HexColour;
+                            userServerRole.Hierarchy = role.Hierarchy;
+                            userServerRole.DisplaySeparately = role.DisplaySeparately;
+                            userServerRole.Permissions = [.. role.Permissions];
+                        }
+                        await UpdateCacheAsync(serverId, server);
+                    }
+                    return new ResultBaseModel { Succeeded = true };
+                }
+                else
+                {
+                    transaction.Rollback();
+                    return new ResultBaseModel { Succeeded = false, ErrorMessage = localizer["RoleUpdateFailed"] };
+                }
+            }
+            catch (Exception e)
+            {
+                transaction.Rollback();
+                logger.LogError(e, "Error updating the role in {Method}", nameof(UpdateRoleAsync));
+                return new ResultBaseModel { Succeeded = false, ErrorMessage = e.Message };
+            }
+        }
     }
 }

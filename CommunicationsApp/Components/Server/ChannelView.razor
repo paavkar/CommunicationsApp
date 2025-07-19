@@ -202,6 +202,7 @@ else
     {
         ChatHubService.ChannelMessageReceived += OnChannelMessageReceived;
         ChatHubService.MemberUpdateReceived += OnMemberUpdateReceived;
+        ChatHubService.ServerRoleUpdateReceived += OnServerRoleUpdated;
     }
 
     protected override async Task OnInitializedAsync()
@@ -290,6 +291,44 @@ else
         }
     }
 
+
+
+    private async void OnServerRoleUpdated(
+        string serverId, ServerUpdateType updateType, ServerRole role)
+    {
+        if (ServerId != serverId)
+        {
+            return;
+        }
+        var existingRole = Server.Roles.FirstOrDefault(r => r.Id == role.Id);
+        var userRole = Server.Members.FirstOrDefault(m => m.UserId == UserId)
+                        .Roles.FirstOrDefault(r => r.Id == role.Id);
+        switch (updateType)
+        {
+            case ServerUpdateType.RoleUpdated:
+                if (existingRole != null)
+                {
+                    existingRole.Name = role.Name;
+                    existingRole.HexColour = role.HexColour;
+                    existingRole.Hierarchy = role.Hierarchy;
+                    existingRole.DisplaySeparately = role.DisplaySeparately;
+                    existingRole.Permissions = [.. role.Permissions];
+                }
+                if (userRole != null)
+                {
+                    userRole.Name = role.Name;
+                    userRole.HexColour = role.HexColour;
+                    userRole.Hierarchy = role.Hierarchy;
+                    userRole.DisplaySeparately = role.DisplaySeparately;
+                    userRole.Permissions = [.. role.Permissions];
+                }
+                break;
+        }
+        Permissions = Server.Members.FirstOrDefault(m => m.UserId == UserId).Roles.SelectMany(r => r.Permissions).ToList();
+
+        await InvokeAsync(StateHasChanged);
+    }
+
     private async Task SendMessageAsync()
     {
         if (string.IsNullOrWhiteSpace(NewMessage.Content))
@@ -314,7 +353,7 @@ else
         var messageResult = await CosmosDbService.SaveMessageAsync(NewMessage);
         if (!messageResult.Succeeded)
         {
-            ToastService.ShowError("There was an error saving the message. Try again later.");
+            ToastService.ShowError(Localizer["SavingMessageError"]);
             Console.WriteLine(messageResult.ErrorMessage);
             return;
         }
@@ -322,7 +361,7 @@ else
 
         if (!result.Succeeded)
         {
-            ToastService.ShowError("There was an error sending the message. Try again later.");
+            ToastService.ShowError(Localizer["SendingMessageError"]);
             Console.WriteLine(result.ErrorMessage);
             return;
         }
@@ -342,5 +381,6 @@ else
     {
         ChatHubService.ChannelMessageReceived -= OnChannelMessageReceived;
         ChatHubService.MemberUpdateReceived -= OnMemberUpdateReceived;
+        ChatHubService.ServerRoleUpdateReceived -= OnServerRoleUpdated;
     }
 }

@@ -465,4 +465,13 @@
   <data name="Return" xml:space="preserve">
     <value>Takaisin</value>
   </data>
+  <data name="RoleUpdateFailed" xml:space="preserve">
+    <value>Roolin päivittäminen epäonnistui.</value>
+  </data>
+  <data name="SendingMessageError" xml:space="preserve">
+    <value>Viestin lähettämisessä ilmeni ongelma. Yritä myöhemmin uudelleen.</value>
+  </data>
+  <data name="SavingMessageError" xml:space="preserve">
+    <value>Viestin tallentamisessa ilmeni ongelma. Yritä myöhemmin uudelleen.</value>
+  </data>
 </root>

@@ -465,4 +465,13 @@
   <data name="Return" xml:space="preserve">
     <value>Return</value>
   </data>
+  <data name="RoleUpdateFailed" xml:space="preserve">
+    <value>Failed to update role.</value>
+  </data>
+  <data name="SendingMessageError" xml:space="preserve">
+    <value>There was an error sending the message. Try again later.</value>
+  </data>
+  <data name="SavingMessageError" xml:space="preserve">
+    <value>There was an error saving the message. Try again later.</value>
+  </data>
 </root>

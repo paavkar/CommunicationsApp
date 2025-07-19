@@ -2,6 +2,7 @@
 @using System.Text.Json;
 @inject IStringLocalizer<CommunicationsAppLoc> Localizer
 @inject IServerService ServerService
+@inject CommunicationsHubService CHS
 
 @switch (Page)
 {
@@ -146,6 +147,27 @@
 
     public async Task SaveAsync()
     {
-        
+        if (string.IsNullOrWhiteSpace(RoleName))
+        {
+            return;
+        }
+        var originalName = Role.Name;
+        List<ServerPermission> originalPermissions = [.. Role.Permissions];
+
+        Role.Name = RoleName;
+        Role.Permissions = [.. RolePermissions];
+
+        var result = await ServerService.UpdateRoleAsync(Server.Id, Role);
+
+        if (!result.Succeeded)
+        {
+            Role.Name = originalName;
+            Role.Permissions = [.. originalPermissions];
+        }
+        else
+        {
+            await CHS.NotifyServerRoleUpdateAsync(Server.Id, ServerUpdateType.RoleUpdated, Role);
+        }
+        RoleEdited = false;
     }
 }

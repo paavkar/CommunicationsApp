@@ -20,7 +20,8 @@
             ChannelAdded,
             ChannelRemoved,
             ChannelUpdated,
-            ServerNameDescriptionUpdated
+            ServerNameDescriptionUpdated,
+            RoleUpdated,
         }
 
         public enum ServerPermissionType
