@@ -405,9 +405,6 @@
   <data name="ViewLogs" xml:space="preserve">
     <value>Katso valvontalokia</value>
   </data>
-  <data name="Manage server" xml:space="preserve">
-    <value>Hallinnoi palvelinta</value>
-  </data>
   <data name="CreateInvite" xml:space="preserve">
     <value>Luo kutsuja</value>
   </data>
@@ -473,5 +470,44 @@
   </data>
   <data name="SavingMessageError" xml:space="preserve">
     <value>Viestin tallentamisessa ilmeni ongelma. Yritä myöhemmin uudelleen.</value>
+  </data>
+  <data name="NewRole" xml:space="preserve">
+    <value>Uusi rooli</value>
+  </data>
+  <data name="SearchRoles" xml:space="preserve">
+    <value>Etsi rooleja</value>
+  </data>
+  <data name="AddRoleError" xml:space="preserve">
+    <value>Roolin luomisessa ilmeni ongelma.</value>
+  </data>
+  <data name="Display" xml:space="preserve">
+    <value>Näytä</value>
+  </data>
+  <data name="Permissions" xml:space="preserve">
+    <value>Käyttöoikeudet</value>
+  </data>
+  <data name="MemberManagement" xml:space="preserve">
+    <value>Jäsenten hallinta</value>
+  </data>
+  <data name="RoleName" xml:space="preserve">
+    <value>Roolin nimi</value>
+  </data>
+  <data name="RoleColour" xml:space="preserve">
+    <value>Roolin väri</value>
+  </data>
+  <data name="RoleColourDescription" xml:space="preserve">
+    <value>Jäsenet käyttävät sen roolinsa väriä, joka on korkeimmalla hierarkiassa.</value>
+  </data>
+  <data name="DisplaySeparately" xml:space="preserve">
+    <value>Näytä roolin omaavat jäsenet erikseen muista jäsenistä</value>
+  </data>
+  <data name="SearchMembers" xml:space="preserve">
+    <value>Etsi jäseniä</value>
+  </data>
+  <data name="AddMembers" xml:space="preserve">
+    <value>Lisää jäseniä</value>
+  </data>
+  <data name="ChooseAtMost" xml:space="preserve">
+    <value>Valitse enintään {0}</value>
   </data>
 </root>

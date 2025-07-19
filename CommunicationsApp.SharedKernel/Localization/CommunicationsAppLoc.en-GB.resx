@@ -405,9 +405,6 @@
   <data name="ViewLogs" xml:space="preserve">
     <value>View logs</value>
   </data>
-  <data name="Manage server" xml:space="preserve">
-    <value>Manage server</value>
-  </data>
   <data name="CreateInvite" xml:space="preserve">
     <value>Create invitations</value>
   </data>
@@ -473,5 +470,44 @@
   </data>
   <data name="SavingMessageError" xml:space="preserve">
     <value>There was an error saving the message. Try again later.</value>
+  </data>
+  <data name="NewRole" xml:space="preserve">
+    <value>New role</value>
+  </data>
+  <data name="SearchRoles" xml:space="preserve">
+    <value>Search roles</value>
+  </data>
+  <data name="AddRoleError" xml:space="preserve">
+    <value>There was an error creating the role.</value>
+  </data>
+  <data name="Display" xml:space="preserve">
+    <value>Display</value>
+  </data>
+  <data name="Permissions" xml:space="preserve">
+    <value>Permissions</value>
+  </data>
+  <data name="MemberManagement" xml:space="preserve">
+    <value>Manage members</value>
+  </data>
+  <data name="RoleName" xml:space="preserve">
+    <value>Name of the role</value>
+  </data>
+  <data name="RoleColour" xml:space="preserve">
+    <value>Colour for the role</value>
+  </data>
+  <data name="RoleColourDescription" xml:space="preserve">
+    <value>Members will use the role colour, that is the highest in hierarchy.</value>
+  </data>
+  <data name="DisplaySeparately" xml:space="preserve">
+    <value>Display members with the role separately from other members</value>
+  </data>
+  <data name="SearchMembers" xml:space="preserve">
+    <value>Search members</value>
+  </data>
+  <data name="AddMembers" xml:space="preserve">
+    <value>Add members</value>
+  </data>
+  <data name="ChooseAtMost" xml:space="preserve">
+    <value>Choose at most {0}</value>
   </data>
 </root>

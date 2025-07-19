@@ -3,6 +3,7 @@
 @inject IStringLocalizer<CommunicationsAppLoc> Localizer
 @inject IServerService ServerService
 @inject CommunicationsHubService CHS
+@inject IDialogService DialogService
 
 @switch (Page)
 {
@@ -22,6 +23,26 @@
                 <FluentIcon Value=@(new Size24.IosArrowRtl()) />
             </FluentStack>
         </FluentCard>
+
+        <FluentStack>
+            <FluentSearch @ref=RoleSearch @bind-Value="@SearchValue"
+                          @bind-Value:after=HandleSearchInput
+                          Placeholder="@Localizer["SearchRoles"]" />
+            <FluentButton Appearance="Appearance.Accent" OnClick="CreateRole">
+                @Localizer["NewRole"]
+            </FluentButton>
+        </FluentStack>
+
+        <FluentSortableList Id="rolesList" Handle="true" Items="Roles" OnUpdate="@SortList" Context="role"
+            Style="width: 45em;">
+            <ItemTemplate>
+                <div class="sortable-grab">
+                    <FluentIcon Value="@(new Size20.ArrowSort())" />
+                </div>
+                <div class="sortable-item-content" onclick="@(() => EditRole(role.Name))" 
+                    style="flex-grow: 1; cursor: pointer;">@role.Name</div>
+            </ItemTemplate>
+        </FluentSortableList>
         break;
     case ServerRolesPage.RoleView:
         <FluentStack Style="height: 100%;">
@@ -44,34 +65,156 @@
                     </FluentCard>
                 }
             </FluentStack>
-            <FluentStack Orientation="Orientation.Vertical" Style="height: 100%;">
+            <FluentStack Orientation="Orientation.Vertical" Style="height: 100%;" VerticalGap="0">
                 <FluentStack Style="position: sticky: z-index: 10;">
                     <FluentLabel Typo="Typography.H4">
                         @Localizer["EditRole"] - @Role.Name
                     </FluentLabel>
                 </FluentStack>
                 <FluentStack Orientation="Orientation.Vertical"
-                             Style="height: 100%; overflow-y: auto; margin-bottom: 4em;">
-                    @foreach (var permission in Permissions)
-                    {
-                        <FluentStack Orientation="Orientation.Vertical">
-                            <FluentStack onclick="@(() => OnPermissionChanged(permission))"
-                                Style="cursor: pointer;">
-                                <FluentLabel Typo="Typography.H5">
-                                    @Localizer[permission.PermissionName]
-                                </FluentLabel>
-                                <FluentSpacer />
-                                <FluentSwitch Value=@(RolePermissions.Select(p => p.Id).Contains(permission.Id)) />
-                            </FluentStack>
-                        </FluentStack>
-                        <FluentDivider Style="width: 100%;" Role="DividerRole.Presentation"></FluentDivider>
-                    }
+                             Style="height: 100%; overflow-y: auto; margin-bottom: 4em;"
+                                VerticalGap="0">
+                    <FluentTabs ActiveTabId=@ActiveTab ActiveTabIdChanged="OnActiveTabChanged"
+                        Style="padding-top: 0; width: 30em;">
+                        <FluentTab Id="display" Disabled="@(Role.Name == "@everyone")">
+                            <Header>
+                                @Localizer["Display"]
+                            </Header>
+                            <Content>
+                                <FluentStack Orientation="Orientation.Vertical" VerticalGap="0" Style="margin-top: 1em;">
+                                    <FluentTextField @bind-Value="RoleName" Required
+                                                     Placeholder="@Localizer["RoleName"]"
+                                                     Style="width: 100%;"
+                                                     Label="@Localizer["RoleName"]" />
+                                </FluentStack>
+
+                                <FluentDivider Style="width: 100%; margin-top: 1em;" Role="DividerRole.Presentation"></FluentDivider>
+
+                                <FluentStack Orientation="Orientation.Vertical" Style="margin-top: 1em;">
+                                    <FluentLabel Typo="Typography.H5">@Localizer["RoleColour"]</FluentLabel>
+                                    <FluentLabel>@Localizer["RoleColourDescription"]</FluentLabel>
+                                    <FluentTextField Value="@RoleColour"
+                                                        ValueChanged="OnHexColourChanged"
+                                                        TextFieldType="TextFieldType.Color"
+                                                        Style="width: 60px;" />
+                                </FluentStack>
+
+                                <FluentDivider Style="width: 100%; margin-top: 1em;" Role="DividerRole.Presentation"></FluentDivider>
+
+                                <FluentStack Style="margin-top: 1em;">
+                                    <FluentLabel>@Localizer["DisplaySeparately"]</FluentLabel>
+                                    <FluentSwitch Value="@RoleDisplaySeparately" 
+                                                  ValueChanged="HandleDisplaySeparately" />
+                                </FluentStack>
+                            </Content>
+                        </FluentTab>
+
+                        <FluentTab Id="permissions">
+                            <Header>
+                                @Localizer["Permissions"]
+                            </Header>
+                            <Content>
+                                <FluentStack Orientation="Orientation.Vertical"
+                                        Style="height: 100%; overflow-y: auto;">
+                                    @foreach (var permission in Permissions)
+                                    {
+                                        <FluentStack Orientation="Orientation.Vertical">
+                                            <FluentStack onclick="@(() => OnPermissionChanged(permission))"
+                                                         Style="cursor: pointer;">
+                                                <FluentLabel Typo="Typography.H5">
+                                                    @Localizer[permission.PermissionName]
+                                                </FluentLabel>
+                                                <FluentSpacer />
+                                                <FluentSwitch Value=@(RolePermissions.Select(p => p.Id).Contains(permission.Id)) />
+                                            </FluentStack>
+                                        </FluentStack>
+                                        <FluentDivider Style="width: 100%;" Role="DividerRole.Presentation"></FluentDivider>
+                                    }
+                                </FluentStack>
+                                
+                            </Content>
+                        </FluentTab>
+
+                        <FluentTab Id="members" Disabled="@(Role.Name == "@everyone")">
+                            <Header>
+                                @($"{Localizer["MemberManagement"]} ({RoleMembers.Count})")
+                            </Header>
+                            <Content>
+                                <FluentStack>
+                                    <FluentSearch @ref=MemberSearch @bind-Value="@MemberSearchValue"
+                                                  @bind-Value:after=HandleMemberSearchInput
+                                                  Placeholder="@Localizer["SearchMembers"]" />
+                                    <FluentButton Appearance="Appearance.Accent" OnClick="AddMembersToRole">
+                                        @Localizer["AddMembers"]
+                                    </FluentButton>
+                                </FluentStack>
+
+                                @if (AddMembers)
+                                {
+                                    <FluentStack Orientation="Orientation.Vertical">
+                                        <FluentLabel>@Localizer["ChooseAtMost", 30]</FluentLabel>
+                                        <FluentOverflow Style="width: 25em;">
+                                            @foreach (var member in NewMembers)
+                                            {
+                                                <FluentOverflowItem><FluentBadge>@member.DisplayName</FluentBadge></FluentOverflowItem>
+                                            }
+                                        </FluentOverflow>
+
+                                        <FluentStack Style="max-height: 35em; overflow-y: auto; width: 25em;">
+                                            <FluentDataGrid Items="@FilteredMembers.AsQueryable()" 
+                                                            ShowHover="@SelectFromEntireRow"
+                                                            TGridItem="ServerProfile"
+                                                            OnRowClick="@HandleRowClick">
+                                                <SelectColumn TGridItem="ServerProfile"
+                                                              SelectMode="@Mode"
+                                                              SelectFromEntireRow="@SelectFromEntireRow"
+                                                              @bind-SelectedItems="@NewMembers" />
+                                                <TemplateColumn>
+                                                    <FluentStack>
+                                                        <FluentPersona Image="@(!string.IsNullOrWhiteSpace(@context.ProfilePictureUrl)
+                                                                            ? @context.ProfilePictureUrl
+                                                                            : new Size20.Person().ToDataUri(size: "25px", color: "white"))"
+                                                           ImageSize="25px">
+                                                        </FluentPersona>
+                                                        <FluentLabel>
+                                                            @context.DisplayName
+                                                        </FluentLabel>
+                                                        <FluentLabel Style="font-size: 0.9em;">
+                                                            @context.UserName
+                                                        </FluentLabel>
+                                                    </FluentStack>
+                                                </TemplateColumn>
+                                            </FluentDataGrid>
+                                        </FluentStack>
+                                    </FluentStack>
+                                    
+                                }
+                                else
+                                {
+                                    <FluentStack>
+                                        @foreach (var member in FilteredMembers)
+                                        {
+                                            <FluentStack>
+                                                <FluentPersona Image="@(!string.IsNullOrWhiteSpace(member.ProfilePictureUrl)
+                                                                                                ? member.ProfilePictureUrl
+                                                                                                : new Size20.Person().ToDataUri(size: "25px", color: "white"))"
+                                                               ImageSize="25px">
+                                                </FluentPersona>
+                                                <FluentIcon Style="cursor: pointer;" Value="@(new Size20.Dismiss())" />
+                                            </FluentStack>
+                                        }
+                                    </FluentStack>
+                                }
+                            </Content>
+                        </FluentTab>
+                    </FluentTabs>
+                    
                 </FluentStack>
             </FluentStack>
         </FluentStack>
         @if (RoleEdited)
         {
-            <FluentCard Style="position: sticky; bottom: 0em; padding: 5px; display: flex;">
+            <FluentCard Style="position: sticky; bottom: 0em; padding: 5px; display: flex; height: 4em;">
                 <FluentStack VerticalAlignment="VerticalAlignment.Center">
                     <FluentLabel>@Localizer["UnsavedChanges"]</FluentLabel>
                     <FluentSpacer />
@@ -92,16 +235,146 @@
 @code {
     [Parameter]
     public Server Server { get; set; } = default!;
+    public FluentSearch? RoleSearch { get; set; }
+    public FluentSearch? MemberSearch { get; set; }
+    public string? SearchValue = string.Empty;
+    public string? MemberSearchValue = string.Empty;
     public List<ServerPermission> Permissions { get; set; }
     public ServerRolesPage Page { get; set; } = ServerRolesPage.MainPage;
     public ServerRole Role { get; set; }
     public List<ServerPermission> RolePermissions { get; set; } = [];
     public bool RoleEdited = false;
     public string RoleName { get; set; }
+    public List<ServerRole> Roles { get; set; } = [];
+    public List<ServerProfile> FilteredMembers { get; set; } = [];
+    public List<ServerProfile> RoleMembers { get; set; }
+    public string ActiveTab { get; set; } = "display";
+    public string RoleColour { get; set; }
+    public bool AddMembers { get; set; }
+    public IEnumerable<ServerProfile> NewMembers { get; set; } = [];
+    public bool RoleDisplaySeparately { get; set; }
+
+    bool SelectFromEntireRow = true;
+    DataGridSelectMode Mode = DataGridSelectMode.Multiple;
 
     protected override async Task OnInitializedAsync()
     {
         Permissions = await ServerService.GetServerPermissionsAsync();
+        Roles = [.. Server.Roles.Where(r => r.Name != "@everyone")];
+        Server.Roles = Server.Roles.OrderBy(r => r.Hierarchy).ToList();
+        RoleColour = "";
+    }
+
+    public void OnHexColourChanged(string newValue)
+    {
+        RoleColour = newValue;
+        if (RoleColour != Role.HexColour)
+            RoleEdited = true;
+    }
+
+    public void OnActiveTabChanged(string newTabId)
+    {
+        ActiveTab = newTabId;
+    }
+
+    private void HandleRowClick(FluentDataGridRow<ServerProfile> row)
+    {
+        ServerProfile clicked = row.Item;
+        NewMembers.Append(clicked);
+        RoleEdited = true;
+    }
+
+    private void HandleDisplaySeparately(bool value)
+    {
+        RoleDisplaySeparately = value;
+        RoleEdited = true;
+    }
+
+    public void HandleSearchInput()
+    {
+        if (string.IsNullOrWhiteSpace(SearchValue))
+        {
+            SearchValue = string.Empty;
+            Roles = [.. Server.Roles.Where(r => r.Name != "@everyone")];
+        }
+        else
+        {
+            var searchTerm = SearchValue.ToLower();
+
+            if (searchTerm.Length > 0)
+            {
+                List<ServerRole> filteredRoles = Roles.Where(r => r.Name.ToLower().Contains(searchTerm)).ToList();
+                if (filteredRoles.Count > 0)
+                {
+                    Roles = filteredRoles;
+                }
+            }
+        }
+    }
+
+    public async Task AddMembersToRole()
+    {
+        FilteredMembers = Server.Members.Where(m => m.Roles.All(r => r.Name != Role.Name)).ToList();
+        AddMembers = true;
+    }
+
+    public async Task HandleMemberSearchInput()
+    {
+        if (string.IsNullOrWhiteSpace(MemberSearchValue))
+        {
+            MemberSearchValue = string.Empty;
+            if (AddMembers)
+            {
+                FilteredMembers = Server.Members.Where(m => m.Roles.All(r => r.Name != Role.Name)).ToList();
+            }
+            else
+            {
+                FilteredMembers = Server.Members.Where(m => m.Roles.Any(r => r.Name == Role.Name)).ToList();
+            }
+        }
+        else
+        {
+            var searchTerm = MemberSearchValue.ToLower();
+            List<ServerProfile> filteredMembers = [];
+            if (searchTerm.Length > 0)
+            {
+                filteredMembers = FilteredMembers
+                                    .Where(m => (m.DisplayName.ToLower().Contains(searchTerm) ||
+                                                (m.UserName.ToLower().Contains(searchTerm))))
+                                    .ToList();
+
+                if (filteredMembers.Any())
+                {
+                    FilteredMembers = filteredMembers;
+                }
+            }
+
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void SortList(FluentSortableListEventArgs args)
+    {
+        if (args is null || args.OldIndex == args.NewIndex)
+        {
+            return;
+        }
+
+        var oldIndex = args.OldIndex;
+        var newIndex = args.NewIndex;
+
+        var roles = this.Roles;
+        var itemToMove = roles[oldIndex];
+        roles.RemoveAt(oldIndex);
+
+        if (newIndex < roles.Count)
+        {
+            roles.Insert(newIndex, itemToMove);
+        }
+        else
+        {
+            roles.Add(itemToMove);
+        }
     }
 
     public void ReturnToMain()
@@ -110,14 +383,54 @@
         StateHasChanged();
     }
 
-    public void EditRole(string viewedRole = "@everyone")
+    public async Task EditRole(string viewedRole = "@everyone")
     {
-        Page = ServerRolesPage.RoleView;
+        if (viewedRole == "@everyone")
+        {
+            ActiveTab = "permissions";
+        }
+        else
+        {
+            ActiveTab = "display";
+        }
         Role = Server.Roles.FirstOrDefault(r => r.Name == viewedRole)!;
-        Role.Permissions.OrderBy(p => p.Id);
+        Role.Permissions = Role.Permissions.OrderBy(p => p.Id).ToList();
         RolePermissions = [.. Role.Permissions];
         RoleName = Role.Name;
+        RoleColour = Role.HexColour;
         RoleEdited = false;
+        RoleMembers = Server.Members.Where(m => m.Roles.Any(r => r.Name == Role.Name)).ToList();
+        FilteredMembers = [.. RoleMembers];
+        RoleDisplaySeparately = Role.DisplaySeparately;
+
+        Page = ServerRolesPage.RoleView;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public async Task CreateRole()
+    {
+        Role = new ServerRole
+        {
+            Id = Guid.CreateVersion7().ToString(),
+            ServerId = Server.Id,
+            Name = Localizer["NewRole"].ToString().ToLower(),
+            Hierarchy = Roles.Count + 1,
+            Permissions = []
+        };
+
+        var addResult = await ServerService.AddRoleAsync(Server.Id, Role);
+
+        if (addResult.Succeeded)
+        {
+            await CHS.NotifyServerRoleUpdateAsync(Server.Id, ServerUpdateType.RoleAdded, Role);
+            RoleName = Role.Name;
+            var everyoneRole = Server.Roles.FirstOrDefault(r => r.Name == "@everyone");
+            everyoneRole.Hierarchy = Roles.Count + 2;
+            Roles.Add(Role);
+            Server.Roles = Server.Roles.OrderBy(r => r.Hierarchy).ToList();
+            RoleMembers = Server.Members.Where(m => m.Roles.Any(r => r.Name == Role.Name)).ToList();
+            Page = ServerRolesPage.RoleView;
+        }
     }
 
     private void OnPermissionChanged(ServerPermission permission)
@@ -142,6 +455,11 @@
     {
         RolePermissions = [.. Role.Permissions];
         RoleName = Role.Name;
+        RoleColour = Role.HexColour;
+        NewMembers = [];
+        AddMembers = false;
+        FilteredMembers = [.. RoleMembers];
+        RoleDisplaySeparately = Role.DisplaySeparately;
         RoleEdited = false;
     }
 
@@ -156,6 +474,8 @@
 
         Role.Name = RoleName;
         Role.Permissions = [.. RolePermissions];
+        Role.HexColour = RoleColour;
+        Role.DisplaySeparately = RoleDisplaySeparately;
 
         var result = await ServerService.UpdateRoleAsync(Server.Id, Role);
 

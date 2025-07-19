@@ -327,6 +327,9 @@ else
                     userRole.Permissions = [.. role.Permissions];
                 }
                 break;
+            case ServerUpdateType.RoleAdded:
+                Server.Roles.Add(role);
+                break;
         }
         SetPermissions();
 

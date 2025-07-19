@@ -780,5 +780,51 @@ namespace CommunicationsApp.Infrastructure.Services
                 return new ResultBaseModel { Succeeded = false, ErrorMessage = e.Message };
             }
         }
+
+        public async Task<dynamic> AddRoleAsync(string serverid, ServerRole role)
+        {
+            var insertServerRoleQuery = """
+                    INSERT INTO ServerRoles (Id, Name, ServerId, HexColour, Hierarchy, DisplaySeparately)
+                    VALUES (@Id, @Name, @ServerId, @HexColour, @Hierarchy, @DisplaySeparately)
+                    """;
+            using var connection = GetConnection();
+            connection.Open();
+            using SqlTransaction transaction = connection.BeginTransaction();
+            try
+            {
+                var rowsAffected = await connection.ExecuteAsync(insertServerRoleQuery, role, transaction);
+
+                if (rowsAffected > 0)
+                {
+                    var server = await GetServerByIdAsync(serverid);
+                    if (server != null)
+                    {
+                        server.Roles.Add(role);
+                        var everyoneRole = server.Roles.FirstOrDefault(r => r.Name == "@everyone");
+                        everyoneRole.Hierarchy = server.Roles.Count;
+
+                        var updateEveryoneRoleQuery = """
+                            UPDATE ServerRoles
+                            SET Hierarchy = @Hierarchy
+                            WHERE Id = @Id
+                            """;
+                        await connection.ExecuteAsync(updateEveryoneRoleQuery, everyoneRole, transaction);
+                        transaction.Commit();
+                        await UpdateCacheAsync(serverid, server);
+                    }
+                    return new ResultBaseModel { Succeeded = true };
+                }
+                else
+                {
+                    return new ResultBaseModel { Succeeded = false, ErrorMessage = localizer["AddRoleError"] };
+                }
+            }
+            catch (Exception e)
+            {
+                transaction.Rollback();
+                logger.LogError(e, "Error updating the role in {Method}", nameof(AddRoleAsync));
+                return new ResultBaseModel { Succeeded = false, ErrorMessage = e.Message };
+            }
+        }
     }
 }
