@@ -118,6 +118,7 @@ else
         CommunicationsHubService.ChannelUpdateReceived += OnChannelUpdateReceived;
         CommunicationsHubService.ServerInfoUpdateReceived += OnServerInfoUpdateReceived;
         CommunicationsHubService.ServerRoleUpdateReceived += OnServerRoleUpdated;
+        CommunicationsHubService.ServerRoleMembersUpdateReceived += OnServerRoleMembersUpdated;
         var authState = await ASP.GetAuthenticationStateAsync();
         UserId = authState.User.Claims.Where(c => c.Type.Contains("nameidentifier")).First().Value;
         if (!string.IsNullOrWhiteSpace(ServerId) && !string.IsNullOrWhiteSpace(UserId))
@@ -335,6 +336,25 @@ else
             case ServerUpdateType.RoleAdded:
                 Server.Roles.Add(role);
                 break;
+        }
+        SetPermissions();
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async void OnServerRoleMembersUpdated(
+        string serverId, ServerRole role, List<ServerProfile> members)
+    {
+        if (ServerId != serverId)
+        {
+            return;
+        }
+        var memberIds = members.Select(m => m.UserId).ToList();
+        var membersToUpdate = Server.Members.Where(m => memberIds.Contains(m.UserId)).ToList();
+        foreach (var member in membersToUpdate)
+        {
+            member.Roles.Add(role);
+            member.Roles = [.. member.Roles.OrderBy(r => r.Hierarchy)];
         }
         SetPermissions();
 

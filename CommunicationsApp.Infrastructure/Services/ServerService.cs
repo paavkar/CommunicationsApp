@@ -707,7 +707,7 @@ namespace CommunicationsApp.Infrastructure.Services
             }
         }
 
-        public async Task<dynamic> UpdateRoleAsync(string serverId, ServerRole role)
+        public async Task<dynamic> UpdateRoleAsync(string serverId, ServerRole role, List<ServerProfile> members)
         {
             var updateRoleQuery = """
                 UPDATE ServerRoles
@@ -719,7 +719,7 @@ namespace CommunicationsApp.Infrastructure.Services
             using SqlTransaction transaction = connection.BeginTransaction();
             try
             {
-                var rowsAffected = connection.Execute(updateRoleQuery, role, transaction);
+                var rowsAffected = await connection.ExecuteAsync(updateRoleQuery, role, transaction);
                 if (rowsAffected > 0)
                 {
                     var updatePermissionQuery = """
@@ -738,6 +738,20 @@ namespace CommunicationsApp.Infrastructure.Services
                 }
                 if (rowsAffected > 0)
                 {
+                    foreach (var member in members)
+                    {
+                        var updateMemberRoleQuery = """
+                            INSERT INTO UserServerRoles (UserId, ServerId, RoleId)
+                            SELECT @UserId, @ServerId, @RoleId
+                            WHERE NOT EXISTS (SELECT 1
+                                              FROM UserServerRoles
+                                              WHERE UserId = @UserId
+                                              AND ServerId = @ServerId
+                                              AND RoleId = @RoleId)
+                            """;
+                        rowsAffected += await connection.ExecuteAsync(updateMemberRoleQuery,
+                            new { UserId = member.UserId, ServerId = serverId, RoleId = role.Id }, transaction);
+                    }
                     transaction.Commit();
                     var server = await GetServerByIdAsync(serverId);
                     if (server != null)

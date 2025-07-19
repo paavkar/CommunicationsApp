@@ -203,6 +203,7 @@ else
         ChatHubService.ChannelMessageReceived += OnChannelMessageReceived;
         ChatHubService.MemberUpdateReceived += OnMemberUpdateReceived;
         ChatHubService.ServerRoleUpdateReceived += OnServerRoleUpdated;
+        ChatHubService.ServerRoleMembersUpdateReceived += OnServerRoleMembersUpdated;
     }
 
     protected override async Task OnInitializedAsync()
@@ -291,8 +292,6 @@ else
         }
     }
 
-
-
     private async void OnServerRoleUpdated(
         string serverId, ServerUpdateType updateType, ServerRole role)
     {
@@ -332,6 +331,30 @@ else
         Permissions = Server.Members.FirstOrDefault(m => m.UserId == UserId).Roles.SelectMany(r => r.Permissions).ToList();
 
         await InvokeAsync(StateHasChanged);
+    }
+
+    private async void OnServerRoleMembersUpdated(
+        string serverId, ServerRole role, List<ServerProfile> members)
+    {
+        if (ServerId != serverId)
+        {
+            return;
+        }
+        var memberIds = members.Select(m => m.UserId).ToList();
+        var membersToUpdate = Server.Members.Where(m => memberIds.Contains(m.UserId)).ToList();
+        foreach (var member in membersToUpdate)
+        {
+            member.Roles.Add(role);
+            member.Roles = [.. member.Roles.OrderBy(r => r.Hierarchy)];
+        }
+        SetPermissions();
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void SetPermissions()
+    {
+        Permissions = Server.Members.FirstOrDefault(m => m.UserId == UserId).Roles.SelectMany(r => r.Permissions).ToList();
     }
 
     private async Task SendMessageAsync()

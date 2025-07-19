@@ -57,5 +57,11 @@ namespace CommunicationsApp.Infrastructure.Hubs
             return Clients.Group(serverId)
                            .SendAsync("ServerRoleUpdate", serverId, updateType, role);
         }
+
+        public Task NotifyServerRoleMembersUpdate(string serverId, ServerRole role, List<ServerProfile> members)
+        {
+            return Clients.Group(serverId)
+                           .SendAsync("ServerRoleMembersUpdate", serverId, role, members);
+        }
     }
 }

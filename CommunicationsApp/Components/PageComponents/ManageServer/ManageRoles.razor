@@ -191,7 +191,7 @@
                                 }
                                 else
                                 {
-                                    <FluentStack>
+                                    <FluentStack Style="margin-top: 1em;">
                                         @foreach (var member in FilteredMembers)
                                         {
                                             <FluentStack>
@@ -200,6 +200,11 @@
                                                                                                 : new Size20.Person().ToDataUri(size: "25px", color: "white"))"
                                                                ImageSize="25px">
                                                 </FluentPersona>
+                                                <FluentLabel>@member.DisplayName</FluentLabel>
+                                                <FluentLabel Style="font-size: 0.9em;">@member.UserName</FluentLabel>
+                                                
+                                                <FluentSpacer />
+                                                
                                                 <FluentIcon Style="cursor: pointer;" Value="@(new Size20.Dismiss())" />
                                             </FluentStack>
                                         }
@@ -477,7 +482,7 @@
         Role.HexColour = RoleColour;
         Role.DisplaySeparately = RoleDisplaySeparately;
 
-        var result = await ServerService.UpdateRoleAsync(Server.Id, Role);
+        var result = await ServerService.UpdateRoleAsync(Server.Id, Role, NewMembers.ToList());
 
         if (!result.Succeeded)
         {
@@ -487,6 +492,22 @@
         else
         {
             await CHS.NotifyServerRoleUpdateAsync(Server.Id, ServerUpdateType.RoleUpdated, Role);
+            await CHS.NotifyServerRoleMembersUpdateAsync(Server.Id, Role, NewMembers.ToList());
+            FilteredMembers = [.. RoleMembers];
+            FilteredMembers.AddRange(NewMembers);
+            NewMembers = [];
+            AddMembers = false;
+
+            var memberIds = FilteredMembers.Select(m => m.UserId).ToList();
+            var membersToUpdate = Server.Members.Where(m => memberIds.Contains(m.UserId)).ToList();
+            foreach (var member in membersToUpdate)
+            {
+                if (member.Roles.All(r => r.Id != Role.Id))
+                {
+                    member.Roles.Add(Role);
+                }
+            }
+            RoleMembers = Server.Members.Where(m => m.Roles.Any(r => r.Name == Role.Name)).ToList();
         }
         RoleEdited = false;
     }
