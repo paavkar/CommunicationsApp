@@ -322,6 +322,11 @@ else
                     userRole.DisplaySeparately = role.DisplaySeparately;
                     userRole.Permissions = [.. role.Permissions];
                 }
+                Server.Roles = [.. Server.Roles.OrderBy(r => r.Hierarchy)];
+                foreach (var member in Server.Members)
+                {
+                    member.Roles = [.. member.Roles.OrderBy(r => r.Hierarchy)];
+                }
                 break;
         }
         Permissions = Server.Members.FirstOrDefault(m => m.UserId == UserId).Roles.SelectMany(r => r.Permissions).ToList();
