@@ -213,7 +213,8 @@
                                                 
                                                 <FluentSpacer />
                                                 
-                                                <FluentIcon Style="cursor: pointer;" Value="@(new Size20.Dismiss())" />
+                                                <FluentIcon Style="cursor: pointer;" Value="@(new Size20.Dismiss())"
+                                                OnClick="@(() => RemoveRoleFromMember(member))"/>
                                             </FluentStack>
                                         }
                                     </FluentStack>
@@ -261,6 +262,7 @@
     public List<ServerRole> Roles { get; set; } = [];
     public List<ServerProfile> FilteredMembers { get; set; } = [];
     public List<ServerProfile> RoleMembers { get; set; }
+    public List<ServerProfile> RemovedMembers { get; set; } = [];
     public string ActiveTab { get; set; } = "display";
     public string RoleColour { get; set; }
     public bool AddMembers { get; set; }
@@ -302,6 +304,17 @@
         RoleEdited = true;
     }
 
+    private void RemoveRoleFromMember(ServerProfile member)
+    {
+        FilteredMembers.RemoveAll(m => m.Id == member.Id);
+        RemovedMembers.Add(member);
+        if (NewMembers.Any(m => m.Id == member.Id))
+        {
+            NewMembers = NewMembers.Where(m => m.Id != member.Id);
+        }
+        RoleEdited = true;
+    }
+
     private void HandleDisplaySeparately(bool value)
     {
         RoleDisplaySeparately = value;
@@ -334,12 +347,22 @@
     {
         if (AddMembers)
         {
+            var removedIds = RemovedMembers.Select(m => m.UserId);
             AddMembers = false;
             DisplayNewRoleMemberCount = true;
-            FilteredMembers = [.. RoleMembers];
+            FilteredMembers = [.. RoleMembers.Where(m => !removedIds.Contains(m.UserId))];
+            foreach (var member in NewMembers)
+            {
+                if (RoleMembers.Any(m => m.UserId == member.UserId))
+                {
+                    FilteredMembers.Add(member);
+                }
+            }
+            FilteredMembers = FilteredMembers.OrderBy(m => m.DisplayName).ToList();
             return;
         }
-        FilteredMembers = Server.Members.Where(m => m.Roles.All(r => r.Name != Role.Name)).ToList();
+        var memberIds = FilteredMembers.Select(m => m.UserId).ToList();
+        FilteredMembers = Server.Members.Where(m => !memberIds.Contains(m.UserId)).ToList();
         AddMembers = true;
         DisplayNewRoleMemberCount = false;
     }
@@ -485,6 +508,7 @@
         NewMembers = [];
         AddMembers = false;
         FilteredMembers = [.. RoleMembers];
+        RemovedMembers = [];
         RoleDisplaySeparately = Role.DisplaySeparately;
         RoleEdited = false;
     }
@@ -497,6 +521,11 @@
         }
         var originalName = Role.Name;
         List<ServerPermission> originalPermissions = [.. Role.Permissions];
+
+        if (!AddMembers)
+        {
+            RoleMembers = [.. FilteredMembers];
+        }
 
         Role.Name = RoleName;
         Role.Permissions = [.. RolePermissions];

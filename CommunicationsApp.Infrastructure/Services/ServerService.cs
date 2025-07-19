@@ -11,6 +11,7 @@ using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
+using System.Data;
 using static CommunicationsApp.Core.Models.Enums;
 
 namespace CommunicationsApp.Infrastructure.Services
@@ -720,9 +721,7 @@ namespace CommunicationsApp.Infrastructure.Services
             try
             {
                 var rowsAffected = await connection.ExecuteAsync(updateRoleQuery, role, transaction);
-                if (rowsAffected > 0)
-                {
-                    var updatePermissionQuery = """
+                var updatePermissionQuery = """
                             INSERT INTO ServerRolePermissions (RoleId, PermissionId)
                             SELECT @RoleId, @PermissionId
                             WHERE NOT EXISTS (SELECT 1
@@ -730,62 +729,61 @@ namespace CommunicationsApp.Infrastructure.Services
                                               WHERE RoleId = @RoleId
                                               AND PermissionId = @PermissionId)
                             """;
-                    foreach (var permission in role.Permissions)
-                    {
-                        rowsAffected += await connection.ExecuteAsync(updatePermissionQuery,
-                            new { RoleId = role.Id, PermissionId = permission.Id }, transaction);
-                    }
-                }
-                if (rowsAffected > 0)
+                foreach (var permission in role.Permissions)
                 {
-                    foreach (var member in members)
-                    {
-                        var updateMemberRoleQuery = """
-                            INSERT INTO UserServerRoles (UserId, ServerId, RoleId)
-                            SELECT @UserId, @ServerId, @RoleId
-                            WHERE NOT EXISTS (SELECT 1
-                                              FROM UserServerRoles
-                                              WHERE UserId = @UserId
-                                              AND ServerId = @ServerId
-                                              AND RoleId = @RoleId)
-                            """;
-                        rowsAffected += await connection.ExecuteAsync(updateMemberRoleQuery,
-                            new { UserId = member.UserId, ServerId = serverId, RoleId = role.Id }, transaction);
-                    }
-                    transaction.Commit();
-                    var server = await GetServerByIdAsync(serverId);
-                    if (server != null)
-                    {
-                        var existingRole = server.Roles.FirstOrDefault(r => r.Id == role.Id);
-                        if (existingRole != null)
-                        {
-                            existingRole.Name = role.Name;
-                            existingRole.HexColour = role.HexColour;
-                            existingRole.Hierarchy = role.Hierarchy;
-                            existingRole.DisplaySeparately = role.DisplaySeparately;
-                            existingRole.Permissions = [.. role.Permissions];
-                        }
-                        var userServerRoles = server.Members
-                            .SelectMany(m => m.Roles)
-                            .Where(r => r.Id == role.Id)
-                            .ToList();
-                        foreach (var userServerRole in userServerRoles)
-                        {
-                            userServerRole.Name = role.Name;
-                            userServerRole.HexColour = role.HexColour;
-                            userServerRole.Hierarchy = role.Hierarchy;
-                            userServerRole.DisplaySeparately = role.DisplaySeparately;
-                            userServerRole.Permissions = [.. role.Permissions];
-                        }
-                        await UpdateCacheAsync(serverId, server);
-                    }
-                    return new ResultBaseModel { Succeeded = true };
+                    rowsAffected += await connection.ExecuteAsync(updatePermissionQuery,
+                        new { RoleId = role.Id, PermissionId = permission.Id }, transaction);
                 }
-                else
+                foreach (var member in members)
                 {
-                    transaction.Rollback();
-                    return new ResultBaseModel { Succeeded = false, ErrorMessage = localizer["RoleUpdateFailed"] };
+                    var updateMemberRoleQuery = """
+                        INSERT INTO UserServerRoles (UserId, ServerId, RoleId)
+                        SELECT @UserId, @ServerId, @RoleId
+                        WHERE NOT EXISTS (SELECT 1
+                                            FROM UserServerRoles
+                                            WHERE UserId = @UserId
+                                            AND ServerId = @ServerId
+                                            AND RoleId = @RoleId)
+                        """;
+                    rowsAffected += await connection.ExecuteAsync(updateMemberRoleQuery,
+                        new { UserId = member.UserId, ServerId = serverId, RoleId = role.Id }, transaction);
                 }
+                transaction.Commit();
+                var server = await GetServerByIdAsync(serverId);
+                if (server != null)
+                {
+                    var existingRole = server.Roles.FirstOrDefault(r => r.Id == role.Id);
+                    if (existingRole != null)
+                    {
+                        existingRole.Name = role.Name;
+                        existingRole.HexColour = role.HexColour;
+                        existingRole.Hierarchy = role.Hierarchy;
+                        existingRole.DisplaySeparately = role.DisplaySeparately;
+                        existingRole.Permissions = [.. role.Permissions];
+                    }
+                    var userServerRoles = server.Members
+                        .SelectMany(m => m.Roles)
+                        .Where(r => r.Id == role.Id)
+                        .ToList();
+                    foreach (var userServerRole in userServerRoles)
+                    {
+                        userServerRole.Name = role.Name;
+                        userServerRole.HexColour = role.HexColour;
+                        userServerRole.Hierarchy = role.Hierarchy;
+                        userServerRole.DisplaySeparately = role.DisplaySeparately;
+                        userServerRole.Permissions = [.. role.Permissions];
+                    }
+                    var memberIds = members.Select(m => m.UserId).ToList();
+                    var membersToUpdate = server.Members.Where(m => memberIds.Contains(m.UserId)).ToList();
+                    foreach (var member in membersToUpdate)
+                    {
+                        member.Roles.Add(role);
+                        member.Roles = [.. member.Roles.OrderBy(r => r.Hierarchy)];
+                    }
+
+                    await UpdateCacheAsync(serverId, server);
+                }
+                return new ResultBaseModel { Succeeded = true };
             }
             catch (Exception e)
             {
