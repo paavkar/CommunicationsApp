@@ -708,7 +708,7 @@ namespace CommunicationsApp.Infrastructure.Services
             }
         }
 
-        public async Task<dynamic> UpdateRoleAsync(string serverId, ServerRole role, List<ServerProfile> members)
+        public async Task<dynamic> UpdateRoleAsync(string serverId, ServerRole role, RoleMemberLinking linking)
         {
             var updateRoleQuery = """
                 UPDATE ServerRoles
@@ -734,9 +734,7 @@ namespace CommunicationsApp.Infrastructure.Services
                     rowsAffected += await connection.ExecuteAsync(updatePermissionQuery,
                         new { RoleId = role.Id, PermissionId = permission.Id }, transaction);
                 }
-                foreach (var member in members)
-                {
-                    var updateMemberRoleQuery = """
+                var updateMemberRoleQuery = """
                         INSERT INTO UserServerRoles (UserId, ServerId, RoleId)
                         SELECT @UserId, @ServerId, @RoleId
                         WHERE NOT EXISTS (SELECT 1
@@ -745,7 +743,24 @@ namespace CommunicationsApp.Infrastructure.Services
                                             AND ServerId = @ServerId
                                             AND RoleId = @RoleId)
                         """;
+                foreach (var member in linking.NewMembers)
+                {
                     rowsAffected += await connection.ExecuteAsync(updateMemberRoleQuery,
+                        new { UserId = member.UserId, ServerId = serverId, RoleId = role.Id }, transaction);
+                }
+
+                var removeMemberRoleQuery = """
+                        DELETE FROM UserServerRoles
+                        WHERE EXISTS (
+                              SELECT 1
+                              FROM UserServerRoles
+                              WHERE UserId = @UserId
+                                AND ServerId = @ServerId
+                                AND RoleId = @RoleId)
+                    """;
+                foreach (var member in linking.RemovedMembers)
+                {
+                    rowsAffected += await connection.ExecuteAsync(removeMemberRoleQuery,
                         new { UserId = member.UserId, ServerId = serverId, RoleId = role.Id }, transaction);
                 }
                 transaction.Commit();
@@ -773,11 +788,20 @@ namespace CommunicationsApp.Infrastructure.Services
                         userServerRole.DisplaySeparately = role.DisplaySeparately;
                         userServerRole.Permissions = [.. role.Permissions];
                     }
-                    var memberIds = members.Select(m => m.UserId).ToList();
-                    var membersToUpdate = server.Members.Where(m => memberIds.Contains(m.UserId)).ToList();
+                    var addedMemberIds = linking.NewMembers.Select(m => m.UserId).ToList();
+                    var removedMemberIds = linking.RemovedMembers.Select(m => m.UserId).ToList();
+                    var membersToUpdate = server.Members.Where(m => addedMemberIds.Contains(m.UserId)).ToList();
+                    membersToUpdate.AddRange(server.Members.Where(m => removedMemberIds.Contains(m.UserId)));
                     foreach (var member in membersToUpdate)
                     {
-                        member.Roles.Add(role);
+                        if (addedMemberIds.Contains(member.UserId))
+                        {
+                            member.Roles.Add(role);
+                        }
+                        if (removedMemberIds.Contains(member.UserId))
+                        {
+                            member.Roles.RemoveAll(r => r.Id == role.Id);
+                        }
                         member.Roles = [.. member.Roles.OrderBy(r => r.Hierarchy)];
                     }
 

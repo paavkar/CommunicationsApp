@@ -16,7 +16,7 @@ namespace CommunicationsApp.Application.Interfaces
         Task<dynamic> AddServerPermissionsAsync();
         Task<List<ServerPermission>> GetServerPermissionsAsync();
         Task<dynamic> UpdateServerNameDescriptionAsync(string serverId, ServerInfoUpdate update);
-        Task<dynamic> UpdateRoleAsync(string serverId, ServerRole role, List<ServerProfile> members);
+        Task<dynamic> UpdateRoleAsync(string serverId, ServerRole role, RoleMemberLinking linking);
         Task<dynamic> AddRoleAsync(string serverId, ServerRole role);
     }
 }

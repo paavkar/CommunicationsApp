@@ -532,7 +532,13 @@
         Role.HexColour = RoleColour;
         Role.DisplaySeparately = RoleDisplaySeparately;
 
-        var result = await ServerService.UpdateRoleAsync(Server.Id, Role, NewMembers.ToList());
+        RoleMemberLinking memberLink = new()
+        {
+            NewMembers = NewMembers.ToList(),
+            RemovedMembers = RemovedMembers
+        };
+
+        var result = await ServerService.UpdateRoleAsync(Server.Id, Role, memberLink);
 
         if (!result.Succeeded)
         {
