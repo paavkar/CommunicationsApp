@@ -7,7 +7,10 @@
 
 <FluentStack Orientation="Orientation.Vertical">
     <FluentStack>
-
+        <FluentSpacer />
+        <FluentSearch @ref=MemberSearch @bind-Value="@SearchValue"
+                      @bind-Value:after=HandleSearchInput
+                      Placeholder="@Localizer["SearchMembers"]" />
     </FluentStack>
 
     <FluentStack Orientation="Orientation.Vertical" VerticalGap="0">
@@ -113,8 +116,10 @@
 @code {
     [Parameter]
     public Server Server { get; set; } = default!;
+    public FluentSearch? MemberSearch { get; set; }
+    public string? SearchValue = string.Empty;
     IEnumerable<ServerProfile> SelectedItems = [];
-    IQueryable<ServerProfile> FilteredMembers { get; set; }
+    List<ServerProfile> FilteredMembers { get; set; }
     public string UserId { get; set;  }
     public bool OpenMemberActions { get; set; }
     private Dictionary<string, bool> MenuOpen = new();
@@ -126,6 +131,37 @@
         foreach (var p in FilteredMembers)
             if (!MenuOpen.ContainsKey(p.UserId))
                 MenuOpen[p.UserId] = false;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        FilteredMembers = [.. Server.Members];
+        var authState = await ASP.GetAuthenticationStateAsync();
+        UserId = authState.User.Claims.Where(c => c.Type.Contains("nameidentifier")).First().Value;
+    }
+
+    public void HandleSearchInput()
+    {
+        if (string.IsNullOrWhiteSpace(SearchValue))
+        {
+            SearchValue = string.Empty;
+            FilteredMembers = [.. Server.Members];
+        }
+        else
+        {
+            var searchTerm = SearchValue.ToLower();
+
+            if (searchTerm.Length > 0)
+            {
+                List<ServerProfile> filteredMembers = Server.Members.Where(
+                    r => (r.DisplayName.ToLower().Contains(searchTerm)) || 
+                         (r.UserName.ToLower().Contains(searchTerm))).ToList();
+                if (filteredMembers.Count > 0)
+                {
+                    FilteredMembers = filteredMembers;
+                }
+            }
+        }
     }
 
     private void ToggleSelection(ServerProfile p, bool checkedState)
@@ -149,13 +185,6 @@
         }
     }
 
-    protected override async Task OnInitializedAsync()
-    {
-        FilteredMembers = Server.Members.AsQueryable();
-        var authState = await ASP.GetAuthenticationStateAsync();
-        UserId = authState.User.Claims.Where(c => c.Type.Contains("nameidentifier")).First().Value;
-    }
-
     public async Task KickMember(ServerProfile member)
     {
         var result = await ServerService.LeaveServerAsync(Server.Id, member.UserId);
@@ -163,7 +192,7 @@
         if (result.Succeeded)
         {
             await CHS.NotifyMemberUpdateAsync(Server.Id, ServerUpdateType.MemberKicked, member);
-            FilteredMembers = FilteredMembers.Where(m => m.UserId != member.UserId);
+            FilteredMembers = FilteredMembers.Where(m => m.UserId != member.UserId).ToList();
             Server.Members.RemoveAll(m => m.UserId == member.UserId);
         }
     }
