@@ -1,15 +1,16 @@
 using Asp.Versioning;
+using CommunicationsApp.Application.Interfaces;
 using CommunicationsApp.Components;
 using CommunicationsApp.Components.Account;
-using CommunicationsApp.Infrastructure.CosmosDb;
-using CommunicationsApp.Data;
 using CommunicationsApp.Core.Models;
-using CommunicationsApp.Application.Interfaces;
+using CommunicationsApp.Data;
+using CommunicationsApp.Infrastructure.CosmosDb;
 using CommunicationsApp.Infrastructure.Services;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.FluentUI.AspNetCore.Components;
 using System.Globalization;
@@ -97,6 +98,13 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<CosmosDbFactory>();
 builder.Services.AddScoped<ICosmosDbService, CosmosDbService>();
 builder.Services.AddScoped<CommunicationsHubService>();
+builder.Services.AddScoped<IMediaService, MediaService>();
+builder.Services.AddAzureClients(clientBuilder =>
+{
+    clientBuilder.AddBlobServiceClient(builder.Configuration["StorageConnection:blobServiceUri"]!).WithName("StorageConnection");
+    clientBuilder.AddQueueServiceClient(builder.Configuration["StorageConnection:queueServiceUri"]!).WithName("StorageConnection");
+    clientBuilder.AddTableServiceClient(builder.Configuration["StorageConnection:tableServiceUri"]!).WithName("StorageConnection");
+});
 
 var app = builder.Build();
 
