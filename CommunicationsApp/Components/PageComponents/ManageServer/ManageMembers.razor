@@ -1,9 +1,96 @@
 ﻿@inject IStringLocalizer<CommunicationsAppLoc> Localizer
+@inject AuthenticationStateProvider ASP
+@inject CommunicationsHubService CHS
+@inject IServerService ServerService
 
 <h3>@Localizer["ServerMembers"]</h3>
+
+<FluentStack Orientation="Orientation.Vertical">
+    <FluentStack>
+
+    </FluentStack>
+
+    <FluentDataGrid Items="@FilteredMembers" TGridItem="ServerProfile" 
+                    RowStyle="@(profile => $"min-height:64px; padding-block:8px;" )">
+        <SelectColumn TGridItem="ServerProfile"
+                      SelectMode="DataGridSelectMode.Multiple"
+                      SelectFromEntireRow="false"
+                      Selectable="@(p => p.UserId != UserId || p.UserId != Server.OwnerId)" />
+        <TemplateColumn Title="@Localizer["Name"]" Width="100px">
+            <FluentStack>
+                <FluentPersona Image="@(!string.IsNullOrWhiteSpace(context.ProfilePictureUrl)
+                                                                       ? context.ProfilePictureUrl
+                                                                       : new Size20.Person().ToDataUri(size: "25px", color: "white"))"
+                               ImageSize="25px">
+                </FluentPersona>
+                <FluentStack Orientation="Orientation.Vertical" VerticalGap="0">
+                    <FluentLabel>@context.DisplayName</FluentLabel>
+                    <FluentLabel Style="font-size: 0.9em;">@context.UserName</FluentLabel>
+                </FluentStack>
+            </FluentStack>
+        </TemplateColumn>
+        <PropertyColumn Width="125px" Property="@(p => p.JoinedAt)" Title="@Localizer["MemberSince"]" Format="dd.MM.yyyy" />
+        <PropertyColumn Width="125px" Property="@(p => p.CreatedAt)" Title="@Localizer["JoinedCA"]" Format="dd.MM.yyyy" />
+        <TemplateColumn Width="125px" Title="@Localizer["Roles"]">
+            @if (context.Roles.Where(r => r.Name != "@everyone").ToList().Count > 0)
+            {
+                <FluentOverflow Style="width: 100px;">
+                    @foreach (var role in context.Roles.Where(r => r.Name != "@everyone"))
+                    {
+                        <FluentOverflowItem><FluentBadge>@role.Name</FluentBadge></FluentOverflowItem>
+                    }
+                </FluentOverflow>
+            }
+        </TemplateColumn>
+        <TemplateColumn>
+            <FluentMenu UseMenuService="true"
+                        Anchor="btnOpenMemberActions"
+                        @bind-Open="OpenMemberActions"
+                        VerticalThreshold="170">
+                @if (context.UserId != UserId || context.UserId != Server.OwnerId)
+                {
+                    <FluentMenuItem OnClick="@(() => KickMember(context))">
+                        <FluentLabel Color="Color.Error">
+                            @Localizer["KickMember", context.DisplayName]
+                        </FluentLabel>
+                    </FluentMenuItem>
+                }
+            </FluentMenu>
+            <FluentTooltip Anchor="btnOpenMemberActions" Position="TooltipPosition.Top">
+                @Localizer["MoreSettings"]
+            </FluentTooltip>
+            <FluentButton Id="btnOpenMemberActions" Appearance="Appearance.Stealth" Style="border-radius: 50%;"
+                          OnClick="@(() => OpenMemberActions = !OpenMemberActions)">
+                <FluentIcon Value="@(new Size20.MoreVertical())" />
+            </FluentButton>
+        </TemplateColumn>
+    </FluentDataGrid>
+</FluentStack>
 
 @code {
     [Parameter]
     public Server Server { get; set; } = default!;
+    IEnumerable<ServerProfile> SelectedItems = [];
+    IQueryable<ServerProfile> FilteredMembers { get; set; }
+    public string UserId { get; set;  }
+    public bool OpenMemberActions { get; set; }
 
+    protected override async Task OnInitializedAsync()
+    {
+        FilteredMembers = Server.Members.AsQueryable();
+        var authState = await ASP.GetAuthenticationStateAsync();
+        UserId = authState.User.Claims.Where(c => c.Type.Contains("nameidentifier")).First().Value;
+    }
+
+    public async Task KickMember(ServerProfile member)
+    {
+        var result = await ServerService.LeaveServerAsync(Server.Id, member.UserId);
+
+        if (result.Succeeded)
+        {
+            await CHS.NotifyMemberUpdateAsync(Server.Id, ServerUpdateType.MemberKicked, member);
+            FilteredMembers = FilteredMembers.Where(m => m.UserId != member.UserId);
+            Server.Members.RemoveAll(m => m.UserId == member.UserId);
+        }
+    }
 }

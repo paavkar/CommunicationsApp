@@ -513,4 +513,16 @@
   <data name="NewRoleMembersMessage" xml:space="preserve">
     <value>{0} new members will be linked with the role.</value>
   </data>
+  <data name="JoinedCA" xml:space="preserve">
+    <value>Joined CA</value>
+  </data>
+  <data name="KickMember" xml:space="preserve">
+    <value>Kick {0}</value>
+  </data>
+  <data name="BanMember" xml:space="preserve">
+    <value>Ban {0}</value>
+  </data>
+  <data name="MoreSettings" xml:space="preserve">
+    <value>More settings</value>
+  </data>
 </root>

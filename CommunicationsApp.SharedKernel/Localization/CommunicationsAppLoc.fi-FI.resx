@@ -513,4 +513,16 @@
   <data name="NewRoleMembersMessage" xml:space="preserve">
     <value>{0} uutta jäsentä tullaan linkittämään rooliin.</value>
   </data>
+  <data name="JoinedCA" xml:space="preserve">
+    <value>Liittynyt CA</value>
+  </data>
+  <data name="KickMember" xml:space="preserve">
+    <value>Erota {0}</value>
+  </data>
+  <data name="BanMember" xml:space="preserve">
+    <value>Anna porttikielto {0}</value>
+  </data>
+  <data name="MoreSettings" xml:space="preserve">
+    <value>Lisää asetuksia</value>
+  </data>
 </root>

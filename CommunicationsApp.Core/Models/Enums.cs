@@ -14,6 +14,7 @@
             MemberJoined = 0,
             MemberLeft,
             MemberUpdated,
+            MemberKicked,
             ChannelClassAdded,
             ChannelClassRemoved,
             ChannelClassUpdated,

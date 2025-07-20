@@ -260,35 +260,47 @@ else
                     await JS.InvokeVoidAsync("chatScroll.scrollToBottom", "endOfMessages");
                 }
             }
-            catch (Exception)
+            catch (Exception e)
             {
-                Console.WriteLine();
+                Console.WriteLine(e.Message);
             }
         }
     }
 
     private async void OnMemberUpdateReceived(string serverId, ServerUpdateType updateType, ServerProfile member)
     {
-        if (ServerId == serverId)
+        if (ServerId != serverId)
         {
-            switch (updateType)
-            {
-                case ServerUpdateType.MemberJoined:
-                    if (Server != null && !Server.Members.Any(m => m.UserId == member.UserId))
+            return;
+        }
+        switch (updateType)
+        {
+            case ServerUpdateType.MemberJoined:
+                if (Server != null && !Server.Members.Any(m => m.UserId == member.UserId))
+                {
+                    Server.Members.Add(member);
+                    Server.Members = Server.Members.OrderBy(m => m.DisplayName).ToList();
+                }
+                await InvokeAsync(StateHasChanged);
+                break;
+            case ServerUpdateType.MemberLeft:
+                if (Server != null)
+                {
+                    Server.Members.RemoveAll(m => m.Id == member.Id);
+                }
+                await InvokeAsync(StateHasChanged);
+                break;
+            case ServerUpdateType.MemberKicked:
+                if (Server != null)
+                {
+                    Server.Members.RemoveAll(m => m.Id == member.Id);
+                    if (member.UserId == UserId)
                     {
-                        Server.Members.Add(member);
-                        Server.Members = Server.Members.OrderBy(m => m.DisplayName).ToList();
-                        await InvokeAsync(StateHasChanged);
+                        NavigationManager.NavigateTo("/");
                     }
-                    break;
-                case ServerUpdateType.MemberLeft:
-                    if (Server != null)
-                    {
-                        Server.Members.RemoveAll(m => m.Id == member.Id);
-                        await InvokeAsync(StateHasChanged);
-                    }
-                    break;
-            }
+                }
+                await InvokeAsync(StateHasChanged);
+                break;
         }
     }
 

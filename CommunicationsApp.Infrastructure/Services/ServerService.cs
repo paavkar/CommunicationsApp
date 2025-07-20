@@ -751,7 +751,10 @@ namespace CommunicationsApp.Infrastructure.Services
 
                 var removeMemberRoleQuery = """
                         DELETE FROM UserServerRoles
-                        WHERE EXISTS (
+                        WHERE UserId = @UserId
+                        AND ServerId = @ServerId
+                        AND RoleId = @RoleId
+                        AND EXISTS (
                               SELECT 1
                               FROM UserServerRoles
                               WHERE UserId = @UserId
@@ -760,6 +763,7 @@ namespace CommunicationsApp.Infrastructure.Services
                     """;
                 foreach (var member in linking.RemovedMembers)
                 {
+                    Console.WriteLine(member);
                     rowsAffected += await connection.ExecuteAsync(removeMemberRoleQuery,
                         new { UserId = member.UserId, ServerId = serverId, RoleId = role.Id }, transaction);
                 }
@@ -788,6 +792,7 @@ namespace CommunicationsApp.Infrastructure.Services
                         userServerRole.DisplaySeparately = role.DisplaySeparately;
                         userServerRole.Permissions = [.. role.Permissions];
                     }
+
                     var addedMemberIds = linking.NewMembers.Select(m => m.UserId).ToList();
                     var removedMemberIds = linking.RemovedMembers.Select(m => m.UserId).ToList();
                     var membersToUpdate = server.Members.Where(m => addedMemberIds.Contains(m.UserId)).ToList();

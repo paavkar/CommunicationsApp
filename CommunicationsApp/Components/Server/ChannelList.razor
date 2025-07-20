@@ -119,6 +119,7 @@ else
         CommunicationsHubService.ServerInfoUpdateReceived += OnServerInfoUpdateReceived;
         CommunicationsHubService.ServerRoleUpdateReceived += OnServerRoleUpdated;
         CommunicationsHubService.ServerRoleMembersUpdateReceived += OnServerRoleMembersUpdated;
+        CommunicationsHubService.MemberUpdateReceived += OnMemberUpdateReceived;
         var authState = await ASP.GetAuthenticationStateAsync();
         UserId = authState.User.Claims.Where(c => c.Type.Contains("nameidentifier")).First().Value;
         if (!string.IsNullOrWhiteSpace(ServerId) && !string.IsNullOrWhiteSpace(UserId))
@@ -370,6 +371,43 @@ else
         await InvokeAsync(StateHasChanged);
     }
 
+    private async void OnMemberUpdateReceived(string serverId, ServerUpdateType updateType, ServerProfile member)
+    {
+        if (ServerId != serverId)
+        {
+            return;
+        }
+        switch (updateType)
+        {
+            case ServerUpdateType.MemberJoined:
+                if (Server != null && !Server.Members.Any(m => m.UserId == member.UserId))
+                {
+                    Server.Members.Add(member);
+                    Server.Members = Server.Members.OrderBy(m => m.DisplayName).ToList();
+                }
+                await InvokeAsync(StateHasChanged);
+                break;
+            case ServerUpdateType.MemberLeft:
+                if (Server != null)
+                {
+                    Server.Members.RemoveAll(m => m.Id == member.Id);
+                }
+                await InvokeAsync(StateHasChanged);
+                break;
+            case ServerUpdateType.MemberKicked:
+                if (Server != null)
+                {
+                    Server.Members.RemoveAll(m => m.Id == member.Id);
+                    if (member.UserId == UserId)
+                    {
+                        NavigationManager.NavigateTo("/");
+                    }
+                }
+                await InvokeAsync(StateHasChanged);
+                break;
+        }
+    }
+
     public void SetPermissions()
     {
         Permissions = Server.Members.FirstOrDefault(m => m.UserId == UserId).Roles.SelectMany(r => r.Permissions).ToList();
@@ -394,5 +432,6 @@ else
         CommunicationsHubService.ServerInfoUpdateReceived -= OnServerInfoUpdateReceived;
         CommunicationsHubService.ServerRoleUpdateReceived -= OnServerRoleUpdated;
         CommunicationsHubService.ServerRoleMembersUpdateReceived -= OnServerRoleMembersUpdated;
+        CommunicationsHubService.MemberUpdateReceived -= OnMemberUpdateReceived;
     }
 }
