@@ -10,61 +10,104 @@
 
     </FluentStack>
 
-    <FluentDataGrid Items="@FilteredMembers" TGridItem="ServerProfile" 
-                    RowStyle="@(profile => $"min-height:64px; padding-block:8px;" )">
-        <SelectColumn TGridItem="ServerProfile"
-                      SelectMode="DataGridSelectMode.Multiple"
-                      SelectFromEntireRow="false"
-                      Selectable="@(p => p.UserId != UserId || p.UserId != Server.OwnerId)" />
-        <TemplateColumn Title="@Localizer["Name"]" Width="100px">
-            <FluentStack>
-                <FluentPersona Image="@(!string.IsNullOrWhiteSpace(context.ProfilePictureUrl)
-                                                                       ? context.ProfilePictureUrl
-                                                                       : new Size20.Person().ToDataUri(size: "25px", color: "white"))"
-                               ImageSize="25px">
-                </FluentPersona>
-                <FluentStack Orientation="Orientation.Vertical" VerticalGap="0">
-                    <FluentLabel>@context.DisplayName</FluentLabel>
-                    <FluentLabel Style="font-size: 0.9em;">@context.UserName</FluentLabel>
+    <FluentStack Orientation="Orientation.Vertical" VerticalGap="0">
+        <FluentStack Orientation="Orientation.Horizontal"
+                     class="member-table-header"
+                     Style="font-weight: 600; padding: 8px 0; border-bottom: 1px solid var(--neutral-stroke-rest);">
+
+            <FluentStack Style="width: 40px; text-align: center;">
+                <FluentCheckbox Value="SelectAll" ValueChanged="ToggleSelectAll" />
+            </FluentStack>
+
+            <FluentStack Style="width: 100px;">@Localizer["Name"]</FluentStack>
+            <FluentStack Style="width: 125px;">@Localizer["MemberSince"]</FluentStack>
+            <FluentStack Style="width: 125px;">@Localizer["JoinedCA"]</FluentStack>
+            <FluentStack Style="width: 125px;">@Localizer["Roles"]</FluentStack>
+            <FluentStack Style="flex:1;text-align:right;"></FluentStack>
+        </FluentStack>
+
+        @foreach (var profile in FilteredMembers)
+        {
+            bool canSelect = profile.UserId != UserId && profile.UserId != Server.OwnerId;
+            bool isSelected = SelectedProfiles.Contains(profile);
+
+            <FluentStack Orientation="Orientation.Horizontal"
+                         Class="member-table-row"
+                         Style="min-height:64px; padding:8px 0; align-items:center; border-bottom: 1px solid var(--neutral-stroke-rest);">
+
+                <FluentStack Style="width: 40px; text-align: center;">
+                    <FluentCheckbox Disabled="!canSelect"
+                                    Value="@isSelected"
+                                    ValueChanged="@(e => ToggleSelection(profile, e))" />
+                </FluentStack>
+
+                <FluentStack Style="width: 100px;">
+                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8">
+                        <FluentPersona Image="@(string.IsNullOrWhiteSpace(profile.ProfilePictureUrl)
+                                                             ? new Size20.Person().ToDataUri("25px", "white")
+                                                             : profile.ProfilePictureUrl)"
+                                   ImageSize="25px" />
+                    <FluentStack Orientation="Orientation.Vertical" VerticalGap="0">
+                        <FluentLabel>@profile.DisplayName</FluentLabel>
+                        <FluentLabel Style="font-size:0.9em;color:var(--neutral-foreground-secondary);">
+                            @profile.UserName
+                        </FluentLabel>
+                    </FluentStack>
                 </FluentStack>
             </FluentStack>
-        </TemplateColumn>
-        <PropertyColumn Width="125px" Property="@(p => p.JoinedAt)" Title="@Localizer["MemberSince"]" Format="dd.MM.yyyy" />
-        <PropertyColumn Width="125px" Property="@(p => p.CreatedAt)" Title="@Localizer["JoinedCA"]" Format="dd.MM.yyyy" />
-        <TemplateColumn Width="125px" Title="@Localizer["Roles"]">
-            @if (context.Roles.Where(r => r.Name != "@everyone").ToList().Count > 0)
-            {
-                <FluentOverflow Style="width: 100px;">
-                    @foreach (var role in context.Roles.Where(r => r.Name != "@everyone"))
+
+                <FluentStack Style="width:125px;">
+                    <FluentLabel>@profile.JoinedAt.ToString("dd.MM.yyyy")</FluentLabel>
+                </FluentStack>
+
+                <FluentStack Style="width:125px;">
+                    <FluentLabel>@profile.CreatedAt.ToString("dd.MM.yyyy")</FluentLabel>
+                </FluentStack>
+
+                <FluentStack Style="width:125px;">
+                @if (profile.Roles.Any(r => r.Name != "@everyone"))
                     {
-                        <FluentOverflowItem><FluentBadge>@role.Name</FluentBadge></FluentOverflowItem>
+                        <FluentOverflow Style="width: 6em;">
+                            @foreach (var role in profile.Roles.Where(r => r.Name != "@everyone"))
+                            {
+                                <FluentOverflowItem>
+                                    <FluentBadge>@role.Name</FluentBadge>
+                                </FluentOverflowItem>
+                            }
+                        </FluentOverflow>
                     }
-                </FluentOverflow>
-            }
-        </TemplateColumn>
-        <TemplateColumn>
-            <FluentMenu UseMenuService="true"
-                        Anchor="btnOpenMemberActions"
-                        @bind-Open="OpenMemberActions"
-                        VerticalThreshold="170">
-                @if (context.UserId != UserId || context.UserId != Server.OwnerId)
-                {
-                    <FluentMenuItem OnClick="@(() => KickMember(context))">
-                        <FluentLabel Color="Color.Error">
-                            @Localizer["KickMember", context.DisplayName]
-                        </FluentLabel>
-                    </FluentMenuItem>
-                }
-            </FluentMenu>
-            <FluentTooltip Anchor="btnOpenMemberActions" Position="TooltipPosition.Top">
-                @Localizer["MoreSettings"]
-            </FluentTooltip>
-            <FluentButton Id="btnOpenMemberActions" Appearance="Appearance.Stealth" Style="border-radius: 50%;"
-                          OnClick="@(() => OpenMemberActions = !OpenMemberActions)">
-                <FluentIcon Value="@(new Size20.MoreVertical())" />
-            </FluentButton>
-        </TemplateColumn>
-    </FluentDataGrid>
+                </FluentStack>
+
+                <FluentStack Style="flex:1;text-align:right;">
+                    <FluentMenu UseMenuService="true"
+                                Anchor="@($"member-{profile.UserId}-btn")"
+                                Open="@MenuOpen[profile.UserId]"
+                                OpenChanged="@(open => MenuOpen[profile.UserId] = open)"
+                                VerticalThreshold="170">
+                        @if (canSelect)
+                        {
+                            <FluentMenuItem OnClick="@(() => KickMember(profile))">
+                                <FluentLabel Color="Color.Error">
+                                    @Localizer["KickMember", @profile.DisplayName]
+                                </FluentLabel>
+                            </FluentMenuItem>
+                        }
+                    </FluentMenu>
+
+                    <FluentTooltip Anchor="@($"member-{profile.UserId}-btn")" Position="TooltipPosition.Top">
+                        @Localizer["MoreSettings"]
+                    </FluentTooltip>
+
+                    <FluentButton Id="@($"member-{profile.UserId}-btn")"
+                                  Appearance="Appearance.Stealth"
+                                  Style="border-radius:50%;"
+                                  OnClick="@(() => MenuOpen[profile.UserId] = !MenuOpen[profile.UserId])">
+                        <FluentIcon Value="@(new Size20.MoreVertical())" />
+                    </FluentButton>
+                </FluentStack>
+            </FluentStack>
+        }
+    </FluentStack>
 </FluentStack>
 
 @code {
@@ -74,6 +117,37 @@
     IQueryable<ServerProfile> FilteredMembers { get; set; }
     public string UserId { get; set;  }
     public bool OpenMemberActions { get; set; }
+    private Dictionary<string, bool> MenuOpen = new();
+    private List<ServerProfile> SelectedProfiles { get; } = new();
+    private bool SelectAll { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        foreach (var p in FilteredMembers)
+            if (!MenuOpen.ContainsKey(p.UserId))
+                MenuOpen[p.UserId] = false;
+    }
+
+    private void ToggleSelection(ServerProfile p, bool checkedState)
+    {
+        if (checkedState)
+            SelectedProfiles.Add(p);
+        else
+            SelectedProfiles.Remove(p);
+    }
+
+    private void ToggleSelectAll(bool checkedState)
+    {
+        if (checkedState)
+        {
+            SelectAll = true;
+            SelectedProfiles.AddRange(FilteredMembers.Where(m => m.UserId != Server.OwnerId && m.UserId != UserId));
+        }
+        else
+        {
+            SelectedProfiles.Clear();
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {
