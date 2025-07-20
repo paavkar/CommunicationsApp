@@ -14,12 +14,16 @@
             MemberJoined = 0,
             MemberLeft,
             MemberUpdated,
+            MemberKicked,
             ChannelClassAdded,
             ChannelClassRemoved,
             ChannelClassUpdated,
             ChannelAdded,
             ChannelRemoved,
             ChannelUpdated,
+            ServerNameDescriptionUpdated,
+            RoleUpdated,
+            RoleAdded,
         }
 
         public enum ServerPermissionType

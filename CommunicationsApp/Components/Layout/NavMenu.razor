@@ -1,4 +1,5 @@
 ﻿@implements IDisposable
+@using CommunicationsApp.Application.DTOs
 @using CommunicationsApp.Components.Server
 @using static CommunicationsApp.Core.Models.Enums
 @using CommunicationsApp.SharedKernel.Localization
@@ -149,13 +150,14 @@
         ChatHubService.MemberUpdateReceived += OnMemberUpdateReceived;
         ChatHubService.ChannelClassUpdateReceived += OnChannelClassUpdateReceived;
         ChatHubService.ChannelUpdateReceived += OnChannelUpdateReceived;
+        ChatHubService.ServerInfoUpdateReceived += OnServerInfoUpdateReceived;
         var authState = await ASP.GetAuthenticationStateAsync();
         UserId = authState.User.Claims.Where(c => c.Type.Contains("nameidentifier")).First().Value;
 
         if (UserId != null)
         {
             User = await UserService.GetUserByIdAsync(UserId);
-            
+
             foreach (var server in User.Servers)
             {
                 await ChatHubService.JoinBroadcastChannelAsync(server.Id!);
@@ -214,25 +216,43 @@
 
     private async void OnMemberUpdateReceived(string serverId, ServerUpdateType updateType, ServerProfile member)
     {
+        var server = User.Servers.FirstOrDefault(s => s.Id == serverId);
         switch (updateType)
         {
             case ServerUpdateType.MemberJoined:
-                var server = User.Servers.FirstOrDefault(s => s.Id == serverId);
                 if (server is not null && !server.Members.Any(m => m.Id == member.Id))
                 {
                     server.Members.Add(member);
-                    await UserService.UpdateCacheAsync(User);
+                }
+                if (server is null)
+                {
+                    server = await ServerService.GetServerByIdAsync(serverId);
+                    if (!server.Members.Any(m => m.Id == member.Id))
+                    {
+                        server.Members.Add(member);
+                    }
+                    User.Servers.Add(server);
                 }
                 break;
             case ServerUpdateType.MemberLeft:
-                var serverToUpdate = User.Servers.FirstOrDefault(s => s.Id == serverId);
-                if (serverToUpdate is not null)
+                if (server is not null)
                 {
-                    serverToUpdate.Members.RemoveAll(m => m.Id == member.Id);
-                    await UserService.UpdateCacheAsync(User);
+                    server.Members.RemoveAll(m => m.Id == member.Id);
+                }
+                break;
+            case ServerUpdateType.MemberKicked:
+                if (server is not null)
+                {
+                    server.Members.RemoveAll(m => m.Id == member.Id);
+                    if (member.UserId == User.Id)
+                    {
+                        User.Servers.RemoveAll(s => s.Id == serverId);
+                    }
                 }
                 break;
         }
+        await UserService.UpdateCacheAsync(User);
+        await InvokeAsync(StateHasChanged);
     }
 
     private async void OnChannelClassUpdateReceived(string serverId, ServerUpdateType updateType, ChannelClass cc)
@@ -292,6 +312,24 @@
         }
     }
 
+    private async void OnServerInfoUpdateReceived(
+        string serverId, ServerUpdateType updateType, ServerInfoUpdate update)
+    {
+        switch (updateType)
+        {
+            case ServerUpdateType.ServerNameDescriptionUpdated:
+                var server = User.Servers.FirstOrDefault(s => s.Id == serverId);
+                if (server is not null)
+                {
+                    server.Name = update.Name;
+                    server.Description = update.Description;
+                    await UserService.UpdateCacheAsync(User);
+                }
+                break;
+        }
+        await InvokeAsync(StateHasChanged);
+    }
+
     private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
     {
         currentUrl = NavigationManager.ToBaseRelativePath(e.Location);
@@ -315,5 +353,6 @@
         ChatHubService.MemberUpdateReceived -= OnMemberUpdateReceived;
         ChatHubService.ChannelClassUpdateReceived -= OnChannelClassUpdateReceived;
         ChatHubService.ChannelUpdateReceived -= OnChannelUpdateReceived;
+        ChatHubService.ServerInfoUpdateReceived -= OnServerInfoUpdateReceived;
     }
 }

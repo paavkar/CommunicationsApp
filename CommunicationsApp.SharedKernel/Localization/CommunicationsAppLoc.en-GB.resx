@@ -354,4 +354,178 @@
   <data name="GeneralDescription" xml:space="preserve">
     <value>General discussion channel</value>
   </data>
+  <data name="ManageServer" xml:space="preserve">
+    <value>Manage server</value>
+  </data>
+  <data name="Members" xml:space="preserve">
+    <value>Members</value>
+  </data>
+  <data name="Roles" xml:space="preserve">
+    <value>Roles</value>
+  </data>
+  <data name="ServerMembers" xml:space="preserve">
+    <value>Server's members</value>
+  </data>
+  <data name="Name" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="Description" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="DescriptionPlaceholder" xml:space="preserve">
+    <value>Tell something about this server (meaning, who is the target user).</value>
+  </data>
+  <data name="ServerInfoUpdateError" xml:space="preserve">
+    <value>There was an error updating the server info and/or description.</value>
+  </data>
+  <data name="Revert" xml:space="preserve">
+    <value>Revert</value>
+  </data>
+  <data name="RolesDescription" xml:space="preserve">
+    <value>Use roles to group server members and set up permissions.</value>
+  </data>
+  <data name="DefaultPermissions" xml:space="preserve">
+    <value>Default permissions</value>
+  </data>
+  <data name="EveryoneRoleDescription" xml:space="preserve">
+    <value>Applies to all server members</value>
+  </data>
+  <data name="EditRole" xml:space="preserve">
+    <value>Edit role</value>
+  </data>
+  <data name="DisplayChannels" xml:space="preserve">
+    <value>Display channels</value>
+  </data>
+  <data name="ManageChannels" xml:space="preserve">
+    <value>Manage channels</value>
+  </data>
+  <data name="ManageRoles" xml:space="preserve">
+    <value>Manage roles</value>
+  </data>
+  <data name="ViewLogs" xml:space="preserve">
+    <value>View logs</value>
+  </data>
+  <data name="CreateInvite" xml:space="preserve">
+    <value>Create invitations</value>
+  </data>
+  <data name="ChangeNickname" xml:space="preserve">
+    <value>Change display name</value>
+  </data>
+  <data name="ManageNicknames" xml:space="preserve">
+    <value>Manage display names</value>
+  </data>
+  <data name="KickApproveMembers" xml:space="preserve">
+    <value>Kick members, and approve and reject member applications</value>
+  </data>
+  <data name="BanMembers" xml:space="preserve">
+    <value>Ban members</value>
+  </data>
+  <data name="TimeoutMembers" xml:space="preserve">
+    <value>Timeout members</value>
+  </data>
+  <data name="SendMessages" xml:space="preserve">
+    <value>Send messages</value>
+  </data>
+  <data name="SendMessagesToThreads" xml:space="preserve">
+    <value>Send messages to threads</value>
+  </data>
+  <data name="CreatePublicThreads" xml:space="preserve">
+    <value>Create public threads</value>
+  </data>
+  <data name="CreatePrivateThreads" xml:space="preserve">
+    <value>Create private threads</value>
+  </data>
+  <data name="EmbedLinks" xml:space="preserve">
+    <value>Embed links</value>
+  </data>
+  <data name="AttachFiles" xml:space="preserve">
+    <value>Attach files</value>
+  </data>
+  <data name="AddReactions" xml:space="preserve">
+    <value>Add reactions</value>
+  </data>
+  <data name="ManageMessages" xml:space="preserve">
+    <value>Manage messages</value>
+  </data>
+  <data name="ManageThreads" xml:space="preserve">
+    <value>Manage threads</value>
+  </data>
+  <data name="ReadMessageHistory" xml:space="preserve">
+    <value>Read message history</value>
+  </data>
+  <data name="AdminPrivileges" xml:space="preserve">
+    <value>Admin privileges</value>
+  </data>
+  <data name="UnsavedChanges" xml:space="preserve">
+    <value>You have unsaved changes.</value>
+  </data>
+  <data name="Return" xml:space="preserve">
+    <value>Return</value>
+  </data>
+  <data name="RoleUpdateFailed" xml:space="preserve">
+    <value>Failed to update role.</value>
+  </data>
+  <data name="SendingMessageError" xml:space="preserve">
+    <value>There was an error sending the message. Try again later.</value>
+  </data>
+  <data name="SavingMessageError" xml:space="preserve">
+    <value>There was an error saving the message. Try again later.</value>
+  </data>
+  <data name="NewRole" xml:space="preserve">
+    <value>New role</value>
+  </data>
+  <data name="SearchRoles" xml:space="preserve">
+    <value>Search roles</value>
+  </data>
+  <data name="AddRoleError" xml:space="preserve">
+    <value>There was an error creating the role.</value>
+  </data>
+  <data name="Display" xml:space="preserve">
+    <value>Display</value>
+  </data>
+  <data name="Permissions" xml:space="preserve">
+    <value>Permissions</value>
+  </data>
+  <data name="MemberManagement" xml:space="preserve">
+    <value>Manage members</value>
+  </data>
+  <data name="RoleName" xml:space="preserve">
+    <value>Name of the role</value>
+  </data>
+  <data name="RoleColour" xml:space="preserve">
+    <value>Colour for the role</value>
+  </data>
+  <data name="RoleColourDescription" xml:space="preserve">
+    <value>Members will use the role colour, that is the highest in hierarchy.</value>
+  </data>
+  <data name="DisplaySeparately" xml:space="preserve">
+    <value>Display members with the role separately from other members</value>
+  </data>
+  <data name="SearchMembers" xml:space="preserve">
+    <value>Search members</value>
+  </data>
+  <data name="AddMembers" xml:space="preserve">
+    <value>Add members</value>
+  </data>
+  <data name="ChooseAtMost" xml:space="preserve">
+    <value>Choose at most {0}</value>
+  </data>
+  <data name="NewRoleMembersMessage" xml:space="preserve">
+    <value>{0} new members will be linked with the role.</value>
+  </data>
+  <data name="JoinedCA" xml:space="preserve">
+    <value>Joined CA</value>
+  </data>
+  <data name="KickMember" xml:space="preserve">
+    <value>Kick {0}</value>
+  </data>
+  <data name="BanMember" xml:space="preserve">
+    <value>Ban {0}</value>
+  </data>
+  <data name="MoreSettings" xml:space="preserve">
+    <value>More settings</value>
+  </data>
+  <data name="KickMembers" xml:space="preserve">
+    <value>Kick selected members</value>
+  </data>
 </root>

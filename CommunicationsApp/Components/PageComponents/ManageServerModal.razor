@@ -1,0 +1,132 @@
+﻿@implements IDialogContentComponent<Server>
+@using CommunicationsApp.Components.PageComponents.ManageServer
+
+@inject IStringLocalizer<CommunicationsAppLoc> Localizer
+@inject CommunicationsHubService ChatHubService
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider ASP
+@inject IServerService ServerService
+@inject IUserService UserService
+
+@* Header *@
+@* <FluentDialogHeader>
+    <FluentStack Orientation="Orientation.Vertical" VerticalAlignment="VerticalAlignment.Center"
+                 HorizontalAlignment="HorizontalAlignment.Center">
+        <FluentLabel Typo="Typography.PaneHeader">
+            @Dialog.Instance.Parameters.Title
+        </FluentLabel>
+    </FluentStack>
+</FluentDialogHeader> *@
+
+@* Footer *@
+<FluentDialogFooter Style="padding: 0;">
+    <FluentStack>
+    </FluentStack>
+</FluentDialogFooter>
+
+@* Body *@
+<FluentDialogBody Style="height: 100%; overflow-y: auto;">
+    <FluentStack Style="height: 100%;">
+        <FluentStack Orientation="Orientation.Vertical" Style="overflow-y: auto;
+                                                               border-right: solid 0.1em;
+                                                               width: 30em;
+                                                               height: 100%;
+                                                               padding-right: 1em;">
+        @if (CanManageServer)
+        {
+            <FluentCard Style="padding: 5px; height: 3em; cursor: pointer;"
+                onclick="@(() => SetView(ManageServerView.General))">
+                <FluentStack VerticalAlignment="VerticalAlignment.Center" Style="height: 100%;">
+                    <FluentLabel>@Localizer["General"]</FluentLabel>
+                </FluentStack>
+            </FluentCard>
+        }
+        @if (CanManageMembers)
+        {
+            <FluentCard Style="padding: 5px; height: 3em; cursor: pointer;"
+                        onclick="@(() => SetView(ManageServerView.Members))">
+                <FluentStack VerticalAlignment="VerticalAlignment.Center" Style="height: 100%;">
+                    <FluentLabel>@Localizer["Members"]</FluentLabel>
+                </FluentStack>
+            </FluentCard>
+        }
+        @if (CanManageRoles)
+        {
+            <FluentCard Style="padding: 5px; height: 3em; cursor: pointer;"
+                        onclick="@(() => SetView(ManageServerView.Roles))">
+                <FluentStack VerticalAlignment="VerticalAlignment.Center" Style="height: 100%;">
+                    <FluentLabel>@Localizer["Roles"]</FluentLabel>
+                </FluentStack>
+            </FluentCard>
+        }
+        </FluentStack>
+        <FluentStack Orientation="Orientation.Vertical" Style="height: 100%; overflow: hidden;">
+            @switch (SelectedView)
+            {
+                case ManageServerView.General:
+                    <ManageInfo Server=Content />
+                    break;
+                case ManageServerView.Members:
+                    <ManageMembers Server=Content />
+                    break;
+                case ManageServerView.Roles:
+                    <ManageRoles @key=@(DateTime.Now) Server=Content />
+                    break;
+                default:
+                    break;
+            }
+        </FluentStack>
+    </FluentStack>
+    
+</FluentDialogBody>
+
+@code {
+    [Parameter]
+    public Server Content { get; set; } = default!;
+    [CascadingParameter]
+    public FluentDialog Dialog { get; set; } = default!;
+    public ManageServerView SelectedView { get; set; }
+    public List<ServerPermission> Permissions { get; set; }
+    public bool CanManageServer { get; set; }
+    public bool CanManageMembers { get; set; }
+    public bool CanManageRoles { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await ASP.GetAuthenticationStateAsync();
+        var userId = authState.User.Claims.Where(c => c.Type.Contains("nameidentifier")).First().Value;
+        var profile = Content.Members.FirstOrDefault(m => m.UserId == userId);
+        Permissions = profile.Roles.SelectMany(r => r.Permissions).Distinct().ToList();
+        var isServerOwner = Content.OwnerId == userId;
+
+        CanManageServer = Permissions.Any(p => (p.PermissionType == ServerPermissionType.ManageServer) ||
+            (p.PermissionType == ServerPermissionType.AdminPrivileges)) || isServerOwner;
+
+        CanManageMembers = Permissions.Any(p => (p.PermissionType == ServerPermissionType.ManageNicknames) ||
+            (p.PermissionType == ServerPermissionType.KickApproveMembers) ||
+            (p.PermissionType == ServerPermissionType.BanMembers) ||
+            (p.PermissionType == ServerPermissionType.TimeoutMembers) ||
+            (p.PermissionType == ServerPermissionType.AdminPrivileges)) || isServerOwner;
+
+        CanManageRoles = Permissions.Any(p => (p.PermissionType == ServerPermissionType.ManageRoles) ||
+            (p.PermissionType == ServerPermissionType.AdminPrivileges)) || isServerOwner;
+
+        if (CanManageServer)
+        {
+            SelectedView = ManageServerView.General;
+        }
+        else if (CanManageMembers)
+        {
+            SelectedView = ManageServerView.Members;
+        }
+        else if (CanManageRoles)
+        {
+            SelectedView = ManageServerView.Roles;
+        }
+    }
+
+    public void SetView(ManageServerView selected)
+    {
+        SelectedView = selected;
+    }
+}

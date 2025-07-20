@@ -1,0 +1,225 @@
+﻿@inject IStringLocalizer<CommunicationsAppLoc> Localizer
+@inject AuthenticationStateProvider ASP
+@inject CommunicationsHubService CHS
+@inject IServerService ServerService
+
+<h3>@Localizer["ServerMembers"]</h3>
+
+<FluentStack Orientation="Orientation.Vertical">
+    <FluentStack>
+        <FluentSpacer />
+        <FluentSearch @ref=MemberSearch @bind-Value="@SearchValue"
+                      @bind-Value:after=HandleSearchInput
+                      Placeholder="@Localizer["SearchMembers"]" />
+        <FluentButton Disabled=@(!SelectedProfiles.Any()) OnClick="KickMembers"
+                      Appearance="Appearance.Outline" Color="var(--error)">
+            @Localizer["KickMembers"]
+        </FluentButton>
+    </FluentStack>
+
+    <FluentStack Orientation="Orientation.Vertical" VerticalGap="0">
+        <FluentStack Orientation="Orientation.Horizontal"
+                     class="member-table-header"
+                     Style="font-weight: 600; padding: 8px 0; border-bottom: 1px solid var(--neutral-stroke-rest);">
+
+            <FluentStack Style="width: 40px; text-align: center;">
+                <FluentCheckbox Value="SelectAll" ValueChanged="ToggleSelectAll" />
+            </FluentStack>
+
+            <FluentStack Style="width: 100px;">@Localizer["Name"]</FluentStack>
+            <FluentStack Style="width: 125px;">@Localizer["MemberSince"]</FluentStack>
+            <FluentStack Style="width: 125px;">@Localizer["JoinedCA"]</FluentStack>
+            <FluentStack Style="width: 125px;">@Localizer["Roles"]</FluentStack>
+            <FluentStack Style="flex:1;text-align:right;"></FluentStack>
+        </FluentStack>
+
+        @foreach (var profile in FilteredMembers)
+        {
+            bool canSelect = profile.UserId != UserId && profile.UserId != Server.OwnerId;
+            bool isSelected = SelectedProfiles.Contains(profile);
+
+            <FluentStack Orientation="Orientation.Horizontal"
+                         Class="member-table-row"
+                         Style="min-height:64px; padding:8px 0; align-items:center; border-bottom: 1px solid var(--neutral-stroke-rest);">
+
+                <FluentStack Style="width: 40px; text-align: center;">
+                    <FluentCheckbox Disabled="!canSelect"
+                                    Value="@isSelected"
+                                    ValueChanged="@(e => ToggleSelection(profile, e))" />
+                </FluentStack>
+
+                <FluentStack Style="width: 100px;">
+                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8">
+                        <FluentPersona Image="@(string.IsNullOrWhiteSpace(profile.ProfilePictureUrl)
+                                                             ? new Size20.Person().ToDataUri("25px", "white")
+                                                             : profile.ProfilePictureUrl)"
+                                   ImageSize="25px" />
+                    <FluentStack Orientation="Orientation.Vertical" VerticalGap="0">
+                        <FluentLabel>@profile.DisplayName</FluentLabel>
+                        <FluentLabel Style="font-size:0.9em;color:var(--neutral-foreground-secondary);">
+                            @profile.UserName
+                        </FluentLabel>
+                    </FluentStack>
+                </FluentStack>
+            </FluentStack>
+
+                <FluentStack Style="width:125px;">
+                    <FluentLabel>@profile.JoinedAt.ToString("dd.MM.yyyy")</FluentLabel>
+                </FluentStack>
+
+                <FluentStack Style="width:125px;">
+                    <FluentLabel>@profile.CreatedAt.ToString("dd.MM.yyyy")</FluentLabel>
+                </FluentStack>
+
+                <FluentStack Style="width:125px;">
+                @if (profile.Roles.Any(r => r.Name != "@everyone"))
+                    {
+                        <FluentOverflow Style="width: 6em;">
+                            @foreach (var role in profile.Roles.Where(r => r.Name != "@everyone"))
+                            {
+                                <FluentOverflowItem>
+                                    <FluentBadge>@role.Name</FluentBadge>
+                                </FluentOverflowItem>
+                            }
+                        </FluentOverflow>
+                    }
+                </FluentStack>
+
+                <FluentStack Style="flex:1;text-align:right;">
+                    <FluentMenu UseMenuService="true"
+                                Anchor="@($"member-{profile.UserId}-btn")"
+                                Open="@MenuOpen[profile.UserId]"
+                                OpenChanged="@(open => MenuOpen[profile.UserId] = open)"
+                                VerticalThreshold="170">
+                        @if (canSelect)
+                        {
+                            <FluentMenuItem OnClick="@(() => KickMember(profile))">
+                                <FluentLabel Color="Color.Error">
+                                    @Localizer["KickMember", @profile.DisplayName]
+                                </FluentLabel>
+                            </FluentMenuItem>
+                        }
+                    </FluentMenu>
+
+                    <FluentTooltip Anchor="@($"member-{profile.UserId}-btn")" Position="TooltipPosition.Top">
+                        @Localizer["MoreSettings"]
+                    </FluentTooltip>
+
+                    <FluentButton Id="@($"member-{profile.UserId}-btn")"
+                                  Appearance="Appearance.Stealth"
+                                  Style="border-radius:50%;"
+                                  OnClick="@(() => MenuOpen[profile.UserId] = !MenuOpen[profile.UserId])">
+                        <FluentIcon Value="@(new Size20.MoreVertical())" />
+                    </FluentButton>
+                </FluentStack>
+            </FluentStack>
+        }
+    </FluentStack>
+</FluentStack>
+
+@code {
+    [Parameter]
+    public Server Server { get; set; } = default!;
+    public FluentSearch? MemberSearch { get; set; }
+    public string? SearchValue = string.Empty;
+    List<ServerProfile> FilteredMembers { get; set; }
+    public string UserId { get; set;  }
+    public bool OpenMemberActions { get; set; }
+    private Dictionary<string, bool> MenuOpen = new();
+    private List<ServerProfile> SelectedProfiles { get; } = new();
+    private bool SelectAll { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        foreach (var p in FilteredMembers)
+            if (!MenuOpen.ContainsKey(p.UserId))
+                MenuOpen[p.UserId] = false;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        FilteredMembers = [.. Server.Members];
+        var authState = await ASP.GetAuthenticationStateAsync();
+        UserId = authState.User.Claims.Where(c => c.Type.Contains("nameidentifier")).First().Value;
+    }
+
+    public void HandleSearchInput()
+    {
+        if (string.IsNullOrWhiteSpace(SearchValue))
+        {
+            SearchValue = string.Empty;
+            FilteredMembers = [.. Server.Members];
+        }
+        else
+        {
+            var searchTerm = SearchValue.ToLower();
+
+            if (searchTerm.Length > 0)
+            {
+                List<ServerProfile> filteredMembers = Server.Members.Where(
+                    r => (r.DisplayName.ToLower().Contains(searchTerm)) || 
+                         (r.UserName.ToLower().Contains(searchTerm))).ToList();
+                if (filteredMembers.Count > 0)
+                {
+                    FilteredMembers = filteredMembers;
+                }
+            }
+        }
+    }
+
+    private void ToggleSelection(ServerProfile p, bool checkedState)
+    {
+        if (checkedState)
+            SelectedProfiles.Add(p);
+        else
+            SelectedProfiles.Remove(p);
+    }
+
+    private void ToggleSelectAll(bool checkedState)
+    {
+        if (checkedState)
+        {
+            SelectAll = true;
+            SelectedProfiles.AddRange(FilteredMembers.Where(m => m.UserId != Server.OwnerId && m.UserId != UserId));
+        }
+        else
+        {
+            SelectedProfiles.Clear();
+        }
+    }
+
+    public async Task KickMember(ServerProfile member)
+    {
+        var result = await ServerService.LeaveServerAsync(Server.Id, member.UserId);
+
+        if (result.Succeeded)
+        {
+            await CHS.NotifyMemberUpdateAsync(Server.Id, ServerUpdateType.MemberKicked, member);
+            FilteredMembers.RemoveAll(m => m.UserId == member.UserId);
+            Server.Members.RemoveAll(m => m.UserId == member.UserId);
+        }
+    }
+
+    public async Task KickMembers()
+    {
+        var userIds = SelectedProfiles.Select(p => p.UserId).ToList();
+        if (userIds.Count <= 0)
+        {
+            return;
+        }
+        var result = await ServerService.KickMembersAsync(Server.Id, userIds);
+
+        if (result.Succeeded)
+        {
+            FilteredMembers.RemoveAll(m => userIds.Contains(m.UserId));
+            Server.Members.RemoveAll(m => userIds.Contains(m.UserId));
+
+            foreach (var member in SelectedProfiles)
+            {
+                await CHS.NotifyMemberUpdateAsync(Server.Id, ServerUpdateType.MemberKicked, member);
+            }
+            SelectedProfiles.Clear();
+            SelectAll = false;
+        }
+    }
+}

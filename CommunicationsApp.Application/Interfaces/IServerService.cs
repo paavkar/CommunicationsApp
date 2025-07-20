@@ -1,4 +1,5 @@
-﻿using CommunicationsApp.Core.Models;
+﻿using CommunicationsApp.Application.DTOs;
+using CommunicationsApp.Core.Models;
 
 namespace CommunicationsApp.Application.Interfaces
 {
@@ -10,9 +11,13 @@ namespace CommunicationsApp.Application.Interfaces
         Task<dynamic> GetServerByInvitationAsync(string invitationCode);
         Task<dynamic> JoinServerAsync(Server server, ServerProfile profile);
         Task<dynamic> LeaveServerAsync(string serverId, string userId);
+        Task<dynamic> KickMembersAsync(string serverId, List<string> userIds);
         Task<dynamic> AddChannelClassAsync(ChannelClass channelClass);
         Task<dynamic> AddChannelAsync(string channelClassId, Channel channel);
         Task<dynamic> AddServerPermissionsAsync();
         Task<List<ServerPermission>> GetServerPermissionsAsync();
+        Task<dynamic> UpdateServerNameDescriptionAsync(string serverId, ServerInfoUpdate update);
+        Task<dynamic> UpdateRoleAsync(string serverId, ServerRole role, RoleMemberLinking linking);
+        Task<dynamic> AddRoleAsync(string serverId, ServerRole role);
     }
 }

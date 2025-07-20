@@ -1,15 +1,17 @@
-﻿using CommunicationsApp.Application.Interfaces;
+﻿using CommunicationsApp.Application.DTOs;
+using CommunicationsApp.Application.Interfaces;
 using CommunicationsApp.Core.Models;
 using CommunicationsApp.Infrastructure.CosmosDb;
+using CommunicationsApp.Infrastructure.Services.ResultModels;
 using CommunicationsApp.SharedKernel.Localization;
 using Dapper;
 using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.Azure.Cosmos;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
+using System.Data;
 using static CommunicationsApp.Core.Models.Enums;
 
 namespace CommunicationsApp.Infrastructure.Services
@@ -122,7 +124,7 @@ namespace CommunicationsApp.Infrastructure.Services
                 foreach (var permission in defaultPermissions)
                 {
                     rowsAffected = await connection.ExecuteAsync(insertRolePermissionsQuery,
-                        new ServerRolePermission() { RoleId = serverRole .Id, PermissionId = permission.Id},
+                        new ServerRolePermission() { RoleId = serverRole.Id, PermissionId = permission.Id },
                         transaction);
                 }
 
@@ -550,6 +552,40 @@ namespace CommunicationsApp.Infrastructure.Services
             }
         }
 
+        public async Task<dynamic> KickMembersAsync(string serverId, List<string> userIds)
+        {
+            var deleteServerProfilesQuery = """
+                DELETE FROM ServerProfiles
+                WHERE ServerId = @serverId AND UserId IN @userIds
+                """;
+            using var connection = GetConnection();
+            connection.Open();
+            using SqlTransaction transaction = connection.BeginTransaction();
+            try
+            {
+                var rowsAffected = await connection.ExecuteAsync(deleteServerProfilesQuery, new { serverId, userIds }, transaction);
+                if (rowsAffected > 0)
+                {
+                    transaction.Commit();
+                    var server = await GetServerFromDatabaseAsync(serverId);
+                    server.Members.RemoveAll(m => userIds.Contains(m.UserId));
+                    await UpdateCacheAsync(serverId, server);
+                    return new ServerResult { Succeeded = true };
+                }
+                else
+                {
+                    transaction.Rollback();
+                    return new ServerResult { Succeeded = false, ErrorMessage = "Failed to leave server." };
+                }
+            }
+            catch (Exception e)
+            {
+                transaction.Rollback();
+                logger.LogError(e, "Error in {Method}", nameof(LeaveServerAsync));
+                return new ServerResult { Succeeded = false, ErrorMessage = e.Message };
+            }
+        }
+
         public async Task<dynamic> AddChannelClassAsync(ChannelClass channelClass)
         {
             var server = await GetServerByIdAsync(channelClass.ServerId);
@@ -665,6 +701,215 @@ namespace CommunicationsApp.Infrastructure.Services
             using var connection = GetConnection();
             var serverPermissions = await connection.QueryAsync<ServerPermission>(getServerPermissionsQuery);
             return [.. serverPermissions];
+        }
+
+        public async Task<dynamic> UpdateServerNameDescriptionAsync(string serverId, ServerInfoUpdate update)
+        {
+            var updateServerQuery = """
+                UPDATE Servers
+                SET Name = @Name, Description = @Description
+                WHERE Id = @serverId
+                """;
+            using var connection = GetConnection();
+            try
+            {
+                var rowsAffected = await connection.ExecuteAsync(updateServerQuery,
+                    new { Name = update.Name, Description = update.Description, serverId });
+                if (rowsAffected > 0)
+                {
+                    var server = await GetServerByIdAsync(serverId);
+                    if (server != null)
+                    {
+                        server.Name = update.Name;
+                        server.Description = update.Description;
+                        await UpdateCacheAsync(serverId, server);
+                    }
+                    return new ResultBaseModel { Succeeded = true };
+                }
+                else
+                {
+                    return new ResultBaseModel
+                    {
+                        Succeeded = false,
+                        ErrorMessage = localizer["ServerInfoUpdateError"]
+                    };
+                }
+            }
+            catch (Exception e)
+            {
+                logger.LogError(e, "Error updating the server in {Method}", nameof(UpdateServerNameDescriptionAsync));
+                return new ResultBaseModel { Succeeded = false, ErrorMessage = e.Message };
+            }
+        }
+
+        public async Task<dynamic> UpdateRoleAsync(string serverId, ServerRole role, RoleMemberLinking linking)
+        {
+            var updateRoleQuery = """
+                UPDATE ServerRoles
+                SET Name = @Name, HexColour = @HexColour, Hierarchy = @Hierarchy, DisplaySeparately = @DisplaySeparately
+                WHERE Id = @Id AND ServerId = @ServerId
+                """;
+            using var connection = GetConnection();
+            connection.Open();
+            using SqlTransaction transaction = connection.BeginTransaction();
+            try
+            {
+                var rowsAffected = await connection.ExecuteAsync(updateRoleQuery, role, transaction);
+                var updatePermissionQuery = """
+                            INSERT INTO ServerRolePermissions (RoleId, PermissionId)
+                            SELECT @RoleId, @PermissionId
+                            WHERE NOT EXISTS (SELECT 1
+                                              FROM ServerRolePermissions
+                                              WHERE RoleId = @RoleId
+                                              AND PermissionId = @PermissionId)
+                            """;
+                foreach (var permission in role.Permissions)
+                {
+                    rowsAffected += await connection.ExecuteAsync(updatePermissionQuery,
+                        new { RoleId = role.Id, PermissionId = permission.Id }, transaction);
+                }
+
+                var permissionIds = role.Permissions.Select(p => p.Id);
+                var removePermissionsQuery = """
+                    DELETE FROM ServerRolePermissions
+                    WHERE RoleId = @RoleId
+                    AND PermissionId NOT IN @PermissionIds
+                    """;
+                rowsAffected += await connection.ExecuteAsync(removePermissionsQuery,
+                        new { RoleId = role.Id, PermissionIds = permissionIds }, transaction);
+
+                var updateMemberRoleQuery = """
+                        INSERT INTO UserServerRoles (UserId, ServerId, RoleId)
+                        SELECT @UserId, @ServerId, @RoleId
+                        WHERE NOT EXISTS (SELECT 1
+                                            FROM UserServerRoles
+                                            WHERE UserId = @UserId
+                                            AND ServerId = @ServerId
+                                            AND RoleId = @RoleId)
+                        """;
+                foreach (var member in linking.NewMembers)
+                {
+                    rowsAffected += await connection.ExecuteAsync(updateMemberRoleQuery,
+                        new { UserId = member.UserId, ServerId = serverId, RoleId = role.Id }, transaction);
+                }
+
+                var removeMemberRoleQuery = """
+                        DELETE FROM UserServerRoles
+                        WHERE UserId = @UserId
+                        AND ServerId = @ServerId
+                        AND RoleId = @RoleId
+                        AND EXISTS (
+                              SELECT 1
+                              FROM UserServerRoles
+                              WHERE UserId = @UserId
+                                AND ServerId = @ServerId
+                                AND RoleId = @RoleId)
+                    """;
+                foreach (var member in linking.RemovedMembers)
+                {
+                    Console.WriteLine(member);
+                    rowsAffected += await connection.ExecuteAsync(removeMemberRoleQuery,
+                        new { UserId = member.UserId, ServerId = serverId, RoleId = role.Id }, transaction);
+                }
+                transaction.Commit();
+                var server = await GetServerByIdAsync(serverId);
+                if (server != null)
+                {
+                    var existingRole = server.Roles.FirstOrDefault(r => r.Id == role.Id);
+                    if (existingRole != null)
+                    {
+                        existingRole.Name = role.Name;
+                        existingRole.HexColour = role.HexColour;
+                        existingRole.Hierarchy = role.Hierarchy;
+                        existingRole.DisplaySeparately = role.DisplaySeparately;
+                        existingRole.Permissions = [.. role.Permissions];
+                    }
+                    var userServerRoles = server.Members
+                        .SelectMany(m => m.Roles)
+                        .Where(r => r.Id == role.Id)
+                        .ToList();
+                    foreach (var userServerRole in userServerRoles)
+                    {
+                        userServerRole.Name = role.Name;
+                        userServerRole.HexColour = role.HexColour;
+                        userServerRole.Hierarchy = role.Hierarchy;
+                        userServerRole.DisplaySeparately = role.DisplaySeparately;
+                        userServerRole.Permissions = [.. role.Permissions];
+                    }
+
+                    var addedMemberIds = linking.NewMembers.Select(m => m.UserId).ToList();
+                    var removedMemberIds = linking.RemovedMembers.Select(m => m.UserId).ToList();
+                    var membersToUpdate = server.Members.Where(m => addedMemberIds.Contains(m.UserId)).ToList();
+                    membersToUpdate.AddRange(server.Members.Where(m => removedMemberIds.Contains(m.UserId)));
+                    foreach (var member in membersToUpdate)
+                    {
+                        if (addedMemberIds.Contains(member.UserId) && member.Roles.All(r => r.Id != role.Id))
+                        {
+                            member.Roles.Add(role);
+                        }
+                        if (removedMemberIds.Contains(member.UserId))
+                        {
+                            member.Roles.RemoveAll(r => r.Id == role.Id);
+                        }
+                        member.Roles = [.. member.Roles.OrderBy(r => r.Hierarchy)];
+                    }
+
+                    await UpdateCacheAsync(serverId, server);
+                }
+                return new ResultBaseModel { Succeeded = true };
+            }
+            catch (Exception e)
+            {
+                transaction.Rollback();
+                logger.LogError(e, "Error updating the role in {Method}", nameof(UpdateRoleAsync));
+                return new ResultBaseModel { Succeeded = false, ErrorMessage = e.Message };
+            }
+        }
+
+        public async Task<dynamic> AddRoleAsync(string serverid, ServerRole role)
+        {
+            var insertServerRoleQuery = """
+                    INSERT INTO ServerRoles (Id, Name, ServerId, HexColour, Hierarchy, DisplaySeparately)
+                    VALUES (@Id, @Name, @ServerId, @HexColour, @Hierarchy, @DisplaySeparately)
+                    """;
+            using var connection = GetConnection();
+            connection.Open();
+            using SqlTransaction transaction = connection.BeginTransaction();
+            try
+            {
+                var rowsAffected = await connection.ExecuteAsync(insertServerRoleQuery, role, transaction);
+
+                if (rowsAffected > 0)
+                {
+                    var server = await GetServerByIdAsync(serverid);
+                    if (server != null)
+                    {
+                        server.Roles.Add(role);
+                        var everyoneRole = server.Roles.FirstOrDefault(r => r.Name == "@everyone");
+                        everyoneRole.Hierarchy = server.Roles.Count;
+
+                        var updateEveryoneRoleQuery = """
+                            UPDATE ServerRoles
+                            SET Hierarchy = @Hierarchy
+                            WHERE Id = @Id
+                            """;
+                        await connection.ExecuteAsync(updateEveryoneRoleQuery, everyoneRole, transaction);
+                        transaction.Commit();
+                        await UpdateCacheAsync(serverid, server);
+                    }
+                    return new ResultBaseModel { Succeeded = true };
+                }
+                else
+                {
+                    return new ResultBaseModel { Succeeded = false, ErrorMessage = localizer["AddRoleError"] };
+                }
+            }
+            catch (Exception e)
+            {
+                transaction.Rollback();
+                logger.LogError(e, "Error updating the role in {Method}", nameof(AddRoleAsync));
+                return new ResultBaseModel { Succeeded = false, ErrorMessage = e.Message };
+            }
         }
     }
 }

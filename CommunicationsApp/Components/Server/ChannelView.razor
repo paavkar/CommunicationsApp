@@ -11,7 +11,7 @@
 @inject IToastService ToastService
 @inject IJSRuntime JS
 
-@if (LoadingState.IsLoading)
+@if (IsLoading)
 {
     <FluentStack Style="width: 100%; height: 100%; justify-content: center; align-items: center;">
         <FluentProgressRing></FluentProgressRing>
@@ -187,7 +187,7 @@ else
     public string? ServerId { get; set; }
     [Parameter]
     public string? ChannelId { get; set; }
-    public LoadingState LoadingState { get; set; } = new();
+    public bool IsLoading { get; set; } = true;
     public Server? Server { get; set; }
     public Channel? Channel { get; set; }
     public ChatMessage NewMessage { get; set; } = new();
@@ -202,6 +202,8 @@ else
     {
         ChatHubService.ChannelMessageReceived += OnChannelMessageReceived;
         ChatHubService.MemberUpdateReceived += OnMemberUpdateReceived;
+        ChatHubService.ServerRoleUpdateReceived += OnServerRoleUpdated;
+        ChatHubService.ServerRoleMembersUpdateReceived += OnServerRoleMembersUpdated;
     }
 
     protected override async Task OnInitializedAsync()
@@ -231,7 +233,7 @@ else
         await JS.InvokeVoidAsync("titleHelper.setTitle", TitleString);
         Permissions = Server.Members.FirstOrDefault(m => m.UserId == UserId).Roles.SelectMany(r => r.Permissions).ToList();
 
-        LoadingState.IsLoading = false;
+        IsLoading = false;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -250,37 +252,130 @@ else
             Channel.Messages.Add(message);
             await InvokeAsync(StateHasChanged);
             await Task.Delay(100);
-            bool autoScroll = await JS.InvokeAsync<bool>("chatScroll.shouldScroll", "channelMessageView");
-            if (autoScroll)
+            try
             {
-                await JS.InvokeVoidAsync("chatScroll.scrollToBottom", "endOfMessages");
+                bool autoScroll = await JS.InvokeAsync<bool>("chatScroll.shouldScroll", "channelMessageView");
+                if (autoScroll)
+                {
+                    await JS.InvokeVoidAsync("chatScroll.scrollToBottom", "endOfMessages");
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
             }
         }
     }
 
     private async void OnMemberUpdateReceived(string serverId, ServerUpdateType updateType, ServerProfile member)
     {
-        if (ServerId == serverId)
+        if (ServerId != serverId)
         {
-            switch (updateType)
-            {
-                case ServerUpdateType.MemberJoined:
-                    if (Server != null && !Server.Members.Any(m => m.UserId == member.UserId))
-                    {
-                        Server.Members.Add(member);
-                        Server.Members = Server.Members.OrderBy(m => m.DisplayName).ToList();
-                        await InvokeAsync(StateHasChanged);
-                    }
-                    break;
-                case ServerUpdateType.MemberLeft:
-                    if (Server != null)
-                    {
-                        Server.Members.RemoveAll(m => m.Id == member.Id);
-                        await InvokeAsync(StateHasChanged);
-                    }
-                    break;
-            }
+            return;
         }
+        switch (updateType)
+        {
+            case ServerUpdateType.MemberJoined:
+                if (Server != null && !Server.Members.Any(m => m.UserId == member.UserId))
+                {
+                    Server.Members.Add(member);
+                    Server.Members = Server.Members.OrderBy(m => m.DisplayName).ToList();
+                }
+                await InvokeAsync(StateHasChanged);
+                break;
+            case ServerUpdateType.MemberLeft:
+                if (Server != null)
+                {
+                    Server.Members.RemoveAll(m => m.Id == member.Id);
+                }
+                await InvokeAsync(StateHasChanged);
+                break;
+            case ServerUpdateType.MemberKicked:
+                if (Server != null)
+                {
+                    Server.Members.RemoveAll(m => m.Id == member.Id);
+                    if (member.UserId == UserId)
+                    {
+                        NavigationManager.NavigateTo("/");
+                    }
+                }
+                await InvokeAsync(StateHasChanged);
+                break;
+        }
+    }
+
+    private async void OnServerRoleUpdated(
+        string serverId, ServerUpdateType updateType, ServerRole role)
+    {
+        if (ServerId != serverId)
+        {
+            return;
+        }
+        var existingRole = Server.Roles.FirstOrDefault(r => r.Id == role.Id);
+        var userRole = Server.Members.FirstOrDefault(m => m.UserId == UserId)
+                        .Roles.FirstOrDefault(r => r.Id == role.Id);
+        switch (updateType)
+        {
+            case ServerUpdateType.RoleUpdated:
+                if (existingRole != null)
+                {
+                    existingRole.Name = role.Name;
+                    existingRole.HexColour = role.HexColour;
+                    existingRole.Hierarchy = role.Hierarchy;
+                    existingRole.DisplaySeparately = role.DisplaySeparately;
+                    existingRole.Permissions = [.. role.Permissions];
+                }
+                if (userRole != null)
+                {
+                    userRole.Name = role.Name;
+                    userRole.HexColour = role.HexColour;
+                    userRole.Hierarchy = role.Hierarchy;
+                    userRole.DisplaySeparately = role.DisplaySeparately;
+                    userRole.Permissions = [.. role.Permissions];
+                }
+                Server.Roles = [.. Server.Roles.OrderBy(r => r.Hierarchy)];
+                foreach (var member in Server.Members)
+                {
+                    member.Roles = [.. member.Roles.OrderBy(r => r.Hierarchy)];
+                }
+                break;
+        }
+        Permissions = Server.Members.FirstOrDefault(m => m.UserId == UserId).Roles.SelectMany(r => r.Permissions).ToList();
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async void OnServerRoleMembersUpdated(
+        string serverId, ServerRole role, RoleMemberLinking linking)
+    {
+        if (ServerId != serverId)
+        {
+            return;
+        }
+        var addedMemberIds = linking.NewMembers.Select(m => m.UserId).ToList();
+        var removedMemberIds = linking.RemovedMembers.Select(m => m.UserId).ToList();
+        var membersToUpdate = Server.Members.Where(m => addedMemberIds.Contains(m.UserId)).ToList();
+        membersToUpdate.AddRange(Server.Members.Where(m => removedMemberIds.Contains(m.UserId)));
+        foreach (var member in membersToUpdate)
+        {
+            if (addedMemberIds.Contains(member.UserId) && member.Roles.All(r => r.Id != role.Id))
+            {
+                member.Roles.Add(role);
+            }
+            if (removedMemberIds.Contains(member.UserId))
+            {
+                member.Roles.RemoveAll(r => r.Id == role.Id);
+            }
+            member.Roles = [.. member.Roles.OrderBy(r => r.Hierarchy)];
+        }
+        SetPermissions();
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void SetPermissions()
+    {
+        Permissions = Server.Members.FirstOrDefault(m => m.UserId == UserId).Roles.SelectMany(r => r.Permissions).ToList();
     }
 
     private async Task SendMessageAsync()
@@ -307,7 +402,7 @@ else
         var messageResult = await CosmosDbService.SaveMessageAsync(NewMessage);
         if (!messageResult.Succeeded)
         {
-            ToastService.ShowError("There was an error saving the message. Try again later.");
+            ToastService.ShowError(Localizer["SavingMessageError"]);
             Console.WriteLine(messageResult.ErrorMessage);
             return;
         }
@@ -315,7 +410,7 @@ else
 
         if (!result.Succeeded)
         {
-            ToastService.ShowError("There was an error sending the message. Try again later.");
+            ToastService.ShowError(Localizer["SendingMessageError"]);
             Console.WriteLine(result.ErrorMessage);
             return;
         }
@@ -335,5 +430,7 @@ else
     {
         ChatHubService.ChannelMessageReceived -= OnChannelMessageReceived;
         ChatHubService.MemberUpdateReceived -= OnMemberUpdateReceived;
+        ChatHubService.ServerRoleUpdateReceived -= OnServerRoleUpdated;
+        ChatHubService.ServerRoleMembersUpdateReceived -= OnServerRoleMembersUpdated;
     }
 }

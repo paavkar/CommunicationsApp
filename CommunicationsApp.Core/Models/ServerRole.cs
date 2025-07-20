@@ -16,7 +16,8 @@ namespace CommunicationsApp.Core.Models
 
         public override string ToString()
         {
-            return $"ServerRole [Id={Id ?? "null"}, ServerId={ServerId}, Name={Name}]";
+            return $"ServerRole [Id={Id ?? "null"}, ServerId={ServerId}, Name={Name}, HexColour={HexColour}," +
+                $"Hierarchy={Hierarchy}, DisplaySeparately={DisplaySeparately}]";
         }
     }
 }
