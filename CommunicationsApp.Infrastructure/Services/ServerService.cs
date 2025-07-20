@@ -734,6 +734,16 @@ namespace CommunicationsApp.Infrastructure.Services
                     rowsAffected += await connection.ExecuteAsync(updatePermissionQuery,
                         new { RoleId = role.Id, PermissionId = permission.Id }, transaction);
                 }
+
+                var permissionIds = role.Permissions.Select(p => p.Id);
+                var removePermissionsQuery = """
+                    DELETE FROM ServerRolePermissions
+                    WHERE RoleId = @RoleId
+                    AND PermissionId NOT IN @PermissionIds
+                    """;
+                rowsAffected += await connection.ExecuteAsync(removePermissionsQuery,
+                        new { RoleId = role.Id, PermissionIds = permissionIds }, transaction);
+
                 var updateMemberRoleQuery = """
                         INSERT INTO UserServerRoles (UserId, ServerId, RoleId)
                         SELECT @UserId, @ServerId, @RoleId
