@@ -525,4 +525,7 @@
   <data name="MoreSettings" xml:space="preserve">
     <value>More settings</value>
   </data>
+  <data name="KickMembers" xml:space="preserve">
+    <value>Kick selected members</value>
+  </data>
 </root>

@@ -552,6 +552,40 @@ namespace CommunicationsApp.Infrastructure.Services
             }
         }
 
+        public async Task<dynamic> KickMembersAsync(string serverId, List<string> userIds)
+        {
+            var deleteServerProfilesQuery = """
+                DELETE FROM ServerProfiles
+                WHERE ServerId = @serverId AND UserId IN @userIds
+                """;
+            using var connection = GetConnection();
+            connection.Open();
+            using SqlTransaction transaction = connection.BeginTransaction();
+            try
+            {
+                var rowsAffected = await connection.ExecuteAsync(deleteServerProfilesQuery, new { serverId, userIds }, transaction);
+                if (rowsAffected > 0)
+                {
+                    transaction.Commit();
+                    var server = await GetServerFromDatabaseAsync(serverId);
+                    server.Members.RemoveAll(m => userIds.Contains(m.UserId));
+                    await UpdateCacheAsync(serverId, server);
+                    return new ServerResult { Succeeded = true };
+                }
+                else
+                {
+                    transaction.Rollback();
+                    return new ServerResult { Succeeded = false, ErrorMessage = "Failed to leave server." };
+                }
+            }
+            catch (Exception e)
+            {
+                transaction.Rollback();
+                logger.LogError(e, "Error in {Method}", nameof(LeaveServerAsync));
+                return new ServerResult { Succeeded = false, ErrorMessage = e.Message };
+            }
+        }
+
         public async Task<dynamic> AddChannelClassAsync(ChannelClass channelClass)
         {
             var server = await GetServerByIdAsync(channelClass.ServerId);

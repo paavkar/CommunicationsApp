@@ -525,4 +525,7 @@
   <data name="MoreSettings" xml:space="preserve">
     <value>Lisää asetuksia</value>
   </data>
+  <data name="KickMembers" xml:space="preserve">
+    <value>Erota valitut jäsenet</value>
+  </data>
 </root>

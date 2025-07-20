@@ -11,6 +11,7 @@ namespace CommunicationsApp.Application.Interfaces
         Task<dynamic> GetServerByInvitationAsync(string invitationCode);
         Task<dynamic> JoinServerAsync(Server server, ServerProfile profile);
         Task<dynamic> LeaveServerAsync(string serverId, string userId);
+        Task<dynamic> KickMembersAsync(string serverId, List<string> userIds);
         Task<dynamic> AddChannelClassAsync(ChannelClass channelClass);
         Task<dynamic> AddChannelAsync(string channelClassId, Channel channel);
         Task<dynamic> AddServerPermissionsAsync();
