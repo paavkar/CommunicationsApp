@@ -343,17 +343,26 @@ else
     }
 
     private async void OnServerRoleMembersUpdated(
-        string serverId, ServerRole role, List<ServerProfile> members)
+        string serverId, ServerRole role, RoleMemberLinking linking)
     {
         if (ServerId != serverId)
         {
             return;
         }
-        var memberIds = members.Select(m => m.UserId).ToList();
-        var membersToUpdate = Server.Members.Where(m => memberIds.Contains(m.UserId)).ToList();
+        var addedMemberIds = linking.NewMembers.Select(m => m.UserId).ToList();
+        var removedMemberIds = linking.RemovedMembers.Select(m => m.UserId).ToList();
+        var membersToUpdate = Server.Members.Where(m => addedMemberIds.Contains(m.UserId)).ToList();
+        membersToUpdate.AddRange(Server.Members.Where(m => removedMemberIds.Contains(m.UserId)));
         foreach (var member in membersToUpdate)
         {
-            member.Roles.Add(role);
+            if (addedMemberIds.Contains(member.UserId) && member.Roles.All(r => r.Id != role.Id))
+            {
+                member.Roles.Add(role);
+            }
+            if (removedMemberIds.Contains(member.UserId))
+            {
+                member.Roles.RemoveAll(r => r.Id == role.Id);
+            }
             member.Roles = [.. member.Roles.OrderBy(r => r.Hierarchy)];
         }
         SetPermissions();

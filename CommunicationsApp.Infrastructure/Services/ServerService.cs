@@ -794,7 +794,7 @@ namespace CommunicationsApp.Infrastructure.Services
                     membersToUpdate.AddRange(server.Members.Where(m => removedMemberIds.Contains(m.UserId)));
                     foreach (var member in membersToUpdate)
                     {
-                        if (addedMemberIds.Contains(member.UserId))
+                        if (addedMemberIds.Contains(member.UserId) && member.Roles.All(r => r.Id != role.Id))
                         {
                             member.Roles.Add(role);
                         }

@@ -199,7 +199,8 @@
                                 }
                                 else
                                 {
-                                    <FluentStack Style="margin-top: 1em;">
+                                    <FluentStack Style="margin-top: 1em;" Orientation="Orientation.Vertical"
+                                    VerticalGap="20">
                                         @foreach (var member in FilteredMembers)
                                         {
                                             <FluentStack>
@@ -548,23 +549,31 @@
         else
         {
             await CHS.NotifyServerRoleUpdateAsync(Server.Id, ServerUpdateType.RoleUpdated, Role);
-            await CHS.NotifyServerRoleMembersUpdateAsync(Server.Id, Role, NewMembers.ToList());
+            await CHS.NotifyServerRoleMembersUpdateAsync(Server.Id, Role, memberLink);
             FilteredMembers = [.. RoleMembers];
             FilteredMembers.AddRange(NewMembers);
-            NewMembers = [];
-            AddMembers = false;
 
-            var memberIds = FilteredMembers.Select(m => m.UserId).ToList();
-            var membersToUpdate = Server.Members.Where(m => memberIds.Contains(m.UserId)).ToList();
+            var addedMemberIds = memberLink.NewMembers.Select(m => m.UserId).ToList();
+            var removedMemberIds = memberLink.RemovedMembers.Select(m => m.UserId).ToList();
+            var membersToUpdate = Server.Members.Where(m => addedMemberIds.Contains(m.UserId)).ToList();
+            membersToUpdate.AddRange(Server.Members.Where(m => removedMemberIds.Contains(m.UserId)));
             foreach (var member in membersToUpdate)
             {
-                if (member.Roles.All(r => r.Id != Role.Id))
+                if (addedMemberIds.Contains(member.UserId) && member.Roles.All(r => r.Id != Role.Id))
                 {
                     member.Roles.Add(Role);
                 }
+                if (removedMemberIds.Contains(member.UserId))
+                {
+                    member.Roles.RemoveAll(r => r.Id == Role.Id);
+                }
+                member.Roles = [.. member.Roles.OrderBy(r => r.Hierarchy)];
             }
             RoleMembers = Server.Members.Where(m => m.Roles.Any(r => r.Name == Role.Name)).ToList();
         }
+        NewMembers = [];
+        AddMembers = false;
+        RemovedMembers = [];
         RoleEdited = false;
     }
 }

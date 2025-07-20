@@ -23,7 +23,7 @@ namespace CommunicationsApp.Infrastructure.Services
         public event Action<string, ServerUpdateType, Channel>? ChannelUpdateReceived;
         public event Action<string, ServerUpdateType, ServerInfoUpdate>? ServerInfoUpdateReceived;
         public event Action<string, ServerUpdateType, ServerRole>? ServerRoleUpdateReceived;
-        public event Action<string, ServerRole, List<ServerProfile>>? ServerRoleMembersUpdateReceived;
+        public event Action<string, ServerRole, RoleMemberLinking>? ServerRoleMembersUpdateReceived;
         public event Action<string, string>? DataReady;
 
         private void EnsureHubConnection()
@@ -88,11 +88,11 @@ namespace CommunicationsApp.Infrastructure.Services
                         ServerRoleUpdateReceived?.Invoke(serverId, updateType, role);
                     });
 
-                HubConnection.On<string, ServerRole, List<ServerProfile>>(
+                HubConnection.On<string, ServerRole, RoleMemberLinking>(
                     "ServerRoleMembersUpdate",
-                    (serverId, role, members) =>
+                    (serverId, role, linking) =>
                     {
-                        ServerRoleMembersUpdateReceived?.Invoke(serverId, role, members);
+                        ServerRoleMembersUpdateReceived?.Invoke(serverId, role, linking);
                     });
             }
         }
@@ -285,7 +285,7 @@ namespace CommunicationsApp.Infrastructure.Services
         }
 
         public async Task<dynamic> NotifyServerRoleMembersUpdateAsync(
-            string serverId, ServerRole role, List<ServerProfile> members)
+            string serverId, ServerRole role, RoleMemberLinking linking)
         {
             EnsureHubConnection();
             if (HubConnection.State != HubConnectionState.Connected)
@@ -294,7 +294,7 @@ namespace CommunicationsApp.Infrastructure.Services
             }
             try
             {
-                await HubConnection.InvokeAsync("NotifyServerRoleMembersUpdate", serverId, role, members);
+                await HubConnection.InvokeAsync("NotifyServerRoleMembersUpdate", serverId, role, linking);
                 return new SignalRResult { Succeeded = true };
             }
             catch (HubException hubEx)
