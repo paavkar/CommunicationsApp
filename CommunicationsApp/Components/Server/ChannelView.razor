@@ -10,6 +10,7 @@
 @inject IServerService ServerService
 @inject IToastService ToastService
 @inject IMediaService MediaService
+@inject ILogger<ChannelView> Logger
 @inject IJSRuntime JS
 
 @if (IsLoading)
@@ -115,12 +116,20 @@ else
 
                     <FluentInputFile @ref="@MessageFileUpload" Style="display: none;"
                                      AnchorId="MessageFileUploadButton"
-                                     OnCompleted="OnCompleted" Multiple MaximumFileCount="10"
+                                     OnCompleted="OnCompleted" Multiple MaximumFileCount="@MaxFileCount"
                                      OnFileCountExceeded="OnFileCountExceeded"
+                                     OnFileUploaded="OnFileUploaded"
                                      OnProgressChange="OnFileProgress"
                                      MaximumFileSize="@(100 * 1024 * 1024)"
                                      Mode="InputFileMode.Buffer" />
-                    <FluentProgress Max="100" Value="@percent" />
+
+                    <FluentProgress Visible="@(UploadPercentage > 0)" Min="0" Max="100" Value="@UploadPercentage"
+                                    Style="height: 1em; width: 10em;" />
+                    @if (UploadPercentage > 0)
+                    {
+                        <FluentLabel>@UploadPercentage %</FluentLabel>
+                        <FluentLabel>@UploadTitle</FluentLabel>
+                    }
 
                     <FluentStack Style="position: relative; width: 100%; position: sticky; bottom: 0;
                                         align-self: start; padding-bottom: 1em;" Id="textAreaStack">
@@ -158,7 +167,7 @@ else
                                 <FluentButton OnClick="SendMessageAsync"
                                               Disabled="@((!Permissions.Any(
                                                    p => p.PermissionType == ServerPermissionType.SendMessages) &&
-                                                   UserId != Server.OwnerId) || IsFilesDownloading)"
+                                                   UserId != Server.OwnerId) || FileUploadInProcess)"
                                               Appearance="Appearance.Stealth">
                                             <FluentIcon Value="@(new Size20.Send())" />
                                 </FluentButton>
@@ -234,10 +243,12 @@ else
     public List<ServerPermission> Permissions = [];
     private ElementReference NewMessageRef;
     private Dictionary<string, string> Files { get; set; } = [];
+    private Dictionary<string, bool> FilesUploaded { get; set; } = [];
     private FluentInputFile? MessageFileUpload = default!;
-    private bool IsFilesDownloading { get; set; }
-    private int percent;
-    private string? title;
+    private bool FileUploadInProcess { get; set; }
+    private int UploadPercentage;
+    private string UploadTitle;
+    private int MaxFileCount = 10;
 
     protected override void OnInitialized()
     {
@@ -288,29 +299,46 @@ else
 
     private void OnCompleted(IEnumerable<FluentInputFileEventArgs> files)
     {
-        IsFilesDownloading = false;
+        UploadPercentage = MessageFileUpload.ProgressPercent;
+        UploadTitle = Localizer["Completed"];
+        FileUploadInProcess = false;
     }
 
     private async Task OnFileProgress(FluentInputFileEventArgs file)
     {
-        IsFilesDownloading = true;
-        // Update local UI bindings
-        percent = file.ProgressPercent;
-        title = file.ProgressTitle;
-        Console.WriteLine(percent);
+        FileUploadInProcess = true;
+        var fileCount = file.AllFiles.Count();
+        var index = file.Index + 1;
+        var fileName = file.Name;
+        UploadPercentage = file.ProgressPercent;
+        UploadTitle = Localizer["FileUploadTitle", Localizer["Loading"], index, fileCount, fileName];
+        var savePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "temp", fileName);
 
-        if (!Files.ContainsKey(file.Name))
+        if (!Files.ContainsKey(fileName))
         {
-            var localFile = Path.GetTempFileName() + file.Name;
-            Files.Add(file.Name, localFile);
+            Files.Add(fileName, Path.Combine("temp", fileName));
         }
 
-        await file.Buffer.AppendToFileAsync(Files[file.Name]);
+        for (var i = file.Index; i < file.AllFiles.Count(); i++)
+        {
+            var allFile = file.AllFiles.ElementAt(i);
+            if (!FilesUploaded.ContainsKey(allFile.Name))
+            {
+                FilesUploaded.Add(allFile.Name, false);
+            }
+        }
+
+        await file.Buffer.AppendToFileAsync(savePath);
+    }
+
+    private void OnFileUploaded(FluentInputFileEventArgs file)
+    {
+        FilesUploaded[file.Name] = true;
     }
 
     private void OnFileCountExceeded(int amount)
     {
-        Console.WriteLine(amount);
+        ToastService.ShowError(Localizer["MessageFileCountExceeded", MaxFileCount, amount]);
     }
 
     private async Task AutoGrow(ChangeEventArgs _)
@@ -485,8 +513,6 @@ else
             NewMessage.Attachments = [.. fileUrls];
         }
 
-        Files.Clear();
-
         var messageResult = await CosmosDbService.SaveMessageAsync(NewMessage);
         if (!messageResult.Succeeded)
         {
@@ -503,6 +529,15 @@ else
             return;
         }
 
+        foreach (var file in Files)
+        {
+            File.Delete(Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "temp", file.Key));
+        }
+        Files.Clear();
+        FilesUploaded.Clear();
+        UploadPercentage = 0;
+        UploadTitle = string.Empty;
+
         NewMessage = new();
     }
 
@@ -516,6 +551,17 @@ else
 
     public void Dispose()
     {
+        foreach (var file in Files)
+        {
+            try
+            {
+                File.Delete(Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "temp", file.Key));
+            }
+            catch (Exception e)
+            {
+                Logger.LogError(e, "Error deleting temporary file: {FileName}", file.Key);
+            }
+        }
         ChatHubService.ChannelMessageReceived -= OnChannelMessageReceived;
         ChatHubService.MemberUpdateReceived -= OnMemberUpdateReceived;
         ChatHubService.ServerRoleUpdateReceived -= OnServerRoleUpdated;

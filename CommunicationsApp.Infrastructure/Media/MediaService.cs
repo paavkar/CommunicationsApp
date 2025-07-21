@@ -66,6 +66,7 @@ namespace CommunicationsApp.Infrastructure.Services
                 {
                     var fileName = file.Key;
                     var fileExtension = Path.GetExtension(fileName).ToLower();
+                    var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "temp", file.Key);
                     BlobClient blobClient;
 
                     if (ImageFileExtensions.Contains(fileExtension))
@@ -89,7 +90,7 @@ namespace CommunicationsApp.Infrastructure.Services
                         fileIndex++;
                     }
 
-                    await blobClient.UploadAsync(file.Value, overwrite: true);
+                    await blobClient.UploadAsync(filePath, overwrite: true);
 
                     fileUrls.Add(blobClient.Uri.ToString());
 

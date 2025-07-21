@@ -528,4 +528,16 @@
   <data name="KickMembers" xml:space="preserve">
     <value>Kick selected members</value>
   </data>
+  <data name="FileUploadTitle" xml:space="preserve">
+    <value>{0} {1}/{2} - {3}</value>
+  </data>
+  <data name="Completed" xml:space="preserve">
+    <value>Files loaded</value>
+  </data>
+  <data name="Loading" xml:space="preserve">
+    <value>Loading</value>
+  </data>
+  <data name="MessageFileCountExceeded" xml:space="preserve">
+    <value>Maximum attachment count is {0}. Attempted to attach {1} files.</value>
+  </data>
 </root>
