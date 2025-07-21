@@ -123,6 +123,51 @@ else
                                      MaximumFileSize="@(100 * 1024 * 1024)"
                                      Mode="InputFileMode.Buffer" />
 
+                    @if (Files.Any())
+                    {
+                    <FluentHorizontalScroll Speed="600" Easing=ScrollEasing.EaseInOut>
+                        @foreach (var file in Files)
+                        {
+                            if (FilesUploaded.ContainsKey(file.Key) && FilesUploaded[file.Key])
+                            {
+                                var fileExtension = Path.GetExtension(file.Value).ToLower();
+                                var fileName = file.Value;
+                                <FluentStack>
+                                    @if (ImageFileExtensions.Contains(fileExtension))
+                                    {
+                                        <FluentCard>
+                                            <img src="@file.Value" width="100" />
+                                        </FluentCard>
+                                    }
+                                    else if (AudioFileMimeTypes.ContainsKey(fileExtension))
+                                    {
+                                        <FluentCard>
+                                            <audio controls>
+                                                <source src="@fileName" type=@AudioFileMimeTypes[fileExtension]>
+                                                Your browser does not support the audio element.
+                                            </audio>
+                                        </FluentCard>
+                                    }
+                                    else if (VideoFileMimeTypes.ContainsKey(fileExtension))
+                                    {
+                                        <FluentCard>
+                                            <video controls width="100">
+                                                <source src="@fileName" type=@VideoFileMimeTypes[fileExtension]>
+                                                Your browser does not support the video tag.
+                                            </video>
+                                        </FluentCard>
+                                    }
+                                    <FluentStack Orientation="Orientation.Vertical">
+                                            <FluentButton OnClick="(() => DeleteFile(fileName))">
+                                            <FluentIcon Value="@(new Size20.Delete())" Color="Color.Error" />
+                                        </FluentButton>
+                                    </FluentStack>
+                                </FluentStack>
+                            }
+                        }
+                    </FluentHorizontalScroll>
+                    }
+                    
                     <FluentProgress Visible="@(UploadPercentage > 0)" Min="0" Max="100" Value="@UploadPercentage"
                                     Style="height: 1em; width: 10em;" />
                     @if (UploadPercentage > 0)
@@ -249,6 +294,40 @@ else
     private int UploadPercentage;
     private string UploadTitle;
     private int MaxFileCount = 10;
+
+    readonly List<string> ImageFileExtensions = [
+        ".jpg",".jpeg", ".png", ".gif", ".bmp", ".tiff", ".tif",
+        ".webp", ".svg", ".heic", ".raw", ".ico"
+    ];
+
+    readonly Dictionary<string, string> VideoFileMimeTypes = new()
+    {
+        { ".mp4", "video/mp4" },
+        { ".mov", "video/quicktime" },
+        { ".avi", "video/x-msvideo" },
+        { ".mkv", "video/x-matroska" },
+        { ".wmv", "video/x-ms-wmv" },
+        { ".flv", "video/x-flv" },
+        { ".webm", "video/webm" },
+        { ".3gp", "video/3gpp" },
+        { ".mpeg", "video/mpeg" },
+        { ".mpg", "video/mpeg" },
+        { ".ts", "video/mp2t" }
+    };
+
+    readonly Dictionary<string, string> AudioFileMimeTypes = new()
+    {
+        { ".mp3", "audio/mpeg" },
+        { ".wav", "audio/wav" },
+        { ".flac", "audio/flac" },
+        { ".aac", "audio/aac" },
+        { ".ogg", "audio/ogg" },
+        { ".wma", "audio/x-ms-wma" },
+        { ".m4a" , "audio/mp4" },
+        { ".aiff", "audio/aiff" },
+        { ".alac", "audio/alac" },
+        { ".opus", "audio/opus" }
+    };
 
     protected override void OnInitialized()
     {
@@ -547,6 +626,30 @@ else
             OpenPopoverId = popoverId;
         else if (OpenPopoverId == popoverId)
             OpenPopoverId = null;
+    }
+
+    private void DeleteFile(string fileName)
+    {
+        fileName = Path.GetFileName(fileName);
+        if (Files.ContainsKey(fileName))
+        {
+            try
+            {
+                File.Delete(Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "temp", fileName));
+            }
+            catch (Exception)
+            {
+
+            }
+            Files.Remove(fileName);
+            FilesUploaded.Remove(fileName);
+
+            if (!Files.Any())
+            {
+                UploadPercentage = 0;
+                UploadTitle = string.Empty;
+            }
+        }
     }
 
     public void Dispose()
