@@ -9,6 +9,7 @@
 @inject AuthenticationStateProvider ASP
 @inject IServerService ServerService
 @inject IToastService ToastService
+@inject IMediaService MediaService
 @inject IJSRuntime JS
 
 @if (IsLoading)
@@ -111,24 +112,58 @@ else
                             <FluentStack Id="endOfMessages" Style="height: 5px;" />
                         </FluentStack>
                     </FluentStack>
-                    <FluentStack Style="height: 5em; position: relative; width: 100%; position: sticky; bottom: 0;
-                                                align-self: start; padding-bottom: 1em;" Id="textAreaStack">
-                        <FluentTextArea @bind-Value="NewMessage.Content"
-                                        Disabled="@(!Permissions.Any(
-                                                    p => p.PermissionType == ServerPermissionType.SendMessages) &&
-                                                    UserId != Server.OwnerId)"
-                                        Placeholder="@($"{Localizer["SendMessage"]} #{Channel.Name}")"
-                                        Style="width: 100%; padding: 0 1em;"
-                                        Id="channelMessageTextArea"
-                                        Maxlength="400" />
-                        <FluentButton OnClick="SendMessageAsync"
-                                      Disabled="@(!Permissions.Any(
-                                                  p => p.PermissionType == ServerPermissionType.SendMessages) &&
-                                                  UserId != Server.OwnerId)"
-                                      Style="position: absolute; right: 1.5em; bottom: 1em; background: transparent;
-                                            border: none;">
-                            <FluentIcon Value="@(new Size20.Send())" />
-                        </FluentButton>
+
+                    <FluentInputFile @ref="@MessageFileUpload" Style="display: none;"
+                                     AnchorId="MessageFileUploadButton"
+                                     OnCompleted="OnCompleted" Multiple MaximumFileCount="10"
+                                     OnFileCountExceeded="OnFileCountExceeded"
+                                     OnProgressChange="OnFileProgress"
+                                     MaximumFileSize="@(100 * 1024 * 1024)"
+                                     Mode="InputFileMode.Buffer" />
+                    <FluentProgress Max="100" Value="@percent" />
+
+                    <FluentStack Style="position: relative; width: 100%; position: sticky; bottom: 0;
+                                        align-self: start; padding-bottom: 1em;" Id="textAreaStack">
+                        <div class="fluent-textarea-wrapper">
+                            <div class="fluent-icon-group">
+                                <FluentButton Id="MessageFileUploadButton"
+                                    Disabled="@(!Permissions.Any(
+                                                p => p.PermissionType == ServerPermissionType.SendMessages) &&
+                                                UserId != Server.OwnerId)"
+                                              Appearance="Appearance.Stealth">
+                                    <FluentIcon Value="@(new Size20.Add())" />
+                                </FluentButton>
+                            </div>
+                            <textarea @bind="NewMessage.Content"
+                                      placeholder="@($"{Localizer["SendMessage"]} #{Channel.Name}")"
+                                      class="fluent-textarea"
+                                      @ref=NewMessageRef
+                                      @oninput=AutoGrow
+                                      disabled="@(!Permissions.Any(
+                                                p => p.PermissionType == ServerPermissionType.SendMessages) &&
+                                                UserId != Server.OwnerId)"
+                                      maxlength="400">
+                            </textarea>
+                            <div class="fluent-icon-group">
+                                <FluentButton
+                                              Disabled
+                                              Appearance="Appearance.Stealth">
+                                    <FluentIcon Value="@(new Size20.EmojiSmileSlight())" />
+                                </FluentButton>
+                                <FluentButton
+                                              Disabled
+                                               Appearance="Appearance.Stealth">
+                                    <FluentIcon Value="@(new Size20.Gif())" />
+                                </FluentButton>
+                                <FluentButton OnClick="SendMessageAsync"
+                                              Disabled="@((!Permissions.Any(
+                                                   p => p.PermissionType == ServerPermissionType.SendMessages) &&
+                                                   UserId != Server.OwnerId) || IsFilesDownloading)"
+                                              Appearance="Appearance.Stealth">
+                                            <FluentIcon Value="@(new Size20.Send())" />
+                                </FluentButton>
+                            </div>
+                        </div>
                     </FluentStack>
                 </FluentStack>
                 @if (DisplayMemberList)
@@ -197,6 +232,12 @@ else
     public bool DisplayMemberList = false;
     private string? OpenPopoverId { get; set; }
     public List<ServerPermission> Permissions = [];
+    private ElementReference NewMessageRef;
+    private Dictionary<string, string> Files { get; set; } = [];
+    private FluentInputFile? MessageFileUpload = default!;
+    private bool IsFilesDownloading { get; set; }
+    private int percent;
+    private string? title;
 
     protected override void OnInitialized()
     {
@@ -243,6 +284,38 @@ else
             await JS.InvokeVoidAsync("chatScroll.initializeScrollWatcher", "channelMessageView");
             await JS.InvokeVoidAsync("chatScroll.scrollToBottom", "endOfMessages");
         }
+    }
+
+    private void OnCompleted(IEnumerable<FluentInputFileEventArgs> files)
+    {
+        IsFilesDownloading = false;
+    }
+
+    private async Task OnFileProgress(FluentInputFileEventArgs file)
+    {
+        IsFilesDownloading = true;
+        // Update local UI bindings
+        percent = file.ProgressPercent;
+        title = file.ProgressTitle;
+        Console.WriteLine(percent);
+
+        if (!Files.ContainsKey(file.Name))
+        {
+            var localFile = Path.GetTempFileName() + file.Name;
+            Files.Add(file.Name, localFile);
+        }
+
+        await file.Buffer.AppendToFileAsync(Files[file.Name]);
+    }
+
+    private void OnFileCountExceeded(int amount)
+    {
+        Console.WriteLine(amount);
+    }
+
+    private async Task AutoGrow(ChangeEventArgs _)
+    {
+        await JS.InvokeVoidAsync("autoGrow", NewMessageRef);
     }
 
     private async void OnChannelMessageReceived(string serverId, string channelId, ChatMessage message)
@@ -380,7 +453,7 @@ else
 
     private async Task SendMessageAsync()
     {
-        if (string.IsNullOrWhiteSpace(NewMessage.Content))
+        if (string.IsNullOrWhiteSpace(NewMessage.Content) && !Files.Any())
             return;
         if (string.IsNullOrWhiteSpace(ServerId) || string.IsNullOrWhiteSpace(ChannelId) || Channel == null)
             return;
@@ -398,6 +471,21 @@ else
             CreatedAt = Channel.CreatedAt,
         };
         NewMessage.Sender = Server!.Members.FirstOrDefault(m => m.UserId == UserId)!;
+
+        if (Files.Any())
+        {
+            FileUploadList fileUpload = new()
+            {
+                BlazorFiles = Files,
+                Origin = FileUploadOrigin.BlazorFluentUI
+            };
+
+            var fileUrls = await MediaService.UploadPostMediaAsync(fileUpload, NewMessage.Id);
+
+            NewMessage.Attachments = [.. fileUrls];
+        }
+
+        Files.Clear();
 
         var messageResult = await CosmosDbService.SaveMessageAsync(NewMessage);
         if (!messageResult.Succeeded)

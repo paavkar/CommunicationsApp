@@ -1,9 +1,9 @@
-﻿using Microsoft.AspNetCore.Components.Forms;
+﻿using CommunicationsApp.Core.Models;
 
 namespace CommunicationsApp.Application.Interfaces
 {
     public interface IMediaService
     {
-        Task<List<string>> UploadPostImagesAsync(List<IBrowserFile> files, string messageId);
+        Task<List<string>> UploadPostMediaAsync(FileUploadList fileUpload, string messageId);
     }
 }

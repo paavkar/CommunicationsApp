@@ -1,8 +1,10 @@
-﻿using Azure.Storage.Blobs;
+﻿using Azure.Core.Pipeline;
+using Azure.Storage.Blobs;
 using CommunicationsApp.Application.Interfaces;
-using Microsoft.AspNetCore.Components.Forms;
+using CommunicationsApp.Core.Models;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using System.Security.Cryptography.X509Certificates;
 
 namespace CommunicationsApp.Infrastructure.Services
 {
@@ -10,29 +12,92 @@ namespace CommunicationsApp.Infrastructure.Services
     {
         readonly string ConnectionString = configuration.GetValue<string>("BlobStorage:DefaultConnection")!;
         readonly string MessageContainerName = configuration.GetValue<string>("BlobStorage:MessageContainerName")!;
+        readonly string AccountName = configuration.GetValue<string>("BlobStorage:AccountName")!;
+        readonly string AccountKey = configuration.GetValue<string>("BlobStorage:AccountKey")!;
+        readonly List<string> ImageFileExtensions = [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".tif", ".webp", ".svg", ".heic", ".raw", ".ico"];
+        readonly List<string> VideoFileExtensions = [".mp4", ".mov", ".avi", ".mkv", ".wmv", ".flv", ".webm", ".3gp", ".mpeg", ".mpg", ".ts"];
+        readonly List<string> AudioFileExtensions = [".mp3", ".wav", ".flac", ".aac", ".ogg", ".wma", ".m4a", ".aiff", ".alac", ".opus"];
 
-        public async Task<List<string>> UploadPostImagesAsync(List<IBrowserFile> files, string messageId)
+        public async Task<List<string>> UploadPostMediaAsync(FileUploadList fileUpload, string messageId)
         {
-            var blobServiceClient = new BlobServiceClient(ConnectionString);
-            var containerClient = blobServiceClient.GetBlobContainerClient(MessageContainerName);
+            BlobContainerClient containerClient;
+            if (configuration["ASPNETCORE_ENVIRONMENT"] == "Development")
+            {
+                var handler = new HttpClientHandler
+                {
+                    ServerCertificateCustomValidationCallback = (message, cert, chain, errors) =>
+                    {
+                        chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
+                        chain.ChainPolicy.VerificationFlags = X509VerificationFlags.AllowUnknownCertificateAuthority;
+
+                        return chain.Build(cert);
+                    }
+                };
+
+                var httpClient = new HttpClient(handler);
+                var transport = new HttpClientTransport(httpClient);
+
+                var options = new BlobClientOptions
+                {
+                    Transport = transport
+                };
+
+                var serviceUri = new Uri($"https://127.0.0.1:10000/{AccountName}");
+                var cred = new Azure.Storage.StorageSharedKeyCredential(AccountName, AccountKey);
+                var blobServiceClient = new BlobServiceClient(serviceUri, cred, options);
+                containerClient = blobServiceClient.GetBlobContainerClient(MessageContainerName);
+            }
+            else
+            {
+                var blobServiceClient = new BlobServiceClient(ConnectionString);
+                containerClient = blobServiceClient.GetBlobContainerClient(MessageContainerName);
+            }
 
             List<string> fileUrls = [];
 
-            var i = 0;
-            foreach (var file in files)
-            {
-                var fileName = file.Name;
+            var imageIndex = 0;
+            var videoIndex = 0;
+            var audioIndex = 0;
+            var fileIndex = 0;
 
+            foreach (var file in fileUpload.BlazorFiles)
+            {
                 try
                 {
-                    var blobClient = containerClient.GetBlobClient($"{messageId}/image{i}/{fileName}");
-                    await blobClient.UploadAsync(file.OpenReadStream(), true);
+                    var fileName = file.Key;
+                    var fileExtension = Path.GetExtension(fileName).ToLower();
+                    BlobClient blobClient;
+
+                    if (ImageFileExtensions.Contains(fileExtension))
+                    {
+                        blobClient = containerClient.GetBlobClient($"{messageId}/image{imageIndex}/{fileName}");
+                        imageIndex++;
+                    }
+                    else if (VideoFileExtensions.Contains(fileExtension))
+                    {
+                        blobClient = containerClient.GetBlobClient($"{messageId}/video{videoIndex}/{fileName}");
+                        videoIndex++;
+                    }
+                    else if (AudioFileExtensions.Contains(fileExtension))
+                    {
+                        blobClient = containerClient.GetBlobClient($"{messageId}/audio{audioIndex}/{fileName}");
+                        audioIndex++;
+                    }
+                    else
+                    {
+                        blobClient = containerClient.GetBlobClient($"{messageId}/file{fileIndex}/{fileName}");
+                        fileIndex++;
+                    }
+
+                    await blobClient.UploadAsync(file.Value, overwrite: true);
+
                     fileUrls.Add(blobClient.Uri.ToString());
-                    i++;
+
+
                 }
                 catch (Exception e)
                 {
-                    logger.LogError(e, "Error uploading file to Blob storage in {Method}", nameof(UploadPostImagesAsync));
+                    logger.LogError(e, "Error uploading file to Blob storage in {Method}", nameof(UploadPostMediaAsync));
                 }
             }
 

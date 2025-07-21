@@ -37,6 +37,38 @@ a, .btn-link {
     border: solid 1px;
 }
 
+.fluent-textarea-wrapper {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    border-radius: 6px;
+    padding: 8px;
+    gap: 8px;
+    flex-grow: 1;
+    border: 1px solid gray;
+    margin-left: 10px;
+    margin-right: 10px;
+}
+
+.fluent-icon-group {
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+}
+
+.fluent-textarea {
+    flex-grow: 1;
+    background-color: transparent;
+    border: none;
+    outline: none;
+    resize: none;
+    overflow: hidden;
+    padding: 4px 8px;
+    font-size: 14px;
+    border-radius: 4px;
+    line-height: 1.5;
+}
+
 #btnOpenServerMenu::part(control) {
     justify-content: space-between;
 }
