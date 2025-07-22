@@ -29,7 +29,7 @@ namespace CommunicationsApp.Core.Models
         public ChatMessage? ReplyTo { get; set; }
 
         [JsonProperty(PropertyName = "attachments")]
-        public List<string> Attachments { get; set; } = [];
+        public List<MediaAttachment> Attachments { get; set; } = [];
         [JsonProperty(PropertyName = "reactions")]
         public Dictionary<string, List<ServerProfile>> Reactions { get; set; } = [];
         [JsonProperty(PropertyName = "mentions")]

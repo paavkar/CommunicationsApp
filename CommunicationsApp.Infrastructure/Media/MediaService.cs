@@ -18,7 +18,7 @@ namespace CommunicationsApp.Infrastructure.Services
         readonly List<string> VideoFileExtensions = [".mp4", ".mov", ".avi", ".mkv", ".wmv", ".flv", ".webm", ".3gp", ".mpeg", ".mpg", ".ts"];
         readonly List<string> AudioFileExtensions = [".mp3", ".wav", ".flac", ".aac", ".ogg", ".wma", ".m4a", ".aiff", ".alac", ".opus"];
 
-        public async Task<List<string>> UploadPostMediaAsync(FileUploadList fileUpload, string messageId)
+        public async Task<List<MediaAttachment>> UploadPostMediaAsync(FileUploadList fileUpload, string messageId)
         {
             BlobContainerClient containerClient;
             if (configuration["ASPNETCORE_ENVIRONMENT"] == "Development")
@@ -53,18 +53,18 @@ namespace CommunicationsApp.Infrastructure.Services
                 containerClient = blobServiceClient.GetBlobContainerClient(MessageContainerName);
             }
 
-            List<string> fileUrls = [];
+            List<MediaAttachment> files = [];
 
             var imageIndex = 0;
             var videoIndex = 0;
             var audioIndex = 0;
             var fileIndex = 0;
 
-            foreach (var file in fileUpload.BlazorFiles)
+            foreach (var file in fileUpload.Files)
             {
                 try
                 {
-                    var fileName = file.Key;
+                    var fileName = file.Value.FileName;
                     var fileExtension = Path.GetExtension(fileName).ToLower();
                     var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "temp", file.Key);
                     BlobClient blobClient;
@@ -90,11 +90,9 @@ namespace CommunicationsApp.Infrastructure.Services
                         fileIndex++;
                     }
 
-                    await blobClient.UploadAsync(filePath, overwrite: true);
-
-                    fileUrls.Add(blobClient.Uri.ToString());
-
-
+                    await blobClient.UploadAsync(path: filePath, overwrite: true);
+                    file.Value.Url = blobClient.Uri.ToString();
+                    files.Add(file.Value);
                 }
                 catch (Exception e)
                 {
@@ -102,7 +100,7 @@ namespace CommunicationsApp.Infrastructure.Services
                 }
             }
 
-            return fileUrls;
+            return files;
         }
     }
 }
