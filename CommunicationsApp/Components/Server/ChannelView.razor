@@ -206,16 +206,20 @@ else
                                     <FluentIcon Value="@(new Size20.Add())" />
                                 </FluentButton>
                             </div>
-                            <textarea @bind="NewMessage.Content"
-                                      placeholder="@($"{Localizer["SendMessage"]} #{Channel.Name}")"
-                                      class="fluent-textarea"
-                                      @ref=NewMessageRef
-                                      @oninput=AutoGrow
-                                      disabled="@(!Permissions.Any(
-                                                p => p.PermissionType == ServerPermissionType.SendMessages) &&
-                                                UserId != Server.OwnerId)"
-                                      maxlength="400">
-                            </textarea>
+                            <FluentKeyCode OnKeyDown="@OnKeyHandleAsync" style="width: 100%;">
+                               <textarea @bind="NewMessage.Content"
+                                        placeholder="@($"{Localizer["SendMessage"]} #{Channel.Name}")"
+                                        class="fluent-textarea"
+                                        @ref=NewMessageRef
+                                        @oninput=AutoGrow
+                                        disabled="@((!Permissions.Any(
+                                        p => p.PermissionType == ServerPermissionType.SendMessages) &&
+                                        UserId != Server.OwnerId) || MessageSendInProgress)"
+                                        maxlength="400">
+                               </textarea>
+
+                            </FluentKeyCode>
+                            
                             <div class="fluent-icon-group">
                                 <FluentButton
                                               Disabled
@@ -329,7 +333,6 @@ else
             Progress = 0,
         },
     };
-
     private ToastParameters<ProgressToastContent> MessageSendingData = new()
     {
         Id = MessageProgressToast,
@@ -341,22 +344,10 @@ else
             Details = "",
         },
     };
-
-    private void OnHorizontalScrollStart(HorizontalScrollEventArgs args)
-    {
-        Logger.LogInformation($"{args.Scroll}");
-    }
-
-    private void OnHorizontalScrollEnd(HorizontalScrollEventArgs args)
-    {
-        Logger.LogInformation($"{args.Scroll}");
-    }
-
     readonly List<string> ImageFileExtensions = [
         ".jpg",".jpeg", ".png", ".gif", ".bmp", ".tiff", ".tif",
         ".webp", ".svg", ".heic", ".raw", ".ico"
     ];
-
     readonly Dictionary<string, string> VideoFileMimeTypes = new()
     {
         { ".mp4", "video/mp4" },
@@ -371,7 +362,6 @@ else
         { ".mpg", "video/mpeg" },
         { ".ts", "video/mp2t" }
     };
-
     readonly Dictionary<string, string> AudioFileMimeTypes = new()
     {
         { ".mp3", "audio/mpeg" },
@@ -431,6 +421,30 @@ else
             await JS.InvokeVoidAsync("chatScroll.initializeScrollWatcher", "channelMessageView");
             await JS.InvokeVoidAsync("chatScroll.scrollToBottom", "endOfMessages");
         }
+    }
+
+    private async Task OnKeyHandleAsync(FluentKeyCodeEventArgs args)
+    {
+        if (args.Name == "keyup")
+        {
+            return;
+        }
+
+        if (args.Repeat)
+        {
+            return;
+        }
+        var keyCode = args.ToString();
+        if (keyCode == "Enter")
+        {
+            await SendMessageAsync();
+            return;
+        }
+        else if (keyCode == "Shift + Enter")
+        {
+
+        }
+        return;
     }
 
     private async Task OnCompleted(IEnumerable<FluentInputFileEventArgs> files)
@@ -506,8 +520,9 @@ else
         ToastService.ShowError(Localizer["MessageFileCountExceeded", MaxFileCount, amount]);
     }
 
-    private async Task AutoGrow(ChangeEventArgs _)
+    private async Task AutoGrow(ChangeEventArgs e)
     {
+        NewMessage.Content = e.Value.ToString();
         await JS.InvokeVoidAsync("autoGrow", NewMessageRef);
     }
 
@@ -718,6 +733,7 @@ else
             File.Delete(Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "temp", file.Key));
         }
         ClearUploadProperties();
+        await JS.InvokeVoidAsync("resetHeight", NewMessageRef);
 
         ToastService.CloseToast(MessageProgressToast);
         NewMessage = new();
