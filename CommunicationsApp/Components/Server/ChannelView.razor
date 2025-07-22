@@ -138,9 +138,10 @@ else
                                         @if (ImageFileExtensions.Contains(fileExtension))
                                         {
                                             <FluentCard>
-                                                <img src="@url" style="max-width: 200px;" />
-                                                <FluentStack>
-                                                    <FluentButton OnClick="(() => DeleteFile(fileName))">
+                                                <FluentLabel Style="margin-bottom: 1em;">@fileName</FluentLabel>
+                                                <img src="@url" style="max-width: 150px;" />
+                                                <FluentStack Style="margin-top: 1em;">
+                                                    <FluentButton OnClick="(() => DeleteFile(url))">
                                                         <FluentIcon Value="@(new Size20.Delete())" Color="Color.Error" />
                                                     </FluentButton>
                                                 </FluentStack>
@@ -149,12 +150,13 @@ else
                                         else if (AudioFileMimeTypes.ContainsKey(fileExtension))
                                         {
                                             <FluentCard>
+                                                <FluentLabel Style="margin-bottom: 1em;">@fileName</FluentLabel>
                                                 <audio controls>
                                                     <source src="@url" type=@AudioFileMimeTypes[fileExtension]>
                                                     Your browser does not support the audio element.
                                                 </audio>
-                                                <FluentStack>
-                                                    <FluentButton OnClick="(() => DeleteFile(fileName))">
+                                                <FluentStack Style="margin-top: 1em;">
+                                                    <FluentButton OnClick="(() => DeleteFile(url))">
                                                         <FluentIcon Value="@(new Size20.Delete())" Color="Color.Error" />
                                                     </FluentButton>
                                                 </FluentStack>
@@ -163,12 +165,24 @@ else
                                         else if (VideoFileMimeTypes.ContainsKey(fileExtension))
                                         {
                                             <FluentCard>
-                                                <video controls width="100">
+                                                <FluentLabel Style="margin-bottom: 1em;">@fileName</FluentLabel>
+                                                <video controls style="max-width: 150px;">
                                                     <source src="@url" type=@VideoFileMimeTypes[fileExtension]>
                                                     Your browser does not support the video tag.
                                                 </video>
-                                                <FluentStack>
-                                                    <FluentButton OnClick="(() => DeleteFile(fileName))">
+                                                <FluentStack Style="margin-top: 1em;">
+                                                    <FluentButton OnClick="(() => DeleteFile(url))">
+                                                        <FluentIcon Value="@(new Size20.Delete())" Color="Color.Error" />
+                                                    </FluentButton>
+                                                </FluentStack>
+                                            </FluentCard>
+                                        }
+                                        else
+                                        {
+                                            <FluentCard>
+                                                <FluentLabel Style="margin-bottom: 1em;">@fileName</FluentLabel>
+                                                <FluentStack Style="margin-top: 1em;">
+                                                    <FluentButton OnClick="(() => DeleteFile(url))">
                                                         <FluentIcon Value="@(new Size20.Delete())" Color="Color.Error" />
                                                     </FluentButton>
                                                 </FluentStack>
