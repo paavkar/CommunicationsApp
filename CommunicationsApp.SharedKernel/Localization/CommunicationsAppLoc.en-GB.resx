@@ -540,4 +540,16 @@
   <data name="MessageFileCountExceeded" xml:space="preserve">
     <value>Maximum attachment count is {0}. Attempted to attach {1} files.</value>
   </data>
+  <data name="FileUploadError" xml:space="preserve">
+    <value>There was an error trying to load the file "{0}".</value>
+  </data>
+  <data name="FileUploadProcessError" xml:space="preserve">
+    <value>There was an error trying to upload the file(s).</value>
+  </data>
+  <data name="SendingMessage" xml:space="preserve">
+    <value>Sending message</value>
+  </data>
+  <data name="UploadingFiles" xml:space="preserve">
+    <value>Uploading selected files...</value>
+  </data>
 </root>

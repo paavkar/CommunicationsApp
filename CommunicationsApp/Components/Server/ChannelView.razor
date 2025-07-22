@@ -125,56 +125,59 @@ else
 
                     @if (Files.Any() && FilesUploaded.Any(u => u.Value))
                     {
-                    <FluentHorizontalScroll Speed="600" Easing=ScrollEasing.EaseInOut>
-                        @foreach (var file in Files)
-                        {
-                            if (FilesUploaded.ContainsKey(file.Key) && FilesUploaded[file.Key])
-                            {
-                                var fileExtension = Path.GetExtension(file.Value.FileName).ToLower();
-                                var fileName = file.Value.FileName;
-                                var url = file.Value.Url;
-                                <FluentStack>
-                                    @if (ImageFileExtensions.Contains(fileExtension))
+                        <FluentStack Style="width: 100%; padding: 0.5em 1em;">
+                            <FluentHorizontalScroll Style="width: 100%;" View="HorizontalScrollView.Default" 
+                                Speed="1200" Easing=ScrollEasing.EaseInOut>
+                                @foreach (var file in Files)
+                                {
+                                    if (FilesUploaded.ContainsKey(file.Key) && FilesUploaded[file.Key])
                                     {
-                                        <FluentCard>
-                                            <img src="@url" width="100" />
-                                        </FluentCard>
+                                        var fileExtension = Path.GetExtension(file.Value.FileName).ToLower();
+                                        var fileName = file.Value.FileName;
+                                        var url = file.Value.Url;
+                                        @if (ImageFileExtensions.Contains(fileExtension))
+                                        {
+                                            <FluentCard>
+                                                <img src="@url" style="max-width: 200px;" />
+                                                <FluentStack>
+                                                    <FluentButton OnClick="(() => DeleteFile(fileName))">
+                                                        <FluentIcon Value="@(new Size20.Delete())" Color="Color.Error" />
+                                                    </FluentButton>
+                                                </FluentStack>
+                                            </FluentCard>
+                                        }
+                                        else if (AudioFileMimeTypes.ContainsKey(fileExtension))
+                                        {
+                                            <FluentCard>
+                                                <audio controls>
+                                                    <source src="@url" type=@AudioFileMimeTypes[fileExtension]>
+                                                    Your browser does not support the audio element.
+                                                </audio>
+                                                <FluentStack>
+                                                    <FluentButton OnClick="(() => DeleteFile(fileName))">
+                                                        <FluentIcon Value="@(new Size20.Delete())" Color="Color.Error" />
+                                                    </FluentButton>
+                                                </FluentStack>
+                                            </FluentCard>
+                                        }
+                                        else if (VideoFileMimeTypes.ContainsKey(fileExtension))
+                                        {
+                                            <FluentCard>
+                                                <video controls width="100">
+                                                    <source src="@url" type=@VideoFileMimeTypes[fileExtension]>
+                                                    Your browser does not support the video tag.
+                                                </video>
+                                                <FluentStack>
+                                                    <FluentButton OnClick="(() => DeleteFile(fileName))">
+                                                        <FluentIcon Value="@(new Size20.Delete())" Color="Color.Error" />
+                                                    </FluentButton>
+                                                </FluentStack>
+                                            </FluentCard>
+                                        }
                                     }
-                                    else if (AudioFileMimeTypes.ContainsKey(fileExtension))
-                                    {
-                                        <FluentCard>
-                                            <audio controls>
-                                                <source src="@url" type=@AudioFileMimeTypes[fileExtension]>
-                                                Your browser does not support the audio element.
-                                            </audio>
-                                        </FluentCard>
-                                    }
-                                    else if (VideoFileMimeTypes.ContainsKey(fileExtension))
-                                    {
-                                        <FluentCard>
-                                            <video controls width="100">
-                                                <source src="@url" type=@VideoFileMimeTypes[fileExtension]>
-                                                Your browser does not support the video tag.
-                                            </video>
-                                        </FluentCard>
-                                    }
-                                    <FluentStack Orientation="Orientation.Vertical">
-                                            <FluentButton OnClick="(() => DeleteFile(fileName))">
-                                            <FluentIcon Value="@(new Size20.Delete())" Color="Color.Error" />
-                                        </FluentButton>
-                                    </FluentStack>
-                                </FluentStack>
-                            }
-                        }
-                    </FluentHorizontalScroll>
-                    }
-                    
-                    <FluentProgress Visible="@(UploadPercentage > 0)" Min="0" Max="100" Value="@UploadPercentage"
-                                    Style="height: 1em; width: 10em;" />
-                    @if (UploadPercentage > 0)
-                    {
-                        <FluentLabel>@UploadPercentage %</FluentLabel>
-                        <FluentLabel>@UploadTitle</FluentLabel>
+                                }
+                            </FluentHorizontalScroll>
+                        </FluentStack>
                     }
 
                     <FluentStack Style="position: relative; width: 100%; position: sticky; bottom: 0;
@@ -182,9 +185,9 @@ else
                         <div class="fluent-textarea-wrapper">
                             <div class="fluent-icon-group">
                                 <FluentButton Id="MessageFileUploadButton"
-                                    Disabled="@(!Permissions.Any(
+                                    Disabled="@((!Permissions.Any(
                                                 p => p.PermissionType == ServerPermissionType.SendMessages) &&
-                                                UserId != Server.OwnerId)"
+                                                UserId != Server.OwnerId) || !AllowFileAttachment)"
                                               Appearance="Appearance.Stealth">
                                     <FluentIcon Value="@(new Size20.Add())" />
                                 </FluentButton>
@@ -210,10 +213,11 @@ else
                                                Appearance="Appearance.Stealth">
                                     <FluentIcon Value="@(new Size20.Gif())" />
                                 </FluentButton>
-                                <FluentButton OnClick="SendMessageAsync"
-                                              Disabled="@((!Permissions.Any(
+                                <FluentButton  OnClick="SendMessageAsync"
+                                        Disabled="@((!Permissions.Any(
                                                    p => p.PermissionType == ServerPermissionType.SendMessages) &&
-                                                   UserId != Server.OwnerId) || FileUploadInProcess)"
+                                                   UserId != Server.OwnerId) || FileUploadInProcess || 
+                                                    MessageSendInProgress)"
                                               Appearance="Appearance.Stealth">
                                             <FluentIcon Value="@(new Size20.Send())" />
                                 </FluentButton>
@@ -295,6 +299,44 @@ else
     private int UploadPercentage;
     private string UploadTitle;
     private int MaxFileCount = 10;
+    private bool AllowFileAttachment = true;
+    private static string FileProgressToast = "fileProgressToast";
+    private static string MessageProgressToast = "messageProgressToast";
+    private bool MessageSendInProgress = false;
+    private bool FileToastShown = false;
+    private ToastParameters<ProgressToastContent> FileProgressToastData = new()
+    {
+        Id = FileProgressToast,
+        Intent = ToastIntent.Download,
+        Title = "",
+        Timeout = 0,
+        Content = new ProgressToastContent()
+        {
+            Progress = 0,
+        },
+    };
+
+    private ToastParameters<ProgressToastContent> MessageSendingData = new()
+    {
+        Id = MessageProgressToast,
+        Intent = ToastIntent.Progress,
+        Title = "",
+        Timeout = 0,
+        Content = new ProgressToastContent()
+        {
+            Details = "",
+        },
+    };
+
+    private void OnHorizontalScrollStart(HorizontalScrollEventArgs args)
+    {
+        Logger.LogInformation($"{args.Scroll}");
+    }
+
+    private void OnHorizontalScrollEnd(HorizontalScrollEventArgs args)
+    {
+        Logger.LogInformation($"{args.Scroll}");
+    }
 
     readonly List<string> ImageFileExtensions = [
         ".jpg",".jpeg", ".png", ".gif", ".bmp", ".tiff", ".tif",
@@ -377,15 +419,29 @@ else
         }
     }
 
-    private void OnCompleted(IEnumerable<FluentInputFileEventArgs> files)
+    private async Task OnCompleted(IEnumerable<FluentInputFileEventArgs> files)
     {
         UploadPercentage = MessageFileUpload.ProgressPercent;
         UploadTitle = Localizer["Completed"];
+        FileProgressToastData.Title = UploadTitle;
+        ToastService.UpdateToast(FileProgressToast, FileProgressToastData);
         FileUploadInProcess = false;
+        await Task.Delay(1500);
+        ToastService.CloseToast(FileProgressToast);
+        UploadPercentage = 0;
+        UploadTitle = string.Empty;
+        FileToastShown = false;
+        AllowFileAttachment = true;
     }
 
     private async Task OnFileProgress(FluentInputFileEventArgs file)
     {
+        if (!FileToastShown)
+        {
+            ToastService.ShowProgressToast(FileProgressToastData);
+            FileToastShown = true;
+        }
+        AllowFileAttachment = false;
         FileUploadInProcess = true;
         var fileCount = file.AllFiles.Count();
         var index = file.Index + 1;
@@ -393,6 +449,9 @@ else
         UploadPercentage = file.ProgressPercent;
         UploadTitle = Localizer["FileUploadTitle", Localizer["Loading"], index, fileCount, fileName];
         var savePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "temp", fileName);
+        FileProgressToastData.Title = UploadTitle;
+        FileProgressToastData.Content.Progress = UploadPercentage;
+        ToastService.UpdateToast(FileProgressToast, FileProgressToastData);
 
         if (!Files.ContainsKey(fileName))
         {
@@ -413,7 +472,14 @@ else
             }
         }
 
-        await file.Buffer.AppendToFileAsync(savePath);
+        try
+        {
+            await file.Buffer.AppendToFileAsync(savePath);
+        }
+        catch (Exception)
+        {
+            ToastService.ShowError(Localizer["FileUploadError", fileName], timeout: 1000);
+        }
     }
 
     private void OnFileUploaded(FluentInputFileEventArgs file)
@@ -570,6 +636,13 @@ else
             return;
         if (string.IsNullOrWhiteSpace(ServerId) || string.IsNullOrWhiteSpace(ChannelId) || Channel == null)
             return;
+        MessageSendInProgress = true;
+        MessageSendingData.Title = Localizer["SendingMessage"];
+        if (Files.Any())
+        {
+            MessageSendingData.Content.Details = Localizer["UploadingFiles"];
+        }
+        ToastService.ShowProgressToast(MessageSendingData);
         NewMessage.Id = Guid.CreateVersion7().ToString();
         NewMessage.SentAt = DateTimeOffset.UtcNow;
         NewMessage.PartitionKey = $"ChatMessage-{ServerId}";
@@ -593,9 +666,20 @@ else
                 Origin = FileUploadOrigin.BlazorFluentUI
             };
 
-            var files = await MediaService.UploadPostMediaAsync(fileUpload, NewMessage.Id);
+            var fileResult = await MediaService.UploadPostMediaAsync(fileUpload, NewMessage.Id);
 
-            NewMessage.Attachments = [.. files];
+            if (fileResult.Succeeded)
+            {
+                NewMessage.Attachments = [.. fileResult.Files];
+            }
+            else
+            {
+                ToastService.CloseToast(MessageProgressToast);
+                ToastService.ShowError(fileResult.ErrorMessage);
+                ClearUploadProperties();
+
+                return;
+            }
         }
 
         var messageResult = await CosmosDbService.SaveMessageAsync(NewMessage);
@@ -611,6 +695,7 @@ else
         {
             ToastService.ShowError(Localizer["SendingMessageError"]);
             Console.WriteLine(result.ErrorMessage);
+            ToastService.CloseToast(MessageProgressToast);
             return;
         }
 
@@ -618,12 +703,19 @@ else
         {
             File.Delete(Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "temp", file.Key));
         }
+        ClearUploadProperties();
+
+        ToastService.CloseToast(MessageProgressToast);
+        NewMessage = new();
+        MessageSendInProgress = false;
+    }
+
+    private void ClearUploadProperties()
+    {
         Files.Clear();
         FilesUploaded.Clear();
         UploadPercentage = 0;
         UploadTitle = string.Empty;
-
-        NewMessage = new();
     }
 
     private void OnPopoverOpenChanged(string popoverId, bool isOpen)
@@ -652,8 +744,7 @@ else
 
             if (!Files.Any())
             {
-                UploadPercentage = 0;
-                UploadTitle = string.Empty;
+                ClearUploadProperties();
             }
         }
     }

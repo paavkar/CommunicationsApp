@@ -1,6 +1,6 @@
 ﻿using CommunicationsApp.Application.DTOs;
+using CommunicationsApp.Application.ResultModels;
 using CommunicationsApp.Core.Models;
-using CommunicationsApp.Infrastructure.Services.Models;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.SignalR;

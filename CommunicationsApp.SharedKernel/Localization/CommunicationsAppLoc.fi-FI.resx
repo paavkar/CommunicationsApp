@@ -540,4 +540,16 @@
   <data name="MessageFileCountExceeded" xml:space="preserve">
     <value>Maksimimäärä liitteille on {0}. Yritit liittää {1} tiedostoa.</value>
   </data>
+  <data name="FileUploadError" xml:space="preserve">
+    <value>Tiedoston "{0}" lataamisessa ilmeni ongelma.</value>
+  </data>
+  <data name="FileUploadProcessError" xml:space="preserve">
+    <value>Tiedosto(je)n lähettämisessä ilmeni ongelma.</value>
+  </data>
+  <data name="SendingMessage" xml:space="preserve">
+    <value>Lähetetään viestiä</value>
+  </data>
+  <data name="UploadingFiles" xml:space="preserve">
+    <value>Lähetetään valittuja tiedostoja...</value>
+  </data>
 </root>

@@ -1,4 +1,5 @@
 ﻿using CommunicationsApp.Application.Interfaces;
+using CommunicationsApp.Application.ResultModels;
 using CommunicationsApp.Core.Models;
 using CommunicationsApp.SharedKernel.Localization;
 using Dapper;
@@ -109,7 +110,7 @@ namespace CommunicationsApp.Infrastructure.Services
         }
 
         public async Task<(List<ServerProfile> Profiles, List<Server> Servers)> GetServerProfilesAsync(
-            IDbConnection connection,  string userId)
+            IDbConnection connection, string userId)
         {
             var getUserQuery = """
                 SELECT 
@@ -263,7 +264,7 @@ namespace CommunicationsApp.Infrastructure.Services
             var settings = await connection.QueryFirstOrDefaultAsync<AccountSettings>(query, new { userId });
 
 
-            return settings == null 
+            return settings == null
                 ? new AccountSettingsResult { Succeeded = false, ErrorMessage = "No settings found for the given user." }
                 : new AccountSettingsResult { Succeeded = true, Settings = settings };
         }

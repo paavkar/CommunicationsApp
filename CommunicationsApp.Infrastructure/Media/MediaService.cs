@@ -1,14 +1,18 @@
 ﻿using Azure.Core.Pipeline;
 using Azure.Storage.Blobs;
 using CommunicationsApp.Application.Interfaces;
+using CommunicationsApp.Application.ResultModels;
 using CommunicationsApp.Core.Models;
+using CommunicationsApp.SharedKernel.Localization;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
 using System.Security.Cryptography.X509Certificates;
 
 namespace CommunicationsApp.Infrastructure.Services
 {
-    public class MediaService(IConfiguration configuration, ILogger<MediaService> logger) : IMediaService
+    public class MediaService(IConfiguration configuration, ILogger<MediaService> logger,
+        IStringLocalizer<CommunicationsAppLoc> localizer) : IMediaService
     {
         readonly string ConnectionString = configuration.GetValue<string>("BlobStorage:DefaultConnection")!;
         readonly string MessageContainerName = configuration.GetValue<string>("BlobStorage:MessageContainerName")!;
@@ -18,7 +22,7 @@ namespace CommunicationsApp.Infrastructure.Services
         readonly List<string> VideoFileExtensions = [".mp4", ".mov", ".avi", ".mkv", ".wmv", ".flv", ".webm", ".3gp", ".mpeg", ".mpg", ".ts"];
         readonly List<string> AudioFileExtensions = [".mp3", ".wav", ".flac", ".aac", ".ogg", ".wma", ".m4a", ".aiff", ".alac", ".opus"];
 
-        public async Task<List<MediaAttachment>> UploadPostMediaAsync(FileUploadList fileUpload, string messageId)
+        public async Task<MediaUploadResult> UploadPostMediaAsync(FileUploadList fileUpload, string messageId)
         {
             BlobContainerClient containerClient;
             if (configuration["ASPNETCORE_ENVIRONMENT"] == "Development")
@@ -97,10 +101,15 @@ namespace CommunicationsApp.Infrastructure.Services
                 catch (Exception e)
                 {
                     logger.LogError(e, "Error uploading file to Blob storage in {Method}", nameof(UploadPostMediaAsync));
+                    return new MediaUploadResult
+                    {
+                        Succeeded = false,
+                        ErrorMessage = localizer["FileUploadProcessError"]
+                    };
                 }
             }
 
-            return files;
+            return new MediaUploadResult { Succeeded = true, Files = files };
         }
     }
 }

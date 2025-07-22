@@ -1,9 +1,10 @@
-﻿using CommunicationsApp.Core.Models;
+﻿using CommunicationsApp.Application.ResultModels;
+using CommunicationsApp.Core.Models;
 
 namespace CommunicationsApp.Application.Interfaces
 {
     public interface IMediaService
     {
-        Task<List<MediaAttachment>> UploadPostMediaAsync(FileUploadList fileUpload, string messageId);
+        Task<MediaUploadResult> UploadPostMediaAsync(FileUploadList fileUpload, string messageId);
     }
 }

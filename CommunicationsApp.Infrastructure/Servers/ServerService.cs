@@ -1,8 +1,8 @@
 ﻿using CommunicationsApp.Application.DTOs;
 using CommunicationsApp.Application.Interfaces;
+using CommunicationsApp.Application.ResultModels;
 using CommunicationsApp.Core.Models;
 using CommunicationsApp.Infrastructure.CosmosDb;
-using CommunicationsApp.Infrastructure.Services.ResultModels;
 using CommunicationsApp.SharedKernel.Localization;
 using Dapper;
 using Microsoft.AspNetCore.Components.Authorization;

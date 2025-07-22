@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace CommunicationsApp.Infrastructure.Services.Models
+﻿namespace CommunicationsApp.Application.ResultModels
 {
     public class SignalRResult
     {

@@ -1,7 +1,6 @@
 ﻿using CommunicationsApp.Core.Models;
-using CommunicationsApp.Infrastructure.Services.ResultModels;
 
-namespace CommunicationsApp.Infrastructure.Services
+namespace CommunicationsApp.Application.ResultModels
 {
     public class ServerResult : ResultBaseModel
     {
