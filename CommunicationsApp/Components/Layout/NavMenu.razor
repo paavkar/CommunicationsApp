@@ -246,6 +246,11 @@
                     server.Members.RemoveAll(m => m.Id == member.Id);
                     if (member.UserId == User.Id)
                     {
+                        await ChatHubService.LeaveBroadcastChannelAsync(serverId);
+                        foreach (var channel in server.ChannelClasses.SelectMany(cc => cc.Channels))
+                        {
+                            await ChatHubService.LeaveBroadcastChannelAsync(channel.Id!);
+                        }
                         User.Servers.RemoveAll(s => s.Id == serverId);
                     }
                 }
