@@ -173,11 +173,16 @@ else
                                                     </FluentCard>
                                                 }
 
-                                                @foreach (var image in messageFiles)
+                                                @foreach (var file in messageFiles)
                                                 {
-                                                    <FluentGridItem xs="12" md="6" lg="3">
-                                                       
-                                                    </FluentGridItem>
+                                                    <FluentCard Style="padding: 0.5em;" Width="22.5em">
+                                                        <FluentLabel Style="font-size: 1.1em;" Weight="FontWeight.Bold">
+                                                            @file.FileName
+                                                        </FluentLabel>
+                                                        <FluentLabel>
+                                                            @FormatFileSize(file.FileSize)
+                                                        </FluentLabel>
+                                                    </FluentCard>
                                                 }
                                                 </FluentStack>
                                             </FluentStack>
