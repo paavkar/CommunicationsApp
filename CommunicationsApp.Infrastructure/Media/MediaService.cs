@@ -1,5 +1,6 @@
 ﻿using Azure.Core.Pipeline;
 using Azure.Storage.Blobs;
+using Azure.Storage.Blobs.Models;
 using CommunicationsApp.Application.Interfaces;
 using CommunicationsApp.Application.ResultModels;
 using CommunicationsApp.Core.Models;
@@ -19,9 +20,33 @@ namespace CommunicationsApp.Infrastructure.Services
         readonly string AccountName = configuration.GetValue<string>("BlobStorage:AccountName")!;
         readonly string AccountKey = configuration.GetValue<string>("BlobStorage:AccountKey")!;
         readonly List<string> ImageFileExtensions = [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".tif", ".webp", ".svg", ".heic", ".raw", ".ico"];
-        readonly List<string> VideoFileExtensions = [".mp4", ".mov", ".avi", ".mkv", ".wmv", ".flv", ".webm", ".3gp", ".mpeg", ".mpg", ".ts"];
-        readonly List<string> AudioFileExtensions = [".mp3", ".wav", ".flac", ".aac", ".ogg", ".wma", ".m4a", ".aiff", ".alac", ".opus"];
-
+        readonly Dictionary<string, string> VideoFileMimeTypes = new()
+        {
+            { ".mp4", "video/mp4" },
+            { ".mov", "video/quicktime" },
+            { ".avi", "video/x-msvideo" },
+            { ".mkv", "video/x-matroska" },
+            { ".wmv", "video/x-ms-wmv" },
+            { ".flv", "video/x-flv" },
+            { ".webm", "video/webm" },
+            { ".3gp", "video/3gpp" },
+            { ".mpeg", "video/mpeg" },
+            { ".mpg", "video/mpeg" },
+            { ".ts", "video/mp2t" }
+        };
+        readonly Dictionary<string, string> AudioFileMimeTypes = new()
+        {
+            { ".mp3", "audio/mpeg" },
+            { ".wav", "audio/wav" },
+            { ".flac", "audio/flac" },
+            { ".aac", "audio/aac" },
+            { ".ogg", "audio/ogg" },
+            { ".wma", "audio/x-ms-wma" },
+            { ".m4a" , "audio/mp4" },
+            { ".aiff", "audio/aiff" },
+            { ".alac", "audio/alac" },
+            { ".opus", "audio/opus" }
+        };
         public async Task<MediaUploadResult> UploadPostMediaAsync(FileUploadList fileUpload, string messageId)
         {
             BlobContainerClient containerClient;
@@ -76,25 +101,43 @@ namespace CommunicationsApp.Infrastructure.Services
                     if (ImageFileExtensions.Contains(fileExtension))
                     {
                         blobClient = containerClient.GetBlobClient($"{messageId}/image{imageIndex}/{fileName}");
+                        await blobClient.UploadAsync(path: filePath, overwrite: true);
                         imageIndex++;
                     }
-                    else if (VideoFileExtensions.Contains(fileExtension))
+                    else if (VideoFileMimeTypes.TryGetValue(fileExtension, out var videoMime))
                     {
+                        var uploadOptions = new BlobUploadOptions
+                        {
+                            HttpHeaders = new BlobHttpHeaders
+                            {
+                                ContentType = videoMime
+                            }
+                        };
                         blobClient = containerClient.GetBlobClient($"{messageId}/video{videoIndex}/{fileName}");
+                        await blobClient.UploadAsync(path: filePath, options: uploadOptions);
                         videoIndex++;
                     }
-                    else if (AudioFileExtensions.Contains(fileExtension))
+                    else if (AudioFileMimeTypes.TryGetValue(fileExtension, out var audioMime))
                     {
+                        var uploadOptions = new BlobUploadOptions
+                        {
+                            HttpHeaders = new BlobHttpHeaders
+                            {
+                                ContentType = audioMime
+                            }
+                        };
+
                         blobClient = containerClient.GetBlobClient($"{messageId}/audio{audioIndex}/{fileName}");
+                        await blobClient.UploadAsync(path: filePath, options: uploadOptions);
                         audioIndex++;
                     }
                     else
                     {
                         blobClient = containerClient.GetBlobClient($"{messageId}/file{fileIndex}/{fileName}");
+                        await blobClient.UploadAsync(path: filePath, overwrite: true);
                         fileIndex++;
                     }
 
-                    await blobClient.UploadAsync(path: filePath, overwrite: true);
                     file.Value.Url = blobClient.Uri.ToString();
                     files.Add(file.Value);
                 }

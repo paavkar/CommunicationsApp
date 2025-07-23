@@ -24,7 +24,7 @@ namespace CommunicationsApp.Core.Models
         //[JsonProperty(PropertyName = "server")]
         //public Server Server { get; set; } = null!;
         [JsonProperty(PropertyName = "sender")]
-        public ServerProfile Sender { get; set; } = null!;
+        public ServerProfileDTO Sender { get; set; } = null!;
         [JsonProperty(PropertyName = "replyTo")]
         public ChatMessage? ReplyTo { get; set; }
 

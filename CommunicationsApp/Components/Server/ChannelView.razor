@@ -72,7 +72,16 @@ else
                             {
                                 var displayNameId = $"senderDisplayName-{message.Id}";
                                 var popoverId = $"popover-{message.Id}";
-
+                                var messageImages = message.Attachments
+                                    .Where(a => ImageFileExtensions.Contains(Path.GetExtension(a.FileName).ToLower()));
+                                var messageVideos = message.Attachments
+                                     .Where(a => VideoFileMimeTypes.ContainsKey(Path.GetExtension(a.FileName).ToLower()));
+                                var messageAudio = message.Attachments
+                                    .Where(a => AudioFileMimeTypes.ContainsKey(Path.GetExtension(a.FileName).ToLower()));
+                                var messageFiles = message.Attachments
+                                    .Where(a => (!ImageFileExtensions.Contains(Path.GetExtension(a.FileName).ToLower()) &&
+                                             !VideoFileMimeTypes.ContainsKey(Path.GetExtension(a.FileName).ToLower()) &&
+                                             !AudioFileMimeTypes.ContainsKey(Path.GetExtension(a.FileName).ToLower())));
                                 <FluentStack>
                                     <FluentPopover AnchorId=@displayNameId
                                                    Open="@(OpenPopoverId == popoverId)"
@@ -95,6 +104,8 @@ else
                                                 <FluentStack>
                                                     <FluentLabel Id=@displayNameId Weight="FontWeight.Bold"
                                                                  Style="font-size: 1.1em; cursor: pointer;"
+                                                                 Color="Color.Custom"
+                                                                 CustomColor="@message.Sender.Roles.FirstOrDefault().HexColour"
                                                                  @onclick="() => OnPopoverOpenChanged(popoverId, OpenPopoverId != popoverId)">
                                                         @message.Sender.DisplayName
                                                     </FluentLabel>
@@ -105,6 +116,44 @@ else
                                                 <FluentLabel Style="white-space: pre-wrap;">
                                                     @message.Content
                                                 </FluentLabel>
+                                                <FluentGrid>
+                                                    @foreach (var image in messageImages)
+                                                    {
+                                                        <FluentGridItem xs="12" md="6" lg="3">
+                                                            <img src="@image.Url" alt="@image.AltText"
+                                                                style="max-width: 200px" />
+                                                        </FluentGridItem>
+                                                    }
+
+                                                @foreach (var video in messageVideos)
+                                                {
+                                                    <FluentGridItem xs="12" md="1" lg="12">
+                                                        <video controls style="max-width: 300px;">
+                                                            <source src="@video.Url"
+                                                                type=@VideoFileMimeTypes[Path.GetExtension(video.Url)]>
+                                                            Your browser does not support the video tag.
+                                                        </video>
+                                                    </FluentGridItem>
+                                                }
+
+                                                @foreach (var audio in messageAudio)
+                                                {
+                                                    <FluentGridItem xs="12" md="12" lg="12">
+                                                        <audio controls>
+                                                            <source src="@audio.Url" 
+                                                                type=@AudioFileMimeTypes[Path.GetExtension(audio.Url)]>
+                                                            Your browser does not support the audio element.
+                                                        </audio>
+                                                    </FluentGridItem>
+                                                }
+
+                                                @foreach (var image in messageFiles)
+                                                {
+                                                    <FluentGridItem xs="12" md="6" lg="3">
+                                                       
+                                                    </FluentGridItem>
+                                                }
+                                                </FluentGrid>
                                             </FluentStack>
                                         </FluentStack>
                                     </FluentCard>
@@ -576,10 +625,6 @@ else
                 if (Server != null)
                 {
                     Server.Members.RemoveAll(m => m.Id == member.Id);
-                    if (member.UserId == UserId)
-                    {
-                        NavigationManager.NavigateTo("/");
-                    }
                 }
                 await InvokeAsync(StateHasChanged);
                 break;
@@ -686,7 +731,9 @@ else
             OrderNumber = Channel.OrderNumber,
             CreatedAt = Channel.CreatedAt,
         };
-        NewMessage.Sender = Server!.Members.FirstOrDefault(m => m.UserId == UserId)!;
+        var sender = Server!.Members.FirstOrDefault(m => m.UserId == UserId)!;
+
+        NewMessage.Sender = sender.ToDTO();
 
         if (Files.Any())
         {
@@ -731,7 +778,14 @@ else
 
         foreach (var file in Files)
         {
-            File.Delete(Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "temp", file.Key));
+            try
+            {
+                File.Delete(Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "temp", file.Key));
+            }
+            catch (Exception)
+            {
+                Logger.LogError($"Error in deleting the file: {0}", file.Key);
+            }
         }
         ClearUploadProperties();
         await JS.InvokeVoidAsync("resetHeight", NewMessageRef);
