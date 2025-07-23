@@ -17,6 +17,95 @@ Technologies used:
 
 HybridCache is used to cache user and server info to minimize database calls.
 
+The application functions in the form of servers and channels within the servers. Users can create new servers, or
+join existing ones via either a link or code in the link. When users join existing servers, they can choose server-specific
+display name and text status.
+
+Each server has default permissions for every member. As long as the member has permission to send messages via default
+permissions, or another role, they can send messages in channels (given that the permission for viewing channels is given).
+Each message can contain up to 10 attachments that are previewed before sending the message, and then embedded in the server
+view (channel).
+
+Server permissions for roles include the ability to kick or ban members. Currently only kicking is implemented.
+
+## Screenshots
+
+While the following screenshots are in Finnish, the application functions in English (en-GB) or aforementioned Finnish (fi-FI).
+
+### Add server modal
+
+![Add server modal](screenshots/add-server.png)
+
+In this modal window, the user can choose to create a new server, or join an existing one.
+
+### Create server modal
+
+![Create server modal](screenshots/create-server.png)
+
+In this modal window, the user sets the server name and an optional description for a new server.
+
+### Join server modal
+
+![Join server modal](screenshots/join-server.png)
+
+In this modal window, the user gives either an invitation link or code to join an existing server.
+Below the input for the invitation, example invitations are shown as a reference for the user.
+
+### Set server profile modal
+
+![Set server profile](screenshots/set-server-profile.png)
+
+In this modal window, the user can set their display name and text status for the server-specific profile, when
+joining an existing server. If the fields are left blank, their values will be taken from the global user profile.
+The user is shown the server name they are joining. This modal window is only shown as long as the server exists
+from the invitation.
+
+### Message attachment preview
+
+![Message attachment preview](screenshots/message-file-preview.png)
+
+When server members are allowed to send messages, they can attach files as attachments to the message.
+The files can be previewed before sending the message.
+
+### Server view
+
+![Server view](screenshots/server-view.png)
+
+The main view when looking at a server. The server view consists of the channel list on the left, messages sent
+in the channel in the middle, and then a server member list that the user can open. The member display name for messages
+and the member list is determined by the highest hierarchy role the member has. In this instance of the screenshot, the
+member has the permission to view channels.
+
+### Server management view
+
+If the member has permissions to manage the server info, members, or roles, they can open this full-screen dialog. The
+default view is determined by their permissions.
+
+#### Server info edit view
+![Server view](screenshots/server-info.png)
+
+In this view, the member can update server name and description. Viewable only if the member has proper server management
+permission.
+
+#### Server members view
+![Server view](screenshots/members-view.png)
+
+In this view, the member can view all the members in the server, with the option to kick members. Viewable only
+if the member has proper member management permissions.
+
+#### Server info edit view
+![Server view](screenshots/roles-view.png)
+
+In this view the member can see all the roles in the server. They can also update the default permissions
+that everyone gets or choose a role to edit. Viewable only if the member has proper role management permission.
+
+#### Server info edit view
+![Server view](screenshots/role-edit.png)
+
+In this view the member can update role info, permissions and the links between role and members. The editable
+info for roles are the name, colour, and boolean if the members with this role are displayed separately in the
+member list in server view.
+
 ## Running locally
 
 ### Development requirements
