@@ -70,6 +70,23 @@ a, .btn-link {
     width: 100%;
 }
 
+audio {
+    height: 38px;
+    padding: 4px;
+    font-size: 12px;
+}
+
+audio::-webkit-media-controls-panel {
+    border-radius: 6px;
+    height: 30px;
+}
+
+audio::-webkit-media-controls-play-button,
+audio::-webkit-media-controls-volume-slider,
+audio::-webkit-media-controls-timeline {
+    transform: scale(0.8);
+}
+
 #btnOpenServerMenu::part(control) {
     justify-content: space-between;
 }

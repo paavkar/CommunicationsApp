@@ -116,35 +116,61 @@ else
                                                 <FluentLabel Style="white-space: pre-wrap;">
                                                     @message.Content
                                                 </FluentLabel>
-                                                <FluentGrid>
+                                                <FluentStack Style="margin-top: 1em;" Orientation="Orientation.Vertical">
+                                                @if (messageImages.Count() < 3 || messageImages.Count() == 4)
+                                                {
+                                                    <FluentStack Style="width: 50%;" Wrap>
+                                                    @if (messageImages.Count() == 1)
+                                                    {
+                                                        var image = messageImages.FirstOrDefault();
+                                                            <img src="@image.Url" alt="@image.AltText"
+                                                            style="max-width: 400px" />
+                                                    }
+                                                    else
+                                                    {
+                                                        foreach (var image in messageImages)
+                                                        {
+                                                            <img src="@image.Url" alt="@image.AltText"
+                                                            style="max-width: 200px;" />
+                                                        }
+                                                    }
+                                                    </FluentStack>
+                                                }
+                                                else
+                                                {
+                                                    <FluentStack Style="width: 50%;" Wrap>
                                                     @foreach (var image in messageImages)
                                                     {
-                                                        <FluentGridItem xs="12" md="6" lg="3">
-                                                            <img src="@image.Url" alt="@image.AltText"
-                                                                style="max-width: 200px" />
-                                                        </FluentGridItem>
+                                                        <img src="@image.Url" alt="@image.AltText"
+                                                                    style="max-width: 200px;" />
                                                     }
+                                                    </FluentStack>
+                                                }
 
                                                 @foreach (var video in messageVideos)
                                                 {
-                                                    <FluentGridItem xs="12" md="1" lg="12">
-                                                        <video controls style="max-width: 300px;">
-                                                            <source src="@video.Url"
-                                                                type=@VideoFileMimeTypes[Path.GetExtension(video.Url)]>
-                                                            Your browser does not support the video tag.
-                                                        </video>
-                                                    </FluentGridItem>
+                                                    <video controls style="max-width: 300px;">
+                                                        <source src="@video.Url"
+                                                            type=@VideoFileMimeTypes[Path.GetExtension(video.Url)]>
+                                                        Your browser does not support the video tag.
+                                                    </video>
                                                 }
 
                                                 @foreach (var audio in messageAudio)
                                                 {
-                                                    <FluentGridItem xs="12" md="12" lg="12">
-                                                        <audio controls>
+                                                    <FluentCard Style="padding: 0.5em;" Width="22.5em">
+                                                        <FluentLabel Style="font-size: 1.1em;" Weight="FontWeight.Bold">
+                                                            @audio.FileName
+                                                        </FluentLabel>
+                                                        <FluentLabel>
+                                                            @FormatFileSize(audio.FileSize)
+                                                        </FluentLabel>
+                                                        <audio controls style="margin-top: 1em;">
                                                             <source src="@audio.Url" 
                                                                 type=@AudioFileMimeTypes[Path.GetExtension(audio.Url)]>
                                                             Your browser does not support the audio element.
                                                         </audio>
-                                                    </FluentGridItem>
+                                                    </FluentCard>
                                                 }
 
                                                 @foreach (var image in messageFiles)
@@ -153,7 +179,7 @@ else
                                                        
                                                     </FluentGridItem>
                                                 }
-                                                </FluentGrid>
+                                                </FluentStack>
                                             </FluentStack>
                                         </FluentStack>
                                     </FluentCard>
@@ -472,6 +498,22 @@ else
         }
     }
 
+    public string FormatFileSize(long bytes)
+    {
+        const int scale = 1024;
+        string[] units = { "Bytes", "KiB", "MiB", "GiB", "TiB" };
+        int unitIndex = 0;
+        double readableSize = bytes;
+
+        while (readableSize >= scale && unitIndex < units.Length - 1)
+        {
+            readableSize /= scale;
+            unitIndex++;
+        }
+
+        return $"{readableSize:0.##} {units[unitIndex]}";
+    }
+    
     private async Task OnKeyHandleAsync(FluentKeyCodeEventArgs args)
     {
         if (args.Name == "keyup")
