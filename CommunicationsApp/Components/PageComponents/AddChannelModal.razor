@@ -18,8 +18,8 @@
 @* Footer *@
 <FluentDialogFooter>
     <FluentStack HorizontalAlignment="HorizontalAlignment.SpaceBetween">
-        <FluentButton Appearance="Appearance.Accent" OnClick="@SaveAsync">@Localizer["Save"]</FluentButton>
         <FluentButton Appearance="Appearance.Neutral" OnClick="@CancelAsync">@Localizer["Cancel"]</FluentButton>
+        <FluentButton Appearance="Appearance.Accent" OnClick="@SaveAsync">@Localizer["Save"]</FluentButton>
     </FluentStack>
 </FluentDialogFooter>
 
@@ -38,11 +38,14 @@
         <FluentTextArea @bind-Value="Channel.Description"
                         Placeholder="@Localizer["OptionalChannelDescription"]" Style="width: 100%;" Rows="4"
                         Label="@Localizer["OptionalChannelDescription"]" />
-        <FluentSwitch @bind-Value="Channel.IsPrivate" Label="@Localizer["Private"]">
-            <span slot="checked-message">Private</span>
-            <span slot="unchecked-message">Public</span>
-        </FluentSwitch>
-
+        
+        @if (ChannelClass != null && !ChannelClass.IsPrivate)
+        {
+            <FluentSwitch @bind-Value="Channel.IsPrivate" Label="@Localizer["PrivateChannel"]">
+                <span slot="checked-message">@Localizer["Private"]</span>
+                <span slot="unchecked-message">@Localizer["Public"]</span>
+            </FluentSwitch>
+        }
     </FluentStack>
 </FluentDialogBody>
 

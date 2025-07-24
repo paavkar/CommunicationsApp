@@ -76,6 +76,23 @@ in the channel in the middle, and then a server member list that the user can op
 and the member list is determined by the highest hierarchy role the member has. In this instance of the screenshot, the
 member has the permission to view channels.
 
+### Add channel class modal
+
+![Add channel class modal](screenshots/add-channel-class.png)
+
+In this modal window, a server member can add a new channel class to the server. Channel classes are used to group channels
+together in a server. The window has inputs for the name for the channel class and whether it is private or public.
+Member can also choose to add one channel to the class, where you must choose the channel name, and optionally a description.
+If the channel class is chosen to be private, the channel is set private as well.
+
+### Add channel modal
+
+![Add channel class modal](screenshots/add-channel.png)
+
+In this modal window, a server member can add a new channel to the server. The member must choose a channel class to put
+the channel under. The inputs in this window consist of input for name, and optional description input. The member can also
+set the channel public or private. If the chosen channel class is private, the channel is as well.
+
 ### Server management view
 
 If the member has permissions to manage the server info, members, or roles, they can open this full-screen dialog. The

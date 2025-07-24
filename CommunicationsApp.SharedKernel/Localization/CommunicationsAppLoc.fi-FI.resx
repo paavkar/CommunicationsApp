@@ -292,10 +292,10 @@
     <value>Kanavan nimi</value>
   </data>
   <data name="PrivateClass" xml:space="preserve">
-    <value>Yksityinen kanavaluokka</value>
+    <value>Yksityinen kanavaluokka?</value>
   </data>
   <data name="PrivateChannel" xml:space="preserve">
-    <value>Yksityinen kanava</value>
+    <value>Yksityinen kanava?</value>
   </data>
   <data name="NewChannelClass" xml:space="preserve">
     <value>Uusi kanavaluokka</value>
@@ -551,5 +551,11 @@
   </data>
   <data name="UploadingFiles" xml:space="preserve">
     <value>Lähetetään valittuja tiedostoja...</value>
+  </data>
+  <data name="Private" xml:space="preserve">
+    <value>Yksityinen</value>
+  </data>
+  <data name="Public" xml:space="preserve">
+    <value>Julkinen</value>
   </data>
 </root>

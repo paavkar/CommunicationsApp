@@ -292,10 +292,10 @@
     <value>Name for the channel</value>
   </data>
   <data name="PrivateClass" xml:space="preserve">
-    <value>Private channel class</value>
+    <value>Private channel class?</value>
   </data>
   <data name="PrivateChannel" xml:space="preserve">
-    <value>Private channel</value>
+    <value>Private channel?</value>
   </data>
   <data name="NewChannelClass" xml:space="preserve">
     <value>New channel class</value>
@@ -551,5 +551,11 @@
   </data>
   <data name="UploadingFiles" xml:space="preserve">
     <value>Uploading selected files...</value>
+  </data>
+  <data name="Private" xml:space="preserve">
+    <value>Private</value>
+  </data>
+  <data name="Public" xml:space="preserve">
+    <value>Public</value>
   </data>
 </root>
