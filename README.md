@@ -1,5 +1,17 @@
 # CommunicationsApp
 
+## Table of Contents
+
+- [Introduction](#introduction)
+- [Screenshots](#screenshots)
+- [Running Locally](#running-locally)
+  - [Development Requirements](#development-requirements)
+  - [Application Secrets](#application-secrets)
+    - [Azure Cosmos DB](#azure-cosmos-db)
+  - [Azure Blob Storage (Azurite)](#azure-blob-storage-azurite)
+    - [Secrets](#secrets)
+  - [SQL Server](#sql-server)
+
 ## Introduction
 
 The goal of this application was to provide similar-ish communications system to Discord with servers and channels.
@@ -201,6 +213,14 @@ level to at least the blobs.
 The default connection string for the storage service would be this one:
 ```
 DefaultEndpointsProtocol=https;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=https://127.0.0.1:10000/devstoreaccount1;QueueEndpoint=https://127.0.0.1:10001/devstoreaccount1;TableEndpoint=https://127.0.0.1:10002/devstoreaccount1;
+```
+And from this connection string we get the following values for `AccountName` and `AccountKey` (in this order)
+
+```
+devstoreaccount1
+```
+```
+Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==
 ```
 
 ### SQL Server
