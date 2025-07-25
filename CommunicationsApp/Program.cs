@@ -93,6 +93,7 @@ builder.Services.AddApiVersioning(options =>
 }).AddMvc();
 
 builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
+builder.Services.AddScoped<IServerRepository, ServerRepository>();
 builder.Services.AddScoped<IServerService, ServerService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<CosmosDbFactory>();

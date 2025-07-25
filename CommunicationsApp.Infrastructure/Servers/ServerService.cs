@@ -4,7 +4,6 @@ using CommunicationsApp.Application.ResultModels;
 using CommunicationsApp.Core.Models;
 using CommunicationsApp.Infrastructure.CosmosDb;
 using CommunicationsApp.SharedKernel.Localization;
-using Dapper;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Caching.Hybrid;
@@ -12,6 +11,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
 using System.Data;
+using System.Transactions;
 using static CommunicationsApp.Core.Models.Enums;
 
 namespace CommunicationsApp.Infrastructure.Services
@@ -22,7 +22,8 @@ namespace CommunicationsApp.Infrastructure.Services
         ICosmosDbService cosmosDbService,
         IStringLocalizer<CommunicationsAppLoc> localizer,
         ILogger<ServerService> logger,
-        AuthenticationStateProvider asp) : IServerService
+        AuthenticationStateProvider asp,
+        IServerRepository serverRepository) : IServerService
     {
         private SqlConnection GetConnection()
         {
@@ -33,162 +34,135 @@ namespace CommunicationsApp.Infrastructure.Services
         public async Task<Server> CreateServerAsync(Server server, ApplicationUser user)
         {
             server.CreatedAt = DateTimeOffset.UtcNow;
-            var insertServerQuery = """
-                INSERT INTO Servers (Id, Name, InvitationCode, CustomInvitationCode, Description, OwnerId, CreatedAt, IconUrl, BannerUrl, ServerType)
-                VALUES (@Id, @Name, @InvitationCode, @CustomInvitationCode, @Description, @OwnerId, @CreatedAt, @IconUrl, @BannerUrl, @ServerType)
-                """;
-            using var connection = GetConnection();
-            connection.Open();
-            using SqlTransaction transaction = connection.BeginTransaction();
-            try
+
+            using var scope = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);
+            var rowsAffected = await serverRepository.InsertServerAsync(server);
+            if (rowsAffected == 0)
             {
-                var rowsAffected = await connection.ExecuteAsync(insertServerQuery, server, transaction);
-
-                ServerProfile serverProfile = new()
-                {
-                    Id = Guid.CreateVersion7().ToString(),
-                    UserId = user.Id,
-                    UserName = user.UserName,
-                    ServerId = server.Id,
-                    DisplayName = user.DisplayName,
-                    ProfilePictureUrl = user.ProfilePictureUrl,
-                    BannerUrl = user.BannerUrl,
-                    CreatedAt = user.CreatedAt,
-                    JoinedAt = DateTimeOffset.UtcNow,
-                    Status = user.Status,
-                    Bio = user.Bio
-                };
-
-                ServerRole serverRole = new()
-                {
-                    Id = Guid.CreateVersion7().ToString(),
-                    Name = "@everyone",
-                    ServerId = server.Id,
-                    HexColour = "",
-                    Hierarchy = 1
-                };
-
-                var insertServerRoleQuery = """
-                    INSERT INTO ServerRoles (Id, Name, ServerId, HexColour, Hierarchy, DisplaySeparately)
-                    VALUES (@Id, @Name, @ServerId, @HexColour, @Hierarchy, @DisplaySeparately)
-                    """;
-                rowsAffected = await connection.ExecuteAsync(insertServerRoleQuery, serverRole, transaction);
-
-                var serverPermissions = await GetServerPermissionsAsync();
-                List<ServerPermission> defaultPermissions = [];
-
-                foreach (var permission in serverPermissions)
-                {
-                    switch (permission.PermissionType)
-                    {
-                        case ServerPermissionType.DisplayChannels:
-                            defaultPermissions.Add(permission);
-                            break;
-                        case ServerPermissionType.ChangeNickname:
-                            defaultPermissions.Add(permission);
-                            break;
-                        case ServerPermissionType.SendMessages:
-                            defaultPermissions.Add(permission);
-                            break;
-                        case ServerPermissionType.SendMessagesToThreads:
-                            defaultPermissions.Add(permission);
-                            break;
-                        case ServerPermissionType.CreatePublicThreads:
-                            defaultPermissions.Add(permission);
-                            break;
-                        case ServerPermissionType.CreatePrivateThreads:
-                            defaultPermissions.Add(permission);
-                            break;
-                        case ServerPermissionType.EmbedLinks:
-                            defaultPermissions.Add(permission);
-                            break;
-                        case ServerPermissionType.AttachFiles:
-                            defaultPermissions.Add(permission);
-                            break;
-                        case ServerPermissionType.AddReactions:
-                            defaultPermissions.Add(permission);
-                            break;
-                        case ServerPermissionType.ReadMessageHistory:
-                            defaultPermissions.Add(permission);
-                            break;
-                        default:
-                            break;
-                    }
-                }
-
-                var insertRolePermissionsQuery = """
-                    INSERT INTO ServerRolePermissions (RoleId, PermissionId)
-                    VALUES (@RoleId, @PermissionId)
-                    """;
-
-                foreach (var permission in defaultPermissions)
-                {
-                    rowsAffected = await connection.ExecuteAsync(insertRolePermissionsQuery,
-                        new ServerRolePermission() { RoleId = serverRole.Id, PermissionId = permission.Id },
-                        transaction);
-                }
-
-                serverProfile.Roles ??= [];
-                serverProfile.Roles.Add(serverRole);
-
-                server.Members ??= [];
-                server.Members.Add(serverProfile);
-
-                var insertServerProfileQuery = """
-                    INSERT INTO ServerProfiles (Id, UserId, UserName, ServerId, DisplayName, ProfilePictureUrl, BannerUrl, CreatedAt, JoinedAt, Status, Bio)
-                    VALUES (@Id, @UserId, @UserName, @ServerId, @DisplayName, @ProfilePictureUrl, @BannerUrl, @CreatedAt, @JoinedAt, @Status, @Bio)
-                    """;
-                rowsAffected = await connection.ExecuteAsync(insertServerProfileQuery, serverProfile, transaction);
-
-                ChannelClass channelClass = new()
-                {
-                    Id = Guid.CreateVersion7().ToString(),
-                    Name = localizer["TextChannels"],
-                    ServerId = server.Id!,
-                    OrderNumber = 1,
-                    IsPrivate = false
-                };
-
-                server.ChannelClasses ??= [];
-                server.ChannelClasses.Add(channelClass);
-
-                var channelClassQuery = """
-                    INSERT INTO ChannelClasses (Id, Name, ServerId, IsPrivate, OrderNumber)
-                    VALUES (@Id, @Name, @ServerId, @IsPrivate, @OrderNumber)
-                    """;
-                rowsAffected = await connection.ExecuteAsync(channelClassQuery, channelClass, transaction);
-
-                if (rowsAffected > 0)
-                {
-                    Channel defaultChannel = new()
-                    {
-                        Id = Guid.CreateVersion7().ToString(),
-                        Name = localizer["General"].ToString().ToLower(),
-                        ServerId = server.Id!,
-                        ChannelClassId = channelClass.Id,
-                        Description = localizer["GeneralDescription"],
-                        IsPrivate = false,
-                        OrderNumber = 1
-                    };
-                    channelClass.Channels ??= [];
-                    channelClass.Channels.Add(defaultChannel);
-
-                    var defaultChannelQuery = """
-                        INSERT INTO Channels (Id, Name, ServerId, ChannelClassId, Description, IsPrivate, OrderNumber, CreatedAt)
-                        VALUES (@Id, @Name, @ServerId, @ChannelClassId, @Description, @IsPrivate, @OrderNumber, @CreatedAt)
-                        """;
-                    rowsAffected = await connection.ExecuteAsync(defaultChannelQuery, defaultChannel, transaction);
-                }
-
-                transaction.Commit();
-                return server;
-            }
-            catch (Exception e)
-            {
-                transaction.Rollback();
-                logger.LogError(e, "Error in {Method}", nameof(CreateServerAsync));
                 return null!;
             }
+            ServerProfile serverProfile = new()
+            {
+                Id = Guid.CreateVersion7().ToString(),
+                UserId = user.Id,
+                UserName = user.UserName,
+                ServerId = server.Id,
+                DisplayName = user.DisplayName,
+                ProfilePictureUrl = user.ProfilePictureUrl,
+                BannerUrl = user.BannerUrl,
+                CreatedAt = user.CreatedAt,
+                JoinedAt = DateTimeOffset.UtcNow,
+                Status = user.Status,
+                Bio = user.Bio
+            };
+            rowsAffected = await serverRepository.InsertServerProfileAsync(serverProfile);
+            if (rowsAffected == 0)
+            {
+                return null!;
+            }
+            ServerRole serverRole = new()
+            {
+                Id = Guid.CreateVersion7().ToString(),
+                Name = "@everyone",
+                ServerId = server.Id,
+                HexColour = "",
+                Hierarchy = 1
+            };
+            rowsAffected = await serverRepository.InsertServerRoleAsync(serverRole);
+            if (rowsAffected == 0)
+            {
+                return null!;
+            }
+            var serverPermissions = await GetServerPermissionsAsync();
+            List<ServerPermission> defaultPermissions = [];
+
+            foreach (var permission in serverPermissions)
+            {
+                switch (permission.PermissionType)
+                {
+                    case ServerPermissionType.DisplayChannels:
+                        defaultPermissions.Add(permission);
+                        break;
+                    case ServerPermissionType.ChangeNickname:
+                        defaultPermissions.Add(permission);
+                        break;
+                    case ServerPermissionType.SendMessages:
+                        defaultPermissions.Add(permission);
+                        break;
+                    case ServerPermissionType.SendMessagesToThreads:
+                        defaultPermissions.Add(permission);
+                        break;
+                    case ServerPermissionType.CreatePublicThreads:
+                        defaultPermissions.Add(permission);
+                        break;
+                    case ServerPermissionType.CreatePrivateThreads:
+                        defaultPermissions.Add(permission);
+                        break;
+                    case ServerPermissionType.EmbedLinks:
+                        defaultPermissions.Add(permission);
+                        break;
+                    case ServerPermissionType.AttachFiles:
+                        defaultPermissions.Add(permission);
+                        break;
+                    case ServerPermissionType.AddReactions:
+                        defaultPermissions.Add(permission);
+                        break;
+                    case ServerPermissionType.ReadMessageHistory:
+                        defaultPermissions.Add(permission);
+                        break;
+                    default:
+                        break;
+                }
+            }
+
+            foreach (var permission in defaultPermissions)
+            {
+                rowsAffected = await serverRepository.UpsertServerRolePermissionsAsync(serverRole.Id, [permission.Id]);
+            }
+            serverProfile.Roles ??= [];
+            serverProfile.Roles.Add(serverRole);
+
+            server.Members ??= [];
+            server.Members.Add(serverProfile);
+            ChannelClass channelClass = new()
+            {
+                Id = Guid.CreateVersion7().ToString(),
+                Name = localizer["TextChannels"],
+                ServerId = server.Id!,
+                OrderNumber = 1,
+                IsPrivate = false
+            };
+
+            server.ChannelClasses ??= [];
+            server.ChannelClasses.Add(channelClass);
+
+            rowsAffected = await serverRepository.InsertChannelClassAsync(channelClass);
+            if (rowsAffected > 0)
+            {
+                Channel defaultChannel = new()
+                {
+                    Id = Guid.CreateVersion7().ToString(),
+                    Name = localizer["General"].ToString().ToLower(),
+                    ServerId = server.Id!,
+                    ChannelClassId = channelClass.Id,
+                    Description = localizer["GeneralDescription"],
+                    IsPrivate = false,
+                    OrderNumber = 1
+                };
+                channelClass.Channels ??= [];
+                channelClass.Channels.Add(defaultChannel);
+
+                rowsAffected = await serverRepository.InsertChannelAsync(defaultChannel);
+                if (rowsAffected == 0)
+                {
+                    return null!;
+                }
+
+                scope.Complete();
+                return server;
+            }
+
+            return null!;
         }
 
         public async Task<Server?> GetServerByIdAsync(string serverId)
@@ -202,29 +176,15 @@ namespace CommunicationsApp.Infrastructure.Services
                     return await GetServerFromDatabaseAsync(serverId);
                 }
             );
+            if (cachedServer is null)
+                return null!;
             return cachedServer.Members.Select(m => m.UserId).Any(m => m == authenticatedUserId) ? cachedServer : null;
         }
 
         public async Task<Server?> GetServerFromDatabaseAsync(string serverId)
         {
-            var getServerQuery = """
-                SELECT
-                    s.*,
-                    sr.Id AS ServerRoleId, sr.*,
-                    usr.RoleId AS UserMemberRoleId, usr.*,
-                    cc.Id AS ChannelClassId, cc.*,
-                    c.Id AS ChannelId, c.*,
-                    sp.Id AS ServerProfileId, sp.*
-                FROM Servers s
-                LEFT JOIN ServerRoles sr ON sr.ServerId = s.Id
-                LEFT JOIN UserServerRoles usr ON usr.ServerId = s.Id AND usr.RoleId = sr.Id
-                LEFT JOIN ChannelClasses cc ON cc.ServerId = s.Id
-                LEFT JOIN Channels c ON c.ChannelClassId = cc.Id
-                LEFT JOIN ServerProfiles sp ON sp.ServerId = s.Id
-                WHERE s.Id = @serverId
-                """;
-            var server = await GetServerFromDatabaseAsync(getServerQuery, new { serverId });
-            if (server is not null)
+            var server = await serverRepository.GetServerByIdAsync(serverId);
+            if (server != null)
             {
                 server.ChannelClasses = [.. server.ChannelClasses.OrderBy(cc => cc.OrderNumber)];
                 foreach (var channelClass in server.ChannelClasses)
@@ -240,23 +200,7 @@ namespace CommunicationsApp.Infrastructure.Services
 
         public async Task<dynamic> GetServerByInvitationAsync(string invitationCode)
         {
-            var getServerQuery = """
-                SELECT
-                    s.*,
-                    sr.Id AS ServerRoleId, sr.*,
-                    usr.RoleId AS UserMemberRoleId, usr.*,
-                    cc.Id AS ChannelClassId, cc.*,
-                    c.Id AS ChannelId, c.*,
-                    sp.Id AS ServerProfileId, sp.*
-                FROM Servers s
-                LEFT JOIN ServerRoles sr ON sr.ServerId = s.Id
-                LEFT JOIN UserServerRoles usr ON usr.ServerId = s.Id AND usr.RoleId = sr.Id
-                LEFT JOIN ChannelClasses cc ON cc.ServerId = s.Id
-                LEFT JOIN Channels c ON c.ChannelClassId = cc.Id
-                LEFT JOIN ServerProfiles sp ON sp.ServerId = s.Id
-                WHERE s.InvitationCode = @invitationCode OR s.CustomInvitationCode = @invitationCode
-                """;
-            var server = await GetServerFromDatabaseAsync(getServerQuery, new { invitationCode });
+            var server = await serverRepository.GetServerByInvitationAsync(invitationCode);
             return server is null
                 ? new ServerResult { Succeeded = false, ErrorMessage = "There is no server associated with given invitation." }
                 : new ServerResult { Succeeded = true, Server = server };
@@ -264,40 +208,17 @@ namespace CommunicationsApp.Infrastructure.Services
 
         public async Task<dynamic> JoinServerAsync(Server server, ServerProfile profile)
         {
-            var insertServerProfileQuery = """
-                INSERT INTO ServerProfiles (Id, UserId, UserName, ServerId, DisplayName, ProfilePictureUrl, BannerUrl, CreatedAt, JoinedAt, Status, Bio)
-                VALUES (@Id, @UserId, @UserName, @ServerId, @DisplayName, @ProfilePictureUrl, @BannerUrl, @CreatedAt, @JoinedAt, @Status, @Bio)
-                """;
-            using var connection = GetConnection();
-            connection.Open();
-            using SqlTransaction transaction = connection.BeginTransaction();
-            try
+            var rowsAffected = await serverRepository.InsertServerProfileAsync(profile);
+            if (rowsAffected <= 0)
             {
-                var rowsAffected = await connection.ExecuteAsync(insertServerProfileQuery, profile, transaction);
-
-                if (rowsAffected <= 0)
-                {
-                    transaction.Rollback();
-                    return new ServerResult { Succeeded = false, ErrorMessage = "Failed to join server." };
-                }
-
-                transaction.Commit();
-            }
-            catch (Exception e)
-            {
-                logger.LogError(e, "Error in {Method}", nameof(JoinServerAsync));
-                transaction.Rollback();
+                return new ServerResult { Succeeded = false, ErrorMessage = localizer["ServerJoinError"] };
             }
 
-            var serverProfileQuery = """
-                SELECT sp.*, sr.Id AS ServerRoleId, sr.*
-                FROM ServerProfiles sp
-                LEFT JOIN UserServerRoles usr ON usr.ServerId = sp.ServerId AND usr.UserId = sp.UserId
-                LEFT JOIN ServerRoles sr ON sr.Id = usr.RoleId
-                WHERE sp.ServerId = @serverId
-                """;
-
-            server = await GetServerWithMembersAsync(serverProfileQuery, new { serverId = server.Id }, server);
+            server = await serverRepository.LoadServerProfilesAsync(server);
+            if (server is null)
+            {
+                return localizer["FetchServerError"];
+            }
 
             await GetMessagesAsync(server, server.Id!);
             await UpdateCacheAsync(server.Id, server);
@@ -325,190 +246,6 @@ namespace CommunicationsApp.Infrastructure.Services
             }
         }
 
-        public async Task<Server?> GetServerFromDatabaseAsync(string sql, object queryParameters)
-        {
-            var serverDictionary = new Dictionary<string, Server>();
-            using var connection = GetConnection();
-            await connection.QueryAsync<Server, ServerRole, UserServerRole, ChannelClass, Channel, ServerProfile, Server>(
-                sql,
-                (server, role, userServerRole, channelClass, channel, member) =>
-                {
-                    if (!serverDictionary.TryGetValue(server.Id!, out var currentServer))
-                    {
-                        currentServer = server;
-
-                        currentServer.Roles ??= [];
-                        currentServer.ChannelClasses ??= [];
-                        currentServer.Members ??= [];
-                    }
-
-                    if (role != null && !string.IsNullOrWhiteSpace(role.Id) && currentServer.Roles.All(r => r.Id != role.Id))
-                    {
-                        role.Permissions ??= [];
-                        currentServer.Roles.Add(role);
-                    }
-
-                    if (channelClass != null && !string.IsNullOrWhiteSpace(channelClass.Id))
-                    {
-                        var existingChannelClass = currentServer.ChannelClasses.FirstOrDefault(cc => cc.Id == channelClass.Id);
-                        if (existingChannelClass == null)
-                        {
-                            existingChannelClass = channelClass;
-                            existingChannelClass.Channels ??= [];
-                            currentServer.ChannelClasses.Add(existingChannelClass);
-                        }
-                        if (channel != null && !string.IsNullOrWhiteSpace(channel.Id) &&
-                            existingChannelClass.Channels.All(ch => ch.Id != channel.Id))
-                        {
-                            channel.Messages ??= [];
-                            existingChannelClass.Channels.Add(channel);
-                        }
-                    }
-
-                    if (member != null && !string.IsNullOrWhiteSpace(member.Id))
-                    {
-                        member.Roles ??= [];
-                        member = currentServer.Members.FirstOrDefault(m => m.Id == member.Id) ?? member;
-
-                        if (role.Name == "@everyone" && !member.Roles.Any(r => r.Name == "@everyone"))
-                        {
-                            member.Roles.Add(role);
-                        }
-
-                        if (userServerRole.RoleId != null && userServerRole.UserId == member.UserId)
-                        {
-                            var roleToAdd = currentServer.Roles.FirstOrDefault(r => r.Id == userServerRole.RoleId);
-                            if (roleToAdd != null && !member.Roles.Any(r => r.Id == roleToAdd.Id))
-                            {
-                                member.Roles.Add(roleToAdd);
-                            }
-                        }
-                        if (currentServer.Members.All(m => m.Id != member.Id))
-                        {
-                            currentServer.Members.Add(member);
-                        }
-                    }
-
-                    if (!serverDictionary.ContainsKey(currentServer.Id))
-                    {
-                        serverDictionary.Add(currentServer.Id!, currentServer);
-                    }
-                    return currentServer;
-                },
-                queryParameters,
-                splitOn: "ServerRoleId,UserMemberRoleId,ChannelClassId,ChannelId,ServerProfileId"
-            );
-            var serverWithAllData = serverDictionary.FirstOrDefault().Value;
-
-            if (serverWithAllData == null)
-            {
-                return null;
-            }
-
-            var getServerPermissionsQuery = """
-                SELECT 
-                    sp.*,
-                    srp.*
-                FROM ServerPermissions sp
-                LEFT JOIN ServerRolePermissions srp ON srp.PermissionId = sp.Id
-                WHERE srp.RoleId IN (SELECT Id FROM ServerRoles WHERE ServerId = @serverId)
-                """;
-
-            await connection.QueryAsync<ServerPermission, ServerRolePermission, ServerPermission>(
-                getServerPermissionsQuery,
-                (permission, rolePermission) =>
-                {
-                    if (serverWithAllData.Roles != null)
-                    {
-                        var role = serverWithAllData.Roles.FirstOrDefault(r => r.Id == rolePermission.RoleId);
-                        if (role != null && !role.Permissions.Any(p => p.Id == permission.Id))
-                        {
-                            role.Permissions.Add(permission);
-                        }
-                    }
-                    return permission;
-                },
-                new { serverId = serverWithAllData.Id },
-                splitOn: "RoleId"
-            );
-
-            foreach (var role in serverWithAllData.Roles)
-            {
-                foreach (var member in serverWithAllData.Members)
-                {
-                    var memberRole = member.Roles.FirstOrDefault(r => r.Id == role.Id);
-                    if (memberRole != null)
-                    {
-                        memberRole.Permissions = [.. role.Permissions];
-                    }
-                }
-            }
-
-            serverWithAllData.ChannelClasses = [.. serverWithAllData.ChannelClasses.OrderBy(cc => cc.OrderNumber)];
-            foreach (var channelClass in serverWithAllData.ChannelClasses)
-            {
-                channelClass.Channels = [.. channelClass.Channels.OrderBy(c => c.OrderNumber)];
-            }
-            foreach (var member in serverWithAllData.Members)
-            {
-                member.Roles = [.. member.Roles.OrderBy(r => r.Hierarchy)];
-            }
-
-            return serverWithAllData ?? null;
-        }
-
-        public async Task<Server> GetServerWithMembersAsync(string sql, object queryParameters, Server server)
-        {
-            var memberDictionary = new Dictionary<string, ServerProfile>();
-
-            using var connection = GetConnection();
-            await connection.QueryAsync<ServerProfile, ServerRole, ServerProfile>(
-                sql,
-                (serverProfile, role) =>
-                {
-                    if (!memberDictionary.TryGetValue(serverProfile.Id!, out var member))
-                    {
-                        member = serverProfile;
-
-                        member.Roles ??= [];
-                        memberDictionary.Add(member.Id!, member);
-                    }
-                    if (role != null)
-                    {
-                        role.Permissions ??= [];
-                        if (!member.Roles.Any(r => r.Name == "@everyone"))
-                        {
-                            var everyoneRole = server.Roles.FirstOrDefault(r => r.Name == "@everyone");
-                            member.Roles.Add(everyoneRole);
-                        }
-                        if (!string.IsNullOrWhiteSpace(role.Id) && member.Roles.All(r => r.Id != role.Id))
-                        {
-                            role.Permissions = server.Roles.FirstOrDefault(r => r.Id == role.Id).Permissions;
-                            member.Roles.Add(role);
-                        }
-                    }
-                    return member;
-                },
-                queryParameters,
-                splitOn: "ServerRoleId"
-            );
-            foreach (var sp in memberDictionary)
-            {
-                var member = sp.Value;
-                member.Roles = [.. member.Roles.OrderBy(r => r.Hierarchy)];
-                if (server != null && server.Members != null)
-                {
-                    var existingProfile = server.Members.FirstOrDefault(x => x.Id == member.Id);
-                    if (existingProfile == null)
-                    {
-                        server.Members.Add(member);
-                    }
-                }
-            }
-
-            return server;
-        }
-
         public async Task UpdateCacheAsync(string serverId, Server server)
         {
             if (server == null || string.IsNullOrWhiteSpace(serverId))
@@ -520,103 +257,53 @@ namespace CommunicationsApp.Infrastructure.Services
 
         public async Task<dynamic> LeaveServerAsync(string serverId, string userId)
         {
-            var deleteServerProfileQuery = """
-                DELETE FROM ServerProfiles
-                WHERE ServerId = @serverId AND UserId = @userId
-                """;
-            using var connection = GetConnection();
-            connection.Open();
-            using SqlTransaction transaction = connection.BeginTransaction();
-            try
+            var rowsAffected = await serverRepository.DeleteServerProfileAsync(serverId, userId);
+            if (rowsAffected > 0)
             {
-                var rowsAffected = await connection.ExecuteAsync(deleteServerProfileQuery, new { serverId, userId }, transaction);
-                if (rowsAffected > 0)
-                {
-                    transaction.Commit();
-                    var server = await GetServerFromDatabaseAsync(serverId);
-                    server.Members.RemoveAll(m => m.UserId == userId);
-                    await UpdateCacheAsync(serverId, server);
-                    return new ServerResult { Succeeded = true };
-                }
-                else
-                {
-                    transaction.Rollback();
-                    return new ServerResult { Succeeded = false, ErrorMessage = "Failed to leave server." };
-                }
+                var server = await GetServerFromDatabaseAsync(serverId);
+                server.Members.RemoveAll(m => m.UserId == userId);
+                await UpdateCacheAsync(serverId, server);
+                return new ServerResult { Succeeded = true };
             }
-            catch (Exception e)
+            else
             {
-                transaction.Rollback();
-                logger.LogError(e, "Error in {Method}", nameof(LeaveServerAsync));
-                return new ServerResult { Succeeded = false, ErrorMessage = e.Message };
+                return new ServerResult { Succeeded = false, ErrorMessage = "Failed to leave server." };
             }
         }
 
         public async Task<dynamic> KickMembersAsync(string serverId, List<string> userIds)
         {
-            var deleteServerProfilesQuery = """
-                DELETE FROM ServerProfiles
-                WHERE ServerId = @serverId AND UserId IN @userIds
-                """;
-            using var connection = GetConnection();
-            connection.Open();
-            using SqlTransaction transaction = connection.BeginTransaction();
-            try
+            using var scope = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);
+            var rowsAffected = await serverRepository.DeleteServerProfilesAsync(serverId, userIds);
+            if (rowsAffected > 0)
             {
-                var rowsAffected = await connection.ExecuteAsync(deleteServerProfilesQuery, new { serverId, userIds }, transaction);
-                if (rowsAffected > 0)
-                {
-                    transaction.Commit();
-                    var server = await GetServerFromDatabaseAsync(serverId);
-                    server.Members.RemoveAll(m => userIds.Contains(m.UserId));
-                    await UpdateCacheAsync(serverId, server);
-                    return new ServerResult { Succeeded = true };
-                }
-                else
-                {
-                    transaction.Rollback();
-                    return new ServerResult { Succeeded = false, ErrorMessage = "Failed to leave server." };
-                }
+                scope.Complete();
+                var server = await GetServerFromDatabaseAsync(serverId);
+                server.Members.RemoveAll(m => userIds.Contains(m.UserId));
+                await UpdateCacheAsync(serverId, server);
+                return new ServerResult { Succeeded = true };
             }
-            catch (Exception e)
+            else
             {
-                transaction.Rollback();
-                logger.LogError(e, "Error in {Method}", nameof(LeaveServerAsync));
-                return new ServerResult { Succeeded = false, ErrorMessage = e.Message };
+                return new ServerResult { Succeeded = false, ErrorMessage = "Failed to leave server." };
             }
         }
 
         public async Task<dynamic> AddChannelClassAsync(ChannelClass channelClass)
         {
-            var server = await GetServerByIdAsync(channelClass.ServerId);
-            server.ChannelClasses.Add(channelClass);
-            var insertChannelClassQuery = """
-                INSERT INTO ChannelClasses (Id, Name, ServerId, IsPrivate, OrderNumber)
-                VALUES (@Id, @Name, @ServerId, @IsPrivate, @OrderNumber)
-                """;
-            using var connection = GetConnection();
-            connection.Open();
-            using SqlTransaction transaction = connection.BeginTransaction();
-            try
+            using var scope = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);
+            var rowsAffected = await serverRepository.InsertChannelClassAsync(channelClass);
+            if (rowsAffected > 0)
             {
-                var rowsAffected = await connection.ExecuteAsync(insertChannelClassQuery, channelClass, transaction);
-                if (rowsAffected > 0)
-                {
-                    transaction.Commit();
-                    await UpdateCacheAsync(server.Id!, server);
-                    return new ChannelClassResult { Succeeded = true, ChannelClass = channelClass };
-                }
-                else
-                {
-                    transaction.Rollback();
-                    return new ChannelClassResult { Succeeded = false, ErrorMessage = "Failed to add channel class." };
-                }
+                scope.Complete();
+                var server = await GetServerByIdAsync(channelClass.ServerId);
+                server.ChannelClasses.Add(channelClass);
+                await UpdateCacheAsync(server.Id!, server);
+                return new ChannelClassResult { Succeeded = true, ChannelClass = channelClass };
             }
-            catch (Exception e)
+            else
             {
-                transaction.Rollback();
-                logger.LogError(e, "Error in {Method}", nameof(AddChannelClassAsync));
-                return new ChannelClassResult { Succeeded = false, ErrorMessage = e.Message };
+                return new ChannelClassResult { Succeeded = false, ErrorMessage = "Failed to add channel class." };
             }
         }
 
@@ -629,189 +316,87 @@ namespace CommunicationsApp.Infrastructure.Services
                 return new ChannelResult { Succeeded = false, ErrorMessage = "Channel class not found." };
             }
             channelClass.Channels.Add(channel);
-            var insertChannelQuery = """
-                INSERT INTO Channels (Id, Name, ServerId, ChannelClassId, Description, IsPrivate, OrderNumber, CreatedAt)
-                VALUES (@Id, @Name, @ServerId, @ChannelClassId, @Description, @IsPrivate, @OrderNumber, @CreatedAt)
-                """;
-            using var connection = GetConnection();
-            connection.Open();
-            using SqlTransaction transaction = connection.BeginTransaction();
-            try
+            var rowsAffected = await serverRepository.InsertChannelAsync(channel);
+            if (rowsAffected > 0)
             {
-                var rowsAffected = await connection.ExecuteAsync(insertChannelQuery, channel, transaction);
-                if (rowsAffected > 0)
-                {
-                    transaction.Commit();
-                    await UpdateCacheAsync(server.Id!, server);
-                    return new ChannelResult { Succeeded = true, Channel = channel };
-                }
-                else
-                {
-                    transaction.Rollback();
-                    return new ChannelClassResult { Succeeded = false, ErrorMessage = "Failed to add channel." };
-                }
+                await UpdateCacheAsync(server.Id!, server);
+                return new ChannelResult { Succeeded = true, Channel = channel };
             }
-            catch (Exception e)
+            else
             {
-                transaction.Rollback();
-                logger.LogError(e, "Error in {Method}", nameof(AddChannelAsync));
-                return new ChannelClassResult { Succeeded = false, ErrorMessage = e.Message };
+                return new ChannelClassResult { Succeeded = false, ErrorMessage = "Failed to add channel." };
             }
         }
 
         public async Task<dynamic> AddServerPermissionsAsync()
         {
+            using var scope = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);
             foreach (Enums.ServerPermissionType permission in Enum.GetValues<Enums.ServerPermissionType>())
             {
-                var insertServerPermissionQuery = """
-                    INSERT INTO ServerPermissions (Id, PermissionType, PermissionName)
-                    SELECT @Id, @PermissionType, @PermissionName
-                    WHERE NOT EXISTS (
-                        SELECT 1 FROM ServerPermissions WHERE PermissionName = @PermissionName
-                    )
-                    """;
-                using var connection = GetConnection();
-                connection.Open();
-                using SqlTransaction transaction = connection.BeginTransaction();
-                try
+                ServerPermission p = new()
                 {
-                    var rowsAffected = await connection.ExecuteAsync(insertServerPermissionQuery, new
-                    {
-                        Id = Guid.CreateVersion7().ToString(),
-                        PermissionType = permission,
-                        PermissionName = permission.ToString()
-                    }, transaction);
-                    transaction.Commit();
-                }
-                catch (Exception e)
-                {
-                    transaction.Rollback();
-                    logger.LogError(e, "Error in {Method}", nameof(AddServerPermissionsAsync));
-                    return new ServerPermissionResult { Succeeded = false, ErrorMessage = e.Message };
-                }
+                    Id = Guid.CreateVersion7().ToString(),
+                    PermissionType = permission,
+                    PermissionName = permission.ToString()
+                };
+                await serverRepository.UpdateServerPermissionAsync(p);
+                await serverRepository.UpsertServerPermissionAsync(p);
             }
+            scope.Complete();
             return new ServerPermissionResult { Succeeded = true };
         }
 
         public async Task<List<ServerPermission>> GetServerPermissionsAsync()
         {
-            var getServerPermissionsQuery = """
-                SELECT * FROM ServerPermissions
-                """;
-            using var connection = GetConnection();
-            var serverPermissions = await connection.QueryAsync<ServerPermission>(getServerPermissionsQuery);
+            var serverPermissions = await serverRepository.GetAllPermissionsAsync();
             return [.. serverPermissions];
         }
 
         public async Task<dynamic> UpdateServerNameDescriptionAsync(string serverId, ServerInfoUpdate update)
         {
-            var updateServerQuery = """
-                UPDATE Servers
-                SET Name = @Name, Description = @Description
-                WHERE Id = @serverId
-                """;
-            using var connection = GetConnection();
-            try
+            var rowsAffected = await serverRepository.UpdateServerInfoAsync(serverId, update);
+            if (rowsAffected > 0)
             {
-                var rowsAffected = await connection.ExecuteAsync(updateServerQuery,
-                    new { Name = update.Name, Description = update.Description, serverId });
-                if (rowsAffected > 0)
+                var server = await GetServerByIdAsync(serverId);
+                if (server != null)
                 {
-                    var server = await GetServerByIdAsync(serverId);
-                    if (server != null)
-                    {
-                        server.Name = update.Name;
-                        server.Description = update.Description;
-                        await UpdateCacheAsync(serverId, server);
-                    }
-                    return new ResultBaseModel { Succeeded = true };
+                    server.Name = update.Name;
+                    server.Description = update.Description;
+                    await UpdateCacheAsync(serverId, server);
                 }
-                else
-                {
-                    return new ResultBaseModel
-                    {
-                        Succeeded = false,
-                        ErrorMessage = localizer["ServerInfoUpdateError"]
-                    };
-                }
+                return new ResultBaseModel { Succeeded = true };
             }
-            catch (Exception e)
+            else
             {
-                logger.LogError(e, "Error updating the server in {Method}", nameof(UpdateServerNameDescriptionAsync));
-                return new ResultBaseModel { Succeeded = false, ErrorMessage = e.Message };
+                return new ResultBaseModel
+                {
+                    Succeeded = false,
+                    ErrorMessage = localizer["ServerInfoUpdateError"]
+                };
             }
         }
 
         public async Task<dynamic> UpdateRoleAsync(string serverId, ServerRole role, RoleMemberLinking linking)
         {
-            var updateRoleQuery = """
-                UPDATE ServerRoles
-                SET Name = @Name, HexColour = @HexColour, Hierarchy = @Hierarchy, DisplaySeparately = @DisplaySeparately
-                WHERE Id = @Id AND ServerId = @ServerId
-                """;
-            using var connection = GetConnection();
-            connection.Open();
-            using SqlTransaction transaction = connection.BeginTransaction();
+            var permissionIds = role.Permissions.Select(p => p.Id);
+            using var scope = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);
             try
             {
-                var rowsAffected = await connection.ExecuteAsync(updateRoleQuery, role, transaction);
-                var updatePermissionQuery = """
-                            INSERT INTO ServerRolePermissions (RoleId, PermissionId)
-                            SELECT @RoleId, @PermissionId
-                            WHERE NOT EXISTS (SELECT 1
-                                              FROM ServerRolePermissions
-                                              WHERE RoleId = @RoleId
-                                              AND PermissionId = @PermissionId)
-                            """;
-                foreach (var permission in role.Permissions)
-                {
-                    rowsAffected += await connection.ExecuteAsync(updatePermissionQuery,
-                        new { RoleId = role.Id, PermissionId = permission.Id }, transaction);
-                }
+                await serverRepository.UpdateServerRoleAsync(role);
+                await serverRepository.UpsertServerRolePermissionsAsync(role.Id, permissionIds);
+                await serverRepository.DeleteServerRolePermissionsNotInAsync(role.Id, permissionIds);
 
-                var permissionIds = role.Permissions.Select(p => p.Id);
-                var removePermissionsQuery = """
-                    DELETE FROM ServerRolePermissions
-                    WHERE RoleId = @RoleId
-                    AND PermissionId NOT IN @PermissionIds
-                    """;
-                rowsAffected += await connection.ExecuteAsync(removePermissionsQuery,
-                        new { RoleId = role.Id, PermissionIds = permissionIds }, transaction);
-
-                var updateMemberRoleQuery = """
-                        INSERT INTO UserServerRoles (UserId, ServerId, RoleId)
-                        SELECT @UserId, @ServerId, @RoleId
-                        WHERE NOT EXISTS (SELECT 1
-                                            FROM UserServerRoles
-                                            WHERE UserId = @UserId
-                                            AND ServerId = @ServerId
-                                            AND RoleId = @RoleId)
-                        """;
                 foreach (var member in linking.NewMembers)
                 {
-                    rowsAffected += await connection.ExecuteAsync(updateMemberRoleQuery,
-                        new { UserId = member.UserId, ServerId = serverId, RoleId = role.Id }, transaction);
+                    await serverRepository.InsertUserServerRoleAsync(member.UserId, serverId, role.Id);
                 }
 
-                var removeMemberRoleQuery = """
-                        DELETE FROM UserServerRoles
-                        WHERE UserId = @UserId
-                        AND ServerId = @ServerId
-                        AND RoleId = @RoleId
-                        AND EXISTS (
-                              SELECT 1
-                              FROM UserServerRoles
-                              WHERE UserId = @UserId
-                                AND ServerId = @ServerId
-                                AND RoleId = @RoleId)
-                    """;
                 foreach (var member in linking.RemovedMembers)
                 {
-                    Console.WriteLine(member);
-                    rowsAffected += await connection.ExecuteAsync(removeMemberRoleQuery,
-                        new { UserId = member.UserId, ServerId = serverId, RoleId = role.Id }, transaction);
+                    await serverRepository.DeleteUserServerRoleAsync(member.UserId, serverId, role.Id);
                 }
-                transaction.Commit();
+                scope.Complete();
+
                 var server = await GetServerByIdAsync(serverId);
                 if (server != null)
                 {
@@ -860,55 +445,38 @@ namespace CommunicationsApp.Infrastructure.Services
             }
             catch (Exception e)
             {
-                transaction.Rollback();
                 logger.LogError(e, "Error updating the role in {Method}", nameof(UpdateRoleAsync));
                 return new ResultBaseModel { Succeeded = false, ErrorMessage = e.Message };
             }
         }
 
-        public async Task<dynamic> AddRoleAsync(string serverid, ServerRole role)
+        public async Task<dynamic> AddRoleAsync(string serverId, ServerRole role)
         {
-            var insertServerRoleQuery = """
-                    INSERT INTO ServerRoles (Id, Name, ServerId, HexColour, Hierarchy, DisplaySeparately)
-                    VALUES (@Id, @Name, @ServerId, @HexColour, @Hierarchy, @DisplaySeparately)
-                    """;
-            using var connection = GetConnection();
-            connection.Open();
-            using SqlTransaction transaction = connection.BeginTransaction();
-            try
-            {
-                var rowsAffected = await connection.ExecuteAsync(insertServerRoleQuery, role, transaction);
+            using var scope = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);
+            var rowsAffected = await serverRepository.InsertServerRoleAsync(role);
 
-                if (rowsAffected > 0)
+            if (rowsAffected > 0)
+            {
+                var server = await GetServerByIdAsync(serverId);
+                if (server != null)
                 {
-                    var server = await GetServerByIdAsync(serverid);
-                    if (server != null)
+                    server.Roles.Add(role);
+                    var everyoneRole = server.Roles.FirstOrDefault(r => r.Name == "@everyone");
+                    everyoneRole.Hierarchy = server.Roles.Count;
+
+                    rowsAffected = await serverRepository.UpdateServerRoleHierarchyAsync(role);
+                    if (rowsAffected == 0)
                     {
-                        server.Roles.Add(role);
-                        var everyoneRole = server.Roles.FirstOrDefault(r => r.Name == "@everyone");
-                        everyoneRole.Hierarchy = server.Roles.Count;
-
-                        var updateEveryoneRoleQuery = """
-                            UPDATE ServerRoles
-                            SET Hierarchy = @Hierarchy
-                            WHERE Id = @Id
-                            """;
-                        await connection.ExecuteAsync(updateEveryoneRoleQuery, everyoneRole, transaction);
-                        transaction.Commit();
-                        await UpdateCacheAsync(serverid, server);
+                        return new ResultBaseModel { Succeeded = false, ErrorMessage = localizer["AddRoleError"] };
                     }
-                    return new ResultBaseModel { Succeeded = true };
+                    scope.Complete();
+                    await UpdateCacheAsync(serverId, server);
                 }
-                else
-                {
-                    return new ResultBaseModel { Succeeded = false, ErrorMessage = localizer["AddRoleError"] };
-                }
+                return new ResultBaseModel { Succeeded = true };
             }
-            catch (Exception e)
+            else
             {
-                transaction.Rollback();
-                logger.LogError(e, "Error updating the role in {Method}", nameof(AddRoleAsync));
-                return new ResultBaseModel { Succeeded = false, ErrorMessage = e.Message };
+                return new ResultBaseModel { Succeeded = false, ErrorMessage = localizer["AddRoleError"] };
             }
         }
     }

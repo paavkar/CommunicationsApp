@@ -558,4 +558,10 @@
   <data name="Public" xml:space="preserve">
     <value>Public</value>
   </data>
+  <data name="FetchServerError" xml:space="preserve">
+    <value>There was an error fetching the server. Please try again later.</value>
+  </data>
+  <data name="ServerJoinError" xml:space="preserve">
+    <value>Failed to join server. Please try again later.</value>
+  </data>
 </root>

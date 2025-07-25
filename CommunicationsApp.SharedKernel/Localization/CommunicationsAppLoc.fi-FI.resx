@@ -558,4 +558,10 @@
   <data name="Public" xml:space="preserve">
     <value>Julkinen</value>
   </data>
+  <data name="FetchServerError" xml:space="preserve">
+    <value>Palvelimen noudossa ilmeni ongelma. Yritä myöhemmin uudelleen.</value>
+  </data>
+  <data name="ServerJoinError" xml:space="preserve">
+    <value>Palvelimille liittyminen epäonnistui. Yritä myöhemmin uudelleen.</value>
+  </data>
 </root>
