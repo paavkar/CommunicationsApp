@@ -198,7 +198,7 @@
 
     private async void OnChannelMessageReceived(string serverId, string channelId, ChatMessage message)
     {
-        var server = await ServerService.GetServerByIdAsync(serverId);
+        var server = await ServerService.GetServerByIdAsync(serverId, UserId);
         if (server != null)
         {
             var channel = server.ChannelClasses
@@ -226,7 +226,7 @@
                 }
                 if (server is null)
                 {
-                    server = await ServerService.GetServerByIdAsync(serverId);
+                    server = await ServerService.GetServerByIdAsync(serverId, UserId);
                     if (!server.Members.Any(m => m.Id == member.Id))
                     {
                         server.Members.Add(member);

@@ -4,7 +4,6 @@ using CommunicationsApp.Application.ResultModels;
 using CommunicationsApp.Core.Models;
 using CommunicationsApp.Infrastructure.CosmosDb;
 using CommunicationsApp.SharedKernel.Localization;
-using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Configuration;
@@ -22,7 +21,6 @@ namespace CommunicationsApp.Infrastructure.Services
         ICosmosDbService cosmosDbService,
         IStringLocalizer<CommunicationsAppLoc> localizer,
         ILogger<ServerService> logger,
-        AuthenticationStateProvider asp,
         IServerRepository serverRepository) : IServerService
     {
         private SqlConnection GetConnection()
@@ -165,10 +163,8 @@ namespace CommunicationsApp.Infrastructure.Services
             return null!;
         }
 
-        public async Task<Server?> GetServerByIdAsync(string serverId)
+        public async Task<Server?> GetServerByIdAsync(string serverId, string userId = "")
         {
-            var authState = await asp.GetAuthenticationStateAsync();
-            var authenticatedUserId = authState.User.Claims.Where(c => c.Type.Contains("nameidentifier")).First().Value;
             var cachedServer = await cache.GetOrCreateAsync<Server>(
                 $"server_{serverId}",
                 factory: async entry =>
@@ -178,7 +174,11 @@ namespace CommunicationsApp.Infrastructure.Services
             );
             if (cachedServer is null)
                 return null!;
-            return cachedServer.Members.Select(m => m.UserId).Any(m => m == authenticatedUserId) ? cachedServer : null;
+            return string.IsNullOrWhiteSpace(userId)
+                ? cachedServer
+                : cachedServer.Members.Any(m => m.UserId == userId)
+                    ? cachedServer
+                    : null;
         }
 
         public async Task<Server?> GetServerFromDatabaseAsync(string serverId)

@@ -124,7 +124,7 @@ else
         UserId = authState.User.Claims.Where(c => c.Type.Contains("nameidentifier")).First().Value;
         if (!string.IsNullOrWhiteSpace(ServerId) && !string.IsNullOrWhiteSpace(UserId))
         {
-            Server = await ServerService.GetServerByIdAsync(ServerId);
+            Server = await ServerService.GetServerByIdAsync(ServerId, UserId);
             if (Server is null)
             {
                 NavigationManager.NavigateTo("/", forceLoad: true);
