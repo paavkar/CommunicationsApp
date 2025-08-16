@@ -95,7 +95,7 @@ namespace CommunicationsApp.Infrastructure.Services
                 {
                     var fileName = file.Value.FileName;
                     var fileExtension = Path.GetExtension(fileName).ToLower();
-                    var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "temp", file.Key);
+                    var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "temp", messageId, file.Key);
                     BlobClient blobClient;
 
                     if (ImageFileExtensions.Contains(fileExtension))

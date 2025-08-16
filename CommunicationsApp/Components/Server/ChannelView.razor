@@ -572,7 +572,7 @@ else
         var fileName = file.Name;
         UploadPercentage = file.ProgressPercent;
         UploadTitle = Localizer["FileUploadTitle", Localizer["Loading"], index, fileCount, fileName];
-        var savePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "temp", fileName);
+        var savePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "temp", NewMessage.Id, fileName);
         FileProgressToastData.Title = UploadTitle;
         FileProgressToastData.Content.Progress = UploadPercentage;
         ToastService.UpdateToast(FileProgressToast, FileProgressToastData);
@@ -581,7 +581,7 @@ else
         {
             MediaAttachment attachment = new()
             {
-                Url = Path.Combine("temp", fileName),
+                Url = Path.Combine("temp", NewMessage.Id, fileName),
                 FileName = fileName,
                 FileSize = file.Size
             };
@@ -827,7 +827,7 @@ else
         {
             try
             {
-                File.Delete(Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "temp", file.Key));
+                File.Delete(Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "temp", NewMessage.Id, file.Key));
             }
             catch (Exception)
             {
@@ -865,7 +865,7 @@ else
         {
             try
             {
-                File.Delete(Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "temp", fileName));
+                File.Delete(Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "temp", NewMessage.Id, fileName));
             }
             catch (Exception)
             {
@@ -887,7 +887,7 @@ else
         {
             try
             {
-                File.Delete(Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "temp", file.Key));
+                File.Delete(Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "temp", NewMessage.Id, file.Key));
             }
             catch (Exception e)
             {
