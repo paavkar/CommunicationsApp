@@ -24,18 +24,18 @@ namespace CommunicationsApp.Controllers
         public async Task<IActionResult> GetServerMessages(string serverId)
         {
             var result = await _cosmosDbService.GetServerMessagesAsync(serverId);
-            if (!result?.Succeeded)
+            if (!result.Succeeded)
             {
                 return NotFound(result);
             }
-            return Ok(result);
+            return Ok(result.Messages);
         }
 
         [HttpPost]
         public async Task<IActionResult> SaveMessage([FromBody] ChatMessage message)
         {
             var result = await _cosmosDbService.SaveMessageAsync(message);
-            if (!result?.Succeeded)
+            if (!result.Succeeded)
             {
                 return BadRequest(result);
             }

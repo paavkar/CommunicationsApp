@@ -233,7 +233,7 @@ namespace CommunicationsApp.Infrastructure.Services
             await cache.SetAsync($"user_{user.Id}", user);
         }
 
-        public async Task<dynamic> CreateAccountSettingsAsync(AccountSettings settings)
+        public async Task<AccountSettingsResult> CreateAccountSettingsAsync(AccountSettings settings)
         {
             if (settings == null || string.IsNullOrWhiteSpace(settings.UserId))
             {
@@ -251,7 +251,7 @@ namespace CommunicationsApp.Infrastructure.Services
                 : new AccountSettingsResult { Succeeded = false, ErrorMessage = "There was an error adding settings." };
         }
 
-        public async Task<dynamic> GetAccountSettingsAsync(string userId)
+        public async Task<AccountSettingsResult> GetAccountSettingsAsync(string userId)
         {
             if (string.IsNullOrWhiteSpace(userId))
             {
@@ -262,7 +262,6 @@ namespace CommunicationsApp.Infrastructure.Services
                 """;
             using var connection = GetConnection();
             var settings = await connection.QueryFirstOrDefaultAsync<AccountSettings>(query, new { userId });
-
 
             return settings == null
                 ? new AccountSettingsResult { Succeeded = false, ErrorMessage = "No settings found for the given user." }

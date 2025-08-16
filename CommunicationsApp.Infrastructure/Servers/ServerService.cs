@@ -198,7 +198,7 @@ namespace CommunicationsApp.Infrastructure.Services
             return server ?? null;
         }
 
-        public async Task<dynamic> GetServerByInvitationAsync(string invitationCode)
+        public async Task<ServerResult> GetServerByInvitationAsync(string invitationCode)
         {
             var server = await serverRepository.GetServerByInvitationAsync(invitationCode);
             return server is null
@@ -206,7 +206,7 @@ namespace CommunicationsApp.Infrastructure.Services
                 : new ServerResult { Succeeded = true, Server = server };
         }
 
-        public async Task<dynamic> JoinServerAsync(Server server, ServerProfile profile)
+        public async Task<ServerResult> JoinServerAsync(Server server, ServerProfile profile)
         {
             var rowsAffected = await serverRepository.InsertServerProfileAsync(profile);
             if (rowsAffected <= 0)
@@ -217,7 +217,7 @@ namespace CommunicationsApp.Infrastructure.Services
             server = await serverRepository.LoadServerProfilesAsync(server);
             if (server is null)
             {
-                return localizer["FetchServerError"];
+                return new ServerResult { Succeeded = false, ErrorMessage = localizer["FetchServerError"] };
             }
 
             await GetMessagesAsync(server, server.Id!);
@@ -255,7 +255,7 @@ namespace CommunicationsApp.Infrastructure.Services
             await cache.SetAsync($"server_{serverId}", server);
         }
 
-        public async Task<dynamic> LeaveServerAsync(string serverId, string userId)
+        public async Task<ServerResult> LeaveServerAsync(string serverId, string userId)
         {
             var rowsAffected = await serverRepository.DeleteServerProfileAsync(serverId, userId);
             if (rowsAffected > 0)
@@ -271,7 +271,7 @@ namespace CommunicationsApp.Infrastructure.Services
             }
         }
 
-        public async Task<dynamic> KickMembersAsync(string serverId, List<string> userIds)
+        public async Task<ServerResult> KickMembersAsync(string serverId, List<string> userIds)
         {
             using var scope = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);
             var rowsAffected = await serverRepository.DeleteServerProfilesAsync(serverId, userIds);
@@ -289,7 +289,7 @@ namespace CommunicationsApp.Infrastructure.Services
             }
         }
 
-        public async Task<dynamic> AddChannelClassAsync(ChannelClass channelClass)
+        public async Task<ChannelClassResult> AddChannelClassAsync(ChannelClass channelClass)
         {
             using var scope = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);
             var rowsAffected = await serverRepository.InsertChannelClassAsync(channelClass);
@@ -307,7 +307,7 @@ namespace CommunicationsApp.Infrastructure.Services
             }
         }
 
-        public async Task<dynamic> AddChannelAsync(string channelClassId, Channel channel)
+        public async Task<ChannelResult> AddChannelAsync(string channelClassId, Channel channel)
         {
             var server = await GetServerByIdAsync(channel.ServerId);
             var channelClass = server.ChannelClasses.FirstOrDefault(cc => cc.Id == channelClassId);
@@ -324,11 +324,11 @@ namespace CommunicationsApp.Infrastructure.Services
             }
             else
             {
-                return new ChannelClassResult { Succeeded = false, ErrorMessage = "Failed to add channel." };
+                return new ChannelResult { Succeeded = false, ErrorMessage = "Failed to add channel." };
             }
         }
 
-        public async Task<dynamic> AddServerPermissionsAsync()
+        public async Task<ServerPermissionResult> AddServerPermissionsAsync()
         {
             using var scope = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);
             foreach (Enums.ServerPermissionType permission in Enum.GetValues<Enums.ServerPermissionType>())
@@ -352,7 +352,7 @@ namespace CommunicationsApp.Infrastructure.Services
             return [.. serverPermissions];
         }
 
-        public async Task<dynamic> UpdateServerNameDescriptionAsync(string serverId, ServerInfoUpdate update)
+        public async Task<ResultBaseModel> UpdateServerNameDescriptionAsync(string serverId, ServerInfoUpdate update)
         {
             var rowsAffected = await serverRepository.UpdateServerInfoAsync(serverId, update);
             if (rowsAffected > 0)
@@ -376,7 +376,7 @@ namespace CommunicationsApp.Infrastructure.Services
             }
         }
 
-        public async Task<dynamic> UpdateRoleAsync(string serverId, ServerRole role, RoleMemberLinking linking)
+        public async Task<ResultBaseModel> UpdateRoleAsync(string serverId, ServerRole role, RoleMemberLinking linking)
         {
             var permissionIds = role.Permissions.Select(p => p.Id);
             using var scope = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);
@@ -450,7 +450,7 @@ namespace CommunicationsApp.Infrastructure.Services
             }
         }
 
-        public async Task<dynamic> AddRoleAsync(string serverId, ServerRole role)
+        public async Task<ResultBaseModel> AddRoleAsync(string serverId, ServerRole role)
         {
             using var scope = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);
             var rowsAffected = await serverRepository.InsertServerRoleAsync(role);

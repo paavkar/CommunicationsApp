@@ -1,4 +1,5 @@
-﻿using CommunicationsApp.Core.Models;
+﻿using CommunicationsApp.Application.ResultModels;
+using CommunicationsApp.Core.Models;
 
 namespace CommunicationsApp.Application.Interfaces
 {
@@ -7,7 +8,7 @@ namespace CommunicationsApp.Application.Interfaces
         Task<ApplicationUser> GetUserByIdAsync(string userId);
         Task<ApplicationUser> GetUserFromDatabaseAsync(string userId);
         Task UpdateCacheAsync(ApplicationUser user);
-        Task<dynamic> CreateAccountSettingsAsync(AccountSettings settings);
-        Task<dynamic> GetAccountSettingsAsync(string userId);
+        Task<AccountSettingsResult> CreateAccountSettingsAsync(AccountSettings settings);
+        Task<AccountSettingsResult> GetAccountSettingsAsync(string userId);
     }
 }

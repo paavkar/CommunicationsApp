@@ -1,4 +1,5 @@
 ﻿using CommunicationsApp.Application.DTOs;
+using CommunicationsApp.Application.ResultModels;
 using CommunicationsApp.Core.Models;
 
 namespace CommunicationsApp.Application.Interfaces
@@ -8,16 +9,16 @@ namespace CommunicationsApp.Application.Interfaces
         Task<Server> CreateServerAsync(Server server, ApplicationUser user);
         Task<Server?> GetServerByIdAsync(string serverId, string userId = "");
         Task UpdateCacheAsync(string serverId, Server server);
-        Task<dynamic> GetServerByInvitationAsync(string invitationCode);
-        Task<dynamic> JoinServerAsync(Server server, ServerProfile profile);
-        Task<dynamic> LeaveServerAsync(string serverId, string userId);
-        Task<dynamic> KickMembersAsync(string serverId, List<string> userIds);
-        Task<dynamic> AddChannelClassAsync(ChannelClass channelClass);
-        Task<dynamic> AddChannelAsync(string channelClassId, Channel channel);
-        Task<dynamic> AddServerPermissionsAsync();
+        Task<ServerResult> GetServerByInvitationAsync(string invitationCode);
+        Task<ServerResult> JoinServerAsync(Server server, ServerProfile profile);
+        Task<ServerResult> LeaveServerAsync(string serverId, string userId);
+        Task<ServerResult> KickMembersAsync(string serverId, List<string> userIds);
+        Task<ChannelClassResult> AddChannelClassAsync(ChannelClass channelClass);
+        Task<ChannelResult> AddChannelAsync(string channelClassId, Channel channel);
+        Task<ServerPermissionResult> AddServerPermissionsAsync();
         Task<List<ServerPermission>> GetServerPermissionsAsync();
-        Task<dynamic> UpdateServerNameDescriptionAsync(string serverId, ServerInfoUpdate update);
-        Task<dynamic> UpdateRoleAsync(string serverId, ServerRole role, RoleMemberLinking linking);
-        Task<dynamic> AddRoleAsync(string serverId, ServerRole role);
+        Task<ResultBaseModel> UpdateServerNameDescriptionAsync(string serverId, ServerInfoUpdate update);
+        Task<ResultBaseModel> UpdateRoleAsync(string serverId, ServerRole role, RoleMemberLinking linking);
+        Task<ResultBaseModel> AddRoleAsync(string serverId, ServerRole role);
     }
 }

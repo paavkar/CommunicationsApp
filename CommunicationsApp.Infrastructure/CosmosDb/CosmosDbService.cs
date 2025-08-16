@@ -8,7 +8,7 @@ namespace CommunicationsApp.Infrastructure.CosmosDb
     {
         private Container MessageContainer => cosmosDbFactory.CosmosClient.GetContainer(cosmosDbFactory.DatabaseName, "messages");
 
-        public async Task<dynamic> GetServerMessagesAsync(string serverId)
+        public async Task<MessageResult> GetServerMessagesAsync(string serverId)
         {
             if (string.IsNullOrWhiteSpace(serverId))
             {
@@ -40,7 +40,7 @@ namespace CommunicationsApp.Infrastructure.CosmosDb
             }
         }
 
-        public async Task<dynamic> SaveMessageAsync(ChatMessage message)
+        public async Task<MessageResult> SaveMessageAsync(ChatMessage message)
         {
             if (message == null)
             {
