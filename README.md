@@ -135,6 +135,240 @@ In this view the member can update role info, permissions and the links between 
 info for roles are the name, colour, and boolean if the members with this role are displayed separately in the
 member list in server view.
 
+## Diagrams
+
+### Create server
+
+```mermaid
+sequenceDiagram
+    title Create server (modal)
+    participant User
+    participant UI as AddServerModal
+    participant API as ServerService/API
+    participant DB as ServerRepository
+
+    User->>UI: Open "New server" modal, fill form
+    UI->>API: CreateServerAsync(server, user)
+    API->>DB: InsertServerAsync(server)
+    DB-->>API: RowsAffected
+
+    alt Server created
+      API->>DB: InserServerProfileAsync(profile)
+      DB-->>API: RowsAffected
+      alt Profile created
+        API->>DB: InserServerRoleAsync(role)
+        DB-->>API: RowsAffected
+        alt Role created
+          API->>DB: UpsertServerRolePermissionsAsync(roleId, [permissionId])
+          API->>DB: InserChannelClassAsync(channelClass)
+          DB-->>API: RowsAffected
+          alt Channel class created
+            API->>DB: InserChannelAsync(channel)
+            DB-->>API: RowsAffected
+            alt Channel created
+              API-->>UI: server
+              UI-->>User: Navigate to created server (default channel view)
+            else Channel creation failed
+              API-->>UI: null
+              UI-->>User: Display error message
+            end
+          else Channel class creation failed
+            API-->>UI: null
+            UI-->>User: Display error message
+          end
+        else Role creation failed
+          API-->>UI: null
+          UI-->>User: Display error message
+        end
+      else Server profile creation failed
+        API-->>UI: null
+        UI-->>User: Display error message
+      end
+    else Server creation failed
+      API-->>UI: null
+      UI-->>User: Display error message
+    end
+```
+
+### Join server
+
+```mermaid
+sequenceDiagram
+    title Join existing server
+    participant User
+    participant UI as JoinServerModal
+    participant API as ServerService/API
+    participant DB as ServerRepository
+    participant Hub as CommunicationsHub
+
+    User->>UI: Open "Join server" modal, submit invite (link/code)
+    UI->>API: GetServerByInvitationAsync(invite)
+    API->>DB: GetServerByInvitationAsync(invite)
+    DB-->>API: Server exists
+    alt Server exists
+        UI-->>API: JoinServerAsync(server, profile)
+        API->>DB: InsertServerProfileAsync(profile)
+        DB-->>API: RowsAffected
+        API-->>UI: ServerResult
+
+        alt ServerResult succeeded
+            API->>Hub: NotifyMemberUpdateAsync(serverId, ServerUpdateType.MemberJoined, profile)
+            UI->>User: Close modal, Navigate to ChannelView (first channel)
+        else ServerResult failed
+            UI->>User: Show error message (join server failed)
+        end
+
+    else Server not found
+        UI->>User: Show error message (invalid invite)
+    end
+
+```
+
+### Add channel class
+
+```mermaid
+sequenceDiagram
+    title Add channel class — without initial channel
+    participant User
+    participant CUI as ChannelList
+    participant UI as AddChannelClassModal
+    participant API as ServerService/API
+    participant DB as ServerRepository
+    participant Hub as CommunicationsHub
+
+    User->>UI: Open "Add channel class" modal, fill name/privacy
+    UI->>API: AddChannelClassAsync(channelClass)
+    API->>DB: InsertChannelClassAsync(channelClass)
+    DB-->>API: RowsAffected
+    API-->>UI: ChannelClassResult
+    alt ChannelClassResult succeeded
+        UI->>Hub: NotifyChannelClassUpdateAsync(serverId, ServerUpdateType.ChannelClassAdded, channelClass)
+        Hub-->>CUI: OnChannelClassUpdateReceived(serverId, ServerUpdateType.ChannelClassAdded, cc)
+        UI->>User: Close modal, Update channel list
+    else ChannelClassResult failed
+        UI->>User: Show error message (channel class creation failed)
+    end
+```
+
+```mermaid
+sequenceDiagram
+    title Add channel class — with initial channel
+    participant User
+    participant CUI as ChannelList
+    participant UI as AddChannelClassModal
+    participant API as ServerService/API
+    participant DB as ServerRepository
+    participant Hub as CommunicationsHub
+
+    User->>UI: Open "Add channel class" modal, fill name/privacy + initial channel
+    UI->>API: AddChannelClassAsync(channelClass)
+    API->>DB: InsertChannelClassAsync(channelClass)
+    DB-->>API: RowsAffected
+    API-->>UI: ChannelClassResult
+    
+    alt ChannelClassResult succeeded
+        UI-->>API: AddChannelClassAsync(channelClassId, channel)
+        API-->>DB: InsertChannelAsync(channel)
+        DB-->>API: RowsAffected
+        API-->>UI: ChannelResult
+
+        alt ChannelResult succeeded
+            UI->>Hub: NotifyChannelClassUpdateAsync(serverId, ServerUpdateType.ChannelClassAdded, channelClass)
+            Hub-->>CUI: OnChannelUpdateReceived(serverId, ServerUpdateType updateType, c)
+            UI->>User: Close modal, Update channel list (class + channel)
+        else ChannelResult failed
+            UI->>User: Show error message (channel creation failed)
+        end
+
+    else ChannelClassResult failed
+        UI->>User: Show error message (channel class creation failed)
+    end
+
+```
+
+### Add channel
+
+```mermaid
+sequenceDiagram
+    title Add channel (to existing class)
+    participant User
+    participant CUI as ChannelList
+    participant UI as AddChannelModal
+    participant API as ServerService/API
+    participant DB as ServerRepository
+    participant Hub as CommunicationsHub
+
+    User->>UI: Open "Add channel" modal, choose class, fill name/desc/privacy
+    UI->>API: AddChannelAsync(channelClassId, channel)
+    API->>DB: InsertChannelAsync(channel)
+    DB-->>API: RowsAffected
+    API-->>UI: ChannelResult
+
+    alt ChannelResult succeeded
+        API->>Hub: NotifyChannelUpdateAsync(serverId, ServerUpdateType.ChannelAdded, channel)
+        Hub-->>CUI: OnChannelUpdateReceived(serverId, ServerUpdateType updateType, c)
+        UI->>User: Close modal, Update channel list
+    else ChannelResult failed
+        UI->>User: Show error message (channel creation failed)
+    end
+
+```
+
+### Send message
+
+```mermaid
+sequenceDiagram
+  title Send message — without files
+    participant User
+    participant ChannelView
+    participant CosmosDbService
+    participant Hub as CommunicationsHubService
+
+    User->>ChannelView: Type message
+        ChannelView->>CosmosDbService: SaveMessageAsync(message)
+        CosmosDbService-->>ChannelView: Save result
+
+        alt Save succeeded
+            ChannelView->>Hub: SendMessageAsync(serverId, channelId, message)
+            Hub-->>ChannelView: OnChannelMessageReceived(serverId, channelId, message)
+
+            ChannelView-->>User: Reset message (create new object, remove files)
+        else Save failed
+            ChannelView->>User: Show error message (message saving failed)
+        end
+```
+
+```mermaid
+sequenceDiagram
+  title Send message — with files
+    participant User
+    participant ChannelView
+    participant MediaService
+    participant CosmosDbService
+    participant Hub as CommunicationsHubService
+
+    User->>ChannelView: Attach files & type message
+    ChannelView->>MediaService: UploadPostMediaAsync(fileUpload, messageId)
+    MediaService-->>ChannelView: MediaUploadResult
+    
+    alt MediaUploadResult succeeded
+        ChannelView->>CosmosDbService: SaveMessageAsync(message)
+        CosmosDbService-->>ChannelView: Save result
+
+        alt Save succeeded
+            ChannelView->>Hub: SendMessageAsync(serverId, channelId, message)
+            Hub-->>ChannelView: OnChannelMessageReceived(serverId, channelId, message)
+
+            ChannelView-->>User: Reset message (create new object, remove files)
+        else Save failed
+            ChannelView->>User: Show error message (message saving failed)
+        end
+
+    else MediaUploadResult failed
+        ChannelView->>User: Show error message (file upload failed)
+    end
+```
+
 ## Running locally
 
 ### Development requirements
@@ -166,6 +400,9 @@ The application expects the following variables to be set up:
     "MessageContainerName": "<YOUR_NAME_FOR_MESSAGE_MEDIA>",
     "AccountName": "<YOUR_ACCOUNT_NAME_FOR_STORAGE>",
     "AccountKey": "<YOUR_ACCOUNT_KEY_FOR_STORAGE>",
+  },
+  "Jwt": {
+    "Secret": <YOUR_JWT_SECRET>
   }
 }
 ```
