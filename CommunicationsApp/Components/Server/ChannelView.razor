@@ -572,7 +572,9 @@ else
         var fileName = file.Name;
         UploadPercentage = file.ProgressPercent;
         UploadTitle = Localizer["FileUploadTitle", Localizer["Loading"], index, fileCount, fileName];
-        var savePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "temp", NewMessage.Id, fileName);
+        var tempDir = Path.Combine("wwwroot", "temp", NewMessage.Id);
+        Directory.CreateDirectory(tempDir);
+        var savePath = Path.Combine(tempDir, fileName);
         FileProgressToastData.Title = UploadTitle;
         FileProgressToastData.Content.Progress = UploadPercentage;
         ToastService.UpdateToast(FileProgressToast, FileProgressToastData);
@@ -823,15 +825,16 @@ else
             return;
         }
 
-        foreach (var file in Files)
+        var tempDir = Path.Combine("wwwroot", "temp", NewMessage.Id);
+        if (Directory.Exists(tempDir))
         {
             try
             {
-                File.Delete(Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "temp", NewMessage.Id, file.Key));
+                Directory.Delete(tempDir, true);
             }
-            catch (Exception)
+            catch (Exception e)
             {
-                Logger.LogError($"Error in deleting the file: {0}", file.Key);
+                Logger.LogError(e, "Error deleting temporary directory: {Directory}", tempDir);
             }
         }
         ClearUploadProperties();
@@ -883,15 +886,16 @@ else
 
     public void Dispose()
     {
-        foreach (var file in Files)
+        var tempDir = Path.Combine("wwwroot", "temp", NewMessage.Id);
+        if (Directory.Exists(tempDir))
         {
             try
             {
-                File.Delete(Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "temp", NewMessage.Id, file.Key));
+                Directory.Delete(tempDir, true);
             }
             catch (Exception e)
             {
-                Logger.LogError(e, "Error deleting temporary file: {FileName}", file.Key);
+                Logger.LogError(e, "Error deleting temporary directory: {Directory}", tempDir);
             }
         }
         ChatHubService.ChannelMessageReceived -= OnChannelMessageReceived;

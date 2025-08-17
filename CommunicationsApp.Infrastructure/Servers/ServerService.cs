@@ -4,7 +4,6 @@ using CommunicationsApp.Application.ResultModels;
 using CommunicationsApp.Core.Models;
 using CommunicationsApp.Infrastructure.CosmosDb;
 using CommunicationsApp.SharedKernel.Localization;
-using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Localization;
@@ -23,12 +22,6 @@ namespace CommunicationsApp.Infrastructure.Services
         ILogger<ServerService> logger,
         IServerRepository serverRepository) : IServerService
     {
-        private SqlConnection GetConnection()
-        {
-            var connectionString = configuration.GetConnectionString("DefaultConnection");
-            return new SqlConnection(connectionString);
-        }
-
         public async Task<Server> CreateServerAsync(Server server, ApplicationUser user)
         {
             server.CreatedAt = DateTimeOffset.UtcNow;

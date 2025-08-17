@@ -55,7 +55,7 @@
         public enum FileUploadOrigin
         {
             BlazorFluentUI = 0,
-            React,
+            API,
         }
     }
 }
