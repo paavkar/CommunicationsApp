@@ -49,47 +49,23 @@ namespace CommunicationsApp.Infrastructure.Services
         };
         public async Task<MediaUploadResult> UploadPostMediaAsync(FileUploadList fileUpload, string messageId)
         {
-            BlobContainerClient containerClient;
-            if (configuration["ASPNETCORE_ENVIRONMENT"] == "Development")
-            {
-                var handler = new HttpClientHandler
-                {
-                    ServerCertificateCustomValidationCallback = (message, cert, chain, errors) =>
-                    {
-                        chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
-                        chain.ChainPolicy.VerificationFlags = X509VerificationFlags.AllowUnknownCertificateAuthority;
+            var containerClient = GetContainerClient();
+            var (files, error) = await UploadFilesToBlobAsync(containerClient, fileUpload.Files, messageId);
 
-                        return chain.Build(cert);
-                    }
-                };
+            return error != null
+                ? new MediaUploadResult { Succeeded = false, ErrorMessage = error }
+                : new MediaUploadResult { Succeeded = true, Files = files };
+        }
 
-                var httpClient = new HttpClient(handler);
-                var transport = new HttpClientTransport(httpClient);
+        private async Task<(List<MediaAttachment> Files, string? ErrorMessage)> UploadFilesToBlobAsync(
+            BlobContainerClient containerClient,
+            Dictionary<string, MediaAttachment> fileDict,
+            string messageId)
+        {
+            var files = new List<MediaAttachment>();
+            int imageIndex = 0, videoIndex = 0, audioIndex = 0, fileIndex = 0;
 
-                var options = new BlobClientOptions
-                {
-                    Transport = transport
-                };
-
-                var serviceUri = new Uri($"https://127.0.0.1:10000/{AccountName}");
-                var cred = new Azure.Storage.StorageSharedKeyCredential(AccountName, AccountKey);
-                var blobServiceClient = new BlobServiceClient(serviceUri, cred, options);
-                containerClient = blobServiceClient.GetBlobContainerClient(MessageContainerName);
-            }
-            else
-            {
-                var blobServiceClient = new BlobServiceClient(ConnectionString);
-                containerClient = blobServiceClient.GetBlobContainerClient(MessageContainerName);
-            }
-
-            List<MediaAttachment> files = [];
-
-            var imageIndex = 0;
-            var videoIndex = 0;
-            var audioIndex = 0;
-            var fileIndex = 0;
-
-            foreach (var file in fileUpload.Files)
+            foreach (var file in fileDict)
             {
                 try
                 {
@@ -108,10 +84,7 @@ namespace CommunicationsApp.Infrastructure.Services
                     {
                         var uploadOptions = new BlobUploadOptions
                         {
-                            HttpHeaders = new BlobHttpHeaders
-                            {
-                                ContentType = videoMime
-                            }
+                            HttpHeaders = new BlobHttpHeaders { ContentType = videoMime }
                         };
                         blobClient = containerClient.GetBlobClient($"{messageId}/video{videoIndex}/{fileName}");
                         await blobClient.UploadAsync(path: filePath, options: uploadOptions);
@@ -121,12 +94,8 @@ namespace CommunicationsApp.Infrastructure.Services
                     {
                         var uploadOptions = new BlobUploadOptions
                         {
-                            HttpHeaders = new BlobHttpHeaders
-                            {
-                                ContentType = audioMime
-                            }
+                            HttpHeaders = new BlobHttpHeaders { ContentType = audioMime }
                         };
-
                         blobClient = containerClient.GetBlobClient($"{messageId}/audio{audioIndex}/{fileName}");
                         await blobClient.UploadAsync(path: filePath, options: uploadOptions);
                         audioIndex++;
@@ -143,16 +112,39 @@ namespace CommunicationsApp.Infrastructure.Services
                 }
                 catch (Exception e)
                 {
-                    logger.LogError(e, "Error uploading file to Blob storage in {Method}", nameof(UploadPostMediaAsync));
-                    return new MediaUploadResult
-                    {
-                        Succeeded = false,
-                        ErrorMessage = localizer["FileUploadProcessError"]
-                    };
+                    logger.LogError(e, "Error uploading file to Blob storage");
+                    return ([], localizer["FileUploadProcessError"]);
                 }
             }
+            return (files, null);
+        }
 
-            return new MediaUploadResult { Succeeded = true, Files = files };
+        private BlobContainerClient GetContainerClient()
+        {
+            if (configuration["ASPNETCORE_ENVIRONMENT"] == "Development")
+            {
+                var handler = new HttpClientHandler
+                {
+                    ServerCertificateCustomValidationCallback = (message, cert, chain, errors) =>
+                    {
+                        chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
+                        chain.ChainPolicy.VerificationFlags = X509VerificationFlags.AllowUnknownCertificateAuthority;
+                        return chain.Build(cert);
+                    }
+                };
+                var httpClient = new HttpClient(handler);
+                var transport = new HttpClientTransport(httpClient);
+                var options = new BlobClientOptions { Transport = transport };
+                var serviceUri = new Uri($"https://127.0.0.1:10000/{AccountName}");
+                var cred = new Azure.Storage.StorageSharedKeyCredential(AccountName, AccountKey);
+                var blobServiceClient = new BlobServiceClient(serviceUri, cred, options);
+                return blobServiceClient.GetBlobContainerClient(MessageContainerName);
+            }
+            else
+            {
+                var blobServiceClient = new BlobServiceClient(ConnectionString);
+                return blobServiceClient.GetBlobContainerClient(MessageContainerName);
+            }
         }
     }
 }
