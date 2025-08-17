@@ -3,6 +3,7 @@ using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using CommunicationsApp.Application.Interfaces;
 using CommunicationsApp.Application.ResultModels;
+using CommunicationsApp.Core.Media;
 using CommunicationsApp.Core.Models;
 using CommunicationsApp.SharedKernel.Localization;
 using Microsoft.Extensions.Configuration;
@@ -117,6 +118,65 @@ namespace CommunicationsApp.Infrastructure.Services
                 }
             }
             return (files, null);
+        }
+
+        public async Task<MediaUploadResult> UploadUserProfilePictureAsync(string userId, FileUploadSingle fileUpload)
+        {
+            var ext = Path.GetExtension(fileUpload.FilePath).ToLower();
+            var blobPath = $"profile-pictures/{userId}{ext}";
+            return await UploadSingleFileAsync(fileUpload, blobPath);
+        }
+
+        public async Task<MediaUploadResult> UploadServerProfilePictureAsync(string serverProfileId, FileUploadSingle fileUpload)
+        {
+            var ext = Path.GetExtension(fileUpload.FilePath).ToLower();
+            var blobPath = $"server-profile-pictures/{serverProfileId}{ext}";
+            return await UploadSingleFileAsync(fileUpload, blobPath);
+        }
+
+        public async Task<MediaUploadResult> UploadServerBannerAsync(string serverId, FileUploadSingle fileUpload)
+        {
+            var ext = Path.GetExtension(fileUpload.FilePath).ToLower();
+            var blobPath = $"server-banners/{serverId}{ext}";
+            return await UploadSingleFileAsync(fileUpload, blobPath);
+        }
+
+        public async Task<MediaUploadResult> UploadServerIconAsync(string serverId, FileUploadSingle fileUpload)
+        {
+            var ext = Path.GetExtension(fileUpload.FilePath).ToLower();
+            var blobPath = $"server-icons/{serverId}{ext}";
+            return await UploadSingleFileAsync(fileUpload, blobPath);
+        }
+
+        public async Task<MediaUploadResult> UploadSingleFileAsync(FileUploadSingle fileUpload, string blobPath)
+        {
+            try
+            {
+                var containerClient = GetContainerClient();
+                var blobClient = containerClient.GetBlobClient(blobPath);
+                using (var stream = new FileStream(fileUpload.FilePath, FileMode.Open, FileAccess.Read))
+                {
+                    var uploadOptions = new BlobUploadOptions();
+                    var ext = Path.GetExtension(fileUpload.FilePath).ToLower();
+                    if (ImageFileExtensions.Contains(ext))
+                    {
+                        uploadOptions.HttpHeaders = new BlobHttpHeaders { ContentType = "image/" + ext.TrimStart('.') };
+                    }
+                    await blobClient.UploadAsync(stream, uploadOptions);
+                }
+                var attachment = new MediaAttachment
+                {
+                    FileName = Path.GetFileName(fileUpload.FilePath),
+                    FileSize = new FileInfo(fileUpload.FilePath).Length,
+                    Url = blobClient.Uri.ToString()
+                };
+                return new MediaUploadResult { Succeeded = true, File = attachment };
+            }
+            catch (Exception e)
+            {
+                logger.LogError(e, "Error uploading file to Blob storage");
+                return new MediaUploadResult { Succeeded = false, ErrorMessage = localizer["FileUploadProcessError"] };
+            }
         }
 
         private BlobContainerClient GetContainerClient()

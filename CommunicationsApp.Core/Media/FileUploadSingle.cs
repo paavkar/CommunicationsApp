@@ -2,6 +2,6 @@
 {
     public class FileUploadSingle : FileUploadBase
     {
-        public string? BlazorFile { get; set; }
+        public string FilePath { get; set; }
     }
 }
