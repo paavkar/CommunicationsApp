@@ -4,6 +4,7 @@
 
 - [Introduction](#introduction)
 - [Screenshots](#screenshots)
+- [Diagrams](#diagrams)
 - [Running Locally](#running-locally)
   - [Development Requirements](#development-requirements)
   - [Application Secrets](#application-secrets)
