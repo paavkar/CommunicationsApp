@@ -145,7 +145,6 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await ChatHubService.StartAsync();
         ChatHubService.ChannelMessageReceived += OnChannelMessageReceived;
         ChatHubService.MemberUpdateReceived += OnMemberUpdateReceived;
         ChatHubService.ChannelClassUpdateReceived += OnChannelClassUpdateReceived;

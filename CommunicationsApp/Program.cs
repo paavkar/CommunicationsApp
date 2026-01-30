@@ -5,6 +5,7 @@ using CommunicationsApp.Components.Account;
 using CommunicationsApp.Core.Models;
 using CommunicationsApp.Data;
 using CommunicationsApp.Infrastructure.CosmosDb;
+using CommunicationsApp.Infrastructure.HubClient;
 using CommunicationsApp.Infrastructure.Services;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -20,14 +21,14 @@ using System.Text;
 
 JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 
-var builder = WebApplication.CreateBuilder(args);
+WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 builder.Logging.ClearProviders();
 builder.Logging
        .AddConsole()
        .AddDebug();
 
-var supportedCultures = new[] { "en-GB", "fi-FI" }
+List<CultureInfo> supportedCultures = new[] { "en-GB", "fi-FI" }
     .Select(c => new CultureInfo(c))
     .ToList();
 
@@ -113,7 +114,7 @@ builder.Services.AddScoped<IServerService, ServerService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<CosmosDbFactory>();
 builder.Services.AddScoped<ICosmosDbService, CosmosDbService>();
-builder.Services.AddScoped<CommunicationsHubService>();
+builder.Services.AddScoped<ICommunicationsHubClient, CommunicationsHubClient>();
 builder.Services.AddScoped<IMediaService, MediaService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddAzureClients(clientBuilder =>
@@ -123,14 +124,14 @@ builder.Services.AddAzureClients(clientBuilder =>
     clientBuilder.AddTableServiceClient(builder.Configuration["StorageConnection:tableServiceUri"]!).WithName("StorageConnection");
 });
 
-var app = builder.Build();
+WebApplication app = builder.Build();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseMigrationsEndPoint();
-    using var scope = app.Services.CreateScope();
-    var cosmosFactory = scope.ServiceProvider.GetRequiredService<CosmosDbFactory>();
+    using IServiceScope scope = app.Services.CreateScope();
+    CosmosDbFactory cosmosFactory = scope.ServiceProvider.GetRequiredService<CosmosDbFactory>();
     await cosmosFactory.InitializeDatabase();
 }
 else

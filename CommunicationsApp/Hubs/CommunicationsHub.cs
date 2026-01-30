@@ -3,7 +3,7 @@ using CommunicationsApp.Core.Models;
 using Microsoft.AspNetCore.SignalR;
 using static CommunicationsApp.Core.Models.Enums;
 
-namespace CommunicationsApp.Infrastructure.Hubs
+namespace CommunicationsApp.Hubs
 {
     public class CommunicationsHub : Hub
     {
