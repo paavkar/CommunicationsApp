@@ -886,16 +886,19 @@ else
 
     public void Dispose()
     {
-        var tempDir = Path.Combine("wwwroot", "temp", NewMessage.Id);
-        if (Directory.Exists(tempDir))
+        if (!string.IsNullOrWhiteSpace(NewMessage.Id))
         {
-            try
+            var tempDir = Path.Combine("wwwroot", "temp", NewMessage.Id);
+            if (Directory.Exists(tempDir))
             {
-                Directory.Delete(tempDir, true);
-            }
-            catch (Exception e)
-            {
-                Logger.LogError(e, "Error deleting temporary directory: {Directory}", tempDir);
+                try
+                {
+                    Directory.Delete(tempDir, true);
+                }
+                catch (Exception e)
+                {
+                    Logger.LogError(e, "Error deleting temporary directory: {Directory}", tempDir);
+                }
             }
         }
         ChatHubService.ChannelMessageReceived -= OnChannelMessageReceived;

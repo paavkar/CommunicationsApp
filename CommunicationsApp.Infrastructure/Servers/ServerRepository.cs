@@ -167,23 +167,17 @@ namespace CommunicationsApp.Infrastructure.Services
         {
             const string sql = """
             UPDATE ServerPermissions
-              (PermissionType)
-            SELECT @PermissionType
+            SET PermissionType = @PermissionType
             WHERE Id = @Id
             """;
             using var conn = GetConnection();
             try
             {
-                await conn.ExecuteAsync(sql, new
-                {
-                    Id = Guid.CreateVersion7().ToString(),
-                    PermissionType = permission,
-                    PermissionName = permission.ToString()
-                });
+                await conn.ExecuteAsync(sql, permission);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                logger.LogError("Error updating server permission: {PermissionName}", permission.ToString());
+                logger.LogError(ex, "Error updating server permission: {PermissionName}", permission.ToString());
             }
         }
 
@@ -200,16 +194,11 @@ namespace CommunicationsApp.Infrastructure.Services
             using var conn = GetConnection();
             try
             {
-                await conn.ExecuteAsync(sql, new
-                {
-                    Id = Guid.CreateVersion7().ToString(),
-                    PermissionType = permission,
-                    PermissionName = permission.ToString()
-                });
+                await conn.ExecuteAsync(sql, permission);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-
+                logger.LogError(ex, "Error adding server permission: {PermissionName}", permission.ToString());
             }
         }
 
