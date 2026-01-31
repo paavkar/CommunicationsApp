@@ -1,7 +1,6 @@
 ﻿@implements IDialogContentComponent<Server>
 
 @inject IStringLocalizer<CommunicationsAppLoc> Localizer
-@inject CommunicationsHubService ChatHubService
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider ASP
 @inject IServerService ServerService
@@ -85,6 +84,7 @@
         {
             Profile.Status = User.Status;
         }
+
         var result = await ServerService.JoinServerAsync(Content, Profile);
 
         if (result.Succeeded)
@@ -93,10 +93,8 @@
             User.ServerProfiles.Add(Profile);
             User.Servers.Add(Content);
             await UserService.UpdateCacheAsync(User);
-            await ChatHubService.NotifyMemberUpdateAsync(Content.Id, ServerUpdateType.MemberJoined, Profile);
             var navUrl = $"channels/{Content.Id}/{Content.ChannelClasses.First()?.Channels.First()?.Id}";
             NavigationManager.NavigateTo(navUrl, forceLoad: true);
-            await Dialog.CloseAsync();
         }
     }
 }

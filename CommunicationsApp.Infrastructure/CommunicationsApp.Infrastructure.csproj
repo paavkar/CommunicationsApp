@@ -9,7 +9,7 @@
 
   <ItemGroup>
     <PackageReference Include="Azure.Data.Tables" Version="12.11.0" />
-    <PackageReference Include="Azure.Storage.Blobs" Version="12.27.0" />
+    <PackageReference Include="Azure.Storage.Blobs" Version="12.25.0" />
     <PackageReference Include="Azure.Storage.Files.Shares" Version="12.25.0" />
     <PackageReference Include="Azure.Storage.Queues" Version="12.25.0" />
     <PackageReference Include="Dapper" Version="2.1.66" />
@@ -19,6 +19,7 @@
     <PackageReference Include="Microsoft.Azure.Cosmos" Version="3.57.0" />
     <PackageReference Include="Microsoft.Data.SqlClient" Version="6.1.4" />
     <PackageReference Include="Microsoft.Extensions.Azure" Version="1.13.1" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Hybrid" Version="10.2.0" />
     <PackageReference Include="Microsoft.Extensions.Localization.Abstractions" Version="10.0.2" />
   </ItemGroup>
 

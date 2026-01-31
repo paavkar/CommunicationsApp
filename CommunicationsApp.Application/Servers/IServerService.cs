@@ -17,8 +17,9 @@ namespace CommunicationsApp.Application.Interfaces
         Task<List<ServerPermission>> GetServerPermissionsAsync();
 
         Task<ServerResult> JoinServerAsync(Server server, ServerProfile profile);
-        Task<ServerResult> LeaveServerAsync(string serverId, string userId);
-        Task<ServerResult> KickMembersAsync(string serverId, List<string> userIds);
+        Task<ServerResult> LeaveServerAsync(string serverId, string userId,
+            ServerProfile serverProfile, bool kicked = false);
+        Task<ServerResult> KickMembersAsync(string serverId, List<ServerProfile> members);
 
         Task<ChannelClassResult> AddChannelClassAsync(ChannelClass channelClass);
         Task<ChannelResult> AddChannelAsync(string channelClassId, Channel channel);

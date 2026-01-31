@@ -38,7 +38,7 @@ namespace CommunicationsApp.Infrastructure.Services
               (@Id, @Name, @InvitationCode, @CustomInvitationCode,
                @Description, @OwnerId, @CreatedAt, @IconUrl, @BannerUrl, @ServerType)
             """;
-            using var conn = GetConnection();
+            using SqlConnection conn = GetConnection();
             try
             {
                 return await conn.ExecuteAsync(sql, server);
@@ -100,7 +100,7 @@ namespace CommunicationsApp.Infrastructure.Services
                 Description = @Description
             WHERE Id = @serverId
             """;
-            using var conn = GetConnection();
+            using SqlConnection conn = GetConnection();
             return await conn.ExecuteAsync(sql, new { update.Name, update.Description, serverId });
         }
 
@@ -112,7 +112,7 @@ namespace CommunicationsApp.Infrastructure.Services
             VALUES
               (@Id, @Name, @ServerId, @HexColour, @Hierarchy, @DisplaySeparately)
             """;
-            using var conn = GetConnection();
+            using SqlConnection conn = GetConnection();
             try
             {
                 return await conn.ExecuteAsync(sql, role);
@@ -131,7 +131,7 @@ namespace CommunicationsApp.Infrastructure.Services
             SET Name = @Name, HexColour = @HexColour, Hierarchy = @Hierarchy, DisplaySeparately = @DisplaySeparately
             WHERE Id = @Id AND ServerId = @ServerId
             """;
-            using var conn = GetConnection();
+            using SqlConnection conn = GetConnection();
             try
             {
                 return await conn.ExecuteAsync(sql, role);
@@ -151,7 +151,7 @@ namespace CommunicationsApp.Infrastructure.Services
             SET Hierarchy = @Hierarchy
             WHERE Id = @Id
             """;
-            using var conn = GetConnection();
+            using SqlConnection conn = GetConnection();
             try
             {
                 return await conn.ExecuteAsync(sql, role);
@@ -170,7 +170,7 @@ namespace CommunicationsApp.Infrastructure.Services
             SET PermissionType = @PermissionType
             WHERE Id = @Id
             """;
-            using var conn = GetConnection();
+            using SqlConnection conn = GetConnection();
             try
             {
                 await conn.ExecuteAsync(sql, permission);
@@ -191,7 +191,7 @@ namespace CommunicationsApp.Infrastructure.Services
               SELECT 1 FROM ServerPermissions WHERE PermissionName = @PermissionName
             )
             """;
-            using var conn = GetConnection();
+            using SqlConnection conn = GetConnection();
             try
             {
                 await conn.ExecuteAsync(sql, permission);
@@ -212,7 +212,7 @@ namespace CommunicationsApp.Infrastructure.Services
                 LEFT JOIN ServerRolePermissions srp ON srp.PermissionId = sp.Id
                 WHERE srp.RoleId IN (SELECT Id FROM ServerRoles WHERE ServerId = @serverId)
                 """;
-            using var conn = GetConnection();
+            using SqlConnection conn = GetConnection();
             try
             {
                 await conn.QueryAsync<ServerPermission, ServerRolePermission, ServerPermission>(
@@ -221,7 +221,7 @@ namespace CommunicationsApp.Infrastructure.Services
                     {
                         if (server.Roles != null)
                         {
-                            var role = server.Roles.FirstOrDefault(r => r.Id == rolePermission.RoleId);
+                            ServerRole? role = server.Roles.FirstOrDefault(r => r.Id == rolePermission.RoleId);
                             if (role != null && !role.Permissions.Any(p => p.Id == permission.Id))
                             {
                                 role.Permissions.Add(permission);
@@ -233,11 +233,11 @@ namespace CommunicationsApp.Infrastructure.Services
                     splitOn: "RoleId"
                 );
 
-                foreach (var role in server.Roles)
+                foreach (ServerRole role in server.Roles)
                 {
-                    foreach (var member in server.Members)
+                    foreach (ServerProfile member in server.Members)
                     {
-                        var memberRole = member.Roles.FirstOrDefault(r => r.Id == role.Id);
+                        ServerRole? memberRole = member.Roles.FirstOrDefault(r => r.Id == role.Id);
                         if (memberRole != null)
                         {
                             memberRole.Permissions = [.. role.Permissions];
@@ -256,7 +256,7 @@ namespace CommunicationsApp.Infrastructure.Services
         public async Task<IEnumerable<ServerPermission>> GetAllPermissionsAsync()
         {
             const string sql = "SELECT * FROM ServerPermissions";
-            using var conn = GetConnection();
+            using SqlConnection conn = GetConnection();
             try
             {
                 return await conn.QueryAsync<ServerPermission>(sql);
@@ -278,7 +278,7 @@ namespace CommunicationsApp.Infrastructure.Services
             )
             """;
             var count = 0;
-            using var conn = GetConnection();
+            using SqlConnection conn = GetConnection();
             foreach (var pid in permissionIds)
             {
                 try
@@ -300,7 +300,7 @@ namespace CommunicationsApp.Infrastructure.Services
             WHERE RoleId = @RoleId
               AND PermissionId NOT IN @PermissionIds
             """;
-            using var conn = GetConnection();
+            using SqlConnection conn = GetConnection();
             try
             {
                 return await conn.ExecuteAsync(sql, new { RoleId = roleId, PermissionIds = permissionIds });
@@ -322,7 +322,7 @@ namespace CommunicationsApp.Infrastructure.Services
                 AND ServerId = @ServerId
                 AND RoleId = @RoleId)
             """;
-            using var conn = GetConnection();
+            using SqlConnection conn = GetConnection();
             try
             {
                 return await conn.ExecuteAsync(sql, new { userId, serverId, roleId });
@@ -342,7 +342,7 @@ namespace CommunicationsApp.Infrastructure.Services
               AND ServerId = @ServerId
               AND RoleId = @RoleId
             """;
-            using var conn = GetConnection();
+            using SqlConnection conn = GetConnection();
             try
             {
                 return await conn.ExecuteAsync(sql, new { userId, serverId, roleId });
@@ -366,7 +366,7 @@ namespace CommunicationsApp.Infrastructure.Services
                @DisplayName, @ProfilePictureUrl, @BannerUrl,
                @CreatedAt, @JoinedAt, @Status, @Bio)
             """;
-            using var conn = GetConnection();
+            using SqlConnection conn = GetConnection();
             try
             {
                 return await conn.ExecuteAsync(sql, profile);
@@ -381,11 +381,15 @@ namespace CommunicationsApp.Infrastructure.Services
         public async Task<int> DeleteServerProfileAsync(string serverId, string userId)
         {
             const string sql = """
-            DELETE FROM ServerProfiles
-            WHERE ServerId = @serverId
-              AND UserId = @userId
+                DELETE FROM ServerProfiles
+                WHERE ServerId = @serverId
+                AND UserId = @userId;
+
+                DELETE FROM UserServerRoles
+                WHERE ServerId = @serverId
+                AND UserId = @userId;
             """;
-            using var conn = GetConnection();
+            using SqlConnection conn = GetConnection();
             try
             {
                 return await conn.ExecuteAsync(sql, new { serverId, userId });
@@ -400,11 +404,15 @@ namespace CommunicationsApp.Infrastructure.Services
         public async Task<int> DeleteServerProfilesAsync(string serverId, IEnumerable<string> userIds)
         {
             const string sql = """
-            DELETE FROM ServerProfiles
-            WHERE ServerId = @serverId
-              AND UserId IN @UserIds
+                DELETE FROM ServerProfiles
+                WHERE ServerId = @serverId
+                AND UserId IN @UserIds;
+
+                DELETE FROM UserServerRoles
+                WHERE ServerId = @serverId
+                AND UserId IN @UserIds;
             """;
-            using var conn = GetConnection();
+            using SqlConnection conn = GetConnection();
             try
             {
                 return await conn.ExecuteAsync(sql, new { serverId, userIds = userIds });
@@ -424,7 +432,7 @@ namespace CommunicationsApp.Infrastructure.Services
             VALUES
               (@Id, @Name, @ServerId, @IsPrivate, @OrderNumber)
             """;
-            using var conn = GetConnection();
+            using SqlConnection conn = GetConnection();
             try
             {
                 return await conn.ExecuteAsync(sql, channelClass);
@@ -446,7 +454,7 @@ namespace CommunicationsApp.Infrastructure.Services
               (@Id, @Name, @ServerId, @ChannelClassId,
                @Description, @IsPrivate, @OrderNumber, @CreatedAt)
             """;
-            using var conn = GetConnection();
+            using SqlConnection conn = GetConnection();
             try
             {
                 return await conn.ExecuteAsync(sql, channel);
@@ -460,16 +468,16 @@ namespace CommunicationsApp.Infrastructure.Services
 
         public async Task<Server?> LoadServerAggregateAsync(string sql, object queryParameters)
         {
-            var serverDictionary = new Dictionary<string, Server>();
+            Dictionary<string, Server> serverDictionary = [];
 
-            using var conn = GetConnection();
+            using SqlConnection conn = GetConnection();
             try
             {
                 await conn.QueryAsync<Server, ServerRole, UserServerRole, ChannelClass, Channel, ServerProfile, Server>(
                 sql,
                 (server, role, userServerRole, channelClass, channel, member) =>
                 {
-                    if (!serverDictionary.TryGetValue(server.Id!, out var currentServer))
+                    if (!serverDictionary.TryGetValue(server.Id!, out Server? currentServer))
                     {
                         currentServer = server;
 
@@ -486,7 +494,7 @@ namespace CommunicationsApp.Infrastructure.Services
 
                     if (channelClass != null && !string.IsNullOrWhiteSpace(channelClass.Id))
                     {
-                        var existingChannelClass = currentServer.ChannelClasses.FirstOrDefault(cc => cc.Id == channelClass.Id);
+                        ChannelClass? existingChannelClass = currentServer.ChannelClasses.FirstOrDefault(cc => cc.Id == channelClass.Id);
                         if (existingChannelClass == null)
                         {
                             existingChannelClass = channelClass;
@@ -513,7 +521,7 @@ namespace CommunicationsApp.Infrastructure.Services
 
                         if (userServerRole.RoleId != null && userServerRole.UserId == member.UserId)
                         {
-                            var roleToAdd = currentServer.Roles.FirstOrDefault(r => r.Id == userServerRole.RoleId);
+                            ServerRole? roleToAdd = currentServer.Roles.FirstOrDefault(r => r.Id == userServerRole.RoleId);
                             if (roleToAdd != null && !member.Roles.Any(r => r.Id == roleToAdd.Id))
                             {
                                 member.Roles.Add(roleToAdd);
@@ -534,16 +542,16 @@ namespace CommunicationsApp.Infrastructure.Services
                 queryParameters,
                 splitOn: "ServerRoleId,UserMemberRoleId,ChannelClassId,ChannelId,ServerProfileId"
                 );
-                var server = serverDictionary.Values.FirstOrDefault();
+                Server? server = serverDictionary.Values.FirstOrDefault();
 
                 server = await GetServerRolePermissionsAsync(server);
 
                 server.ChannelClasses = [.. server.ChannelClasses.OrderBy(cc => cc.OrderNumber)];
-                foreach (var channelClass in server.ChannelClasses)
+                foreach (ChannelClass channelClass in server.ChannelClasses)
                 {
                     channelClass.Channels = [.. channelClass.Channels.OrderBy(c => c.OrderNumber)];
                 }
-                foreach (var member in server.Members)
+                foreach (ServerProfile member in server.Members)
                 {
                     member.Roles = [.. member.Roles.OrderBy(r => r.Hierarchy)];
                 }
@@ -566,16 +574,16 @@ namespace CommunicationsApp.Infrastructure.Services
                 LEFT JOIN ServerRoles sr ON sr.Id = usr.RoleId
                 WHERE sp.ServerId = @serverId
                 """;
-            var memberDictionary = new Dictionary<string, ServerProfile>();
+            Dictionary<string, ServerProfile> memberDictionary = new Dictionary<string, ServerProfile>();
 
-            using var conn = GetConnection();
+            using SqlConnection conn = GetConnection();
             try
             {
                 await conn.QueryAsync<ServerProfile, ServerRole, ServerProfile>(
                 sql,
                 (serverProfile, role) =>
                 {
-                    if (!memberDictionary.TryGetValue(serverProfile.Id!, out var member))
+                    if (!memberDictionary.TryGetValue(serverProfile.Id!, out ServerProfile? member))
                     {
                         member = serverProfile;
 
@@ -587,7 +595,7 @@ namespace CommunicationsApp.Infrastructure.Services
                         role.Permissions ??= [];
                         if (!member.Roles.Any(r => r.Name == "@everyone"))
                         {
-                            var everyoneRole = server.Roles.FirstOrDefault(r => r.Name == "@everyone");
+                            ServerRole? everyoneRole = server.Roles.FirstOrDefault(r => r.Name == "@everyone");
                             member.Roles.Add(everyoneRole);
                         }
                         if (!string.IsNullOrWhiteSpace(role.Id) && member.Roles.All(r => r.Id != role.Id))
@@ -602,13 +610,13 @@ namespace CommunicationsApp.Infrastructure.Services
                 splitOn: "ServerRoleId"
             );
 
-                foreach (var sp in memberDictionary)
+                foreach (KeyValuePair<string, ServerProfile> sp in memberDictionary)
                 {
-                    var member = sp.Value;
+                    ServerProfile member = sp.Value;
                     member.Roles = [.. member.Roles.OrderBy(r => r.Hierarchy)];
                     if (server != null && server.Members != null)
                     {
-                        var existingProfile = server.Members.FirstOrDefault(x => x.Id == member.Id);
+                        ServerProfile? existingProfile = server.Members.FirstOrDefault(x => x.Id == member.Id);
                         if (existingProfile == null)
                         {
                             server.Members.Add(member);

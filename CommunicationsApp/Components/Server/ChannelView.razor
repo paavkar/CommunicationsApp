@@ -3,7 +3,7 @@
 @rendermode @(new InteractiveServerRenderMode(prerender: false))
 
 @inject IStringLocalizer<CommunicationsAppLoc> Localizer
-@inject CommunicationsHubService ChatHubService
+@inject ICommunicationsHubClient ChatClient
 @inject NavigationManager NavigationManager
 @inject ICosmosDbService CosmosDbService
 @inject AuthenticationStateProvider ASP
@@ -281,7 +281,10 @@ else
                                 <FluentButton Id="MessageFileUploadButton"
                                     Disabled="@((!Permissions.Any(
                                                 p => p.PermissionType == ServerPermissionType.SendMessages) &&
-                                                UserId != Server.OwnerId) || !AllowFileAttachment)"
+                                                UserId != Server.OwnerId) ||
+                                                Permissions.All(p => 
+                                                    p.PermissionType
+                                                    != ServerPermissionType.AttachFiles))"
                                               Appearance="Appearance.Stealth">
                                     <FluentIcon Value="@(new Size20.Add())" />
                                 </FluentButton>
@@ -458,10 +461,10 @@ else
 
     protected override void OnInitialized()
     {
-        ChatHubService.ChannelMessageReceived += OnChannelMessageReceived;
-        ChatHubService.MemberUpdateReceived += OnMemberUpdateReceived;
-        ChatHubService.ServerRoleUpdateReceived += OnServerRoleUpdated;
-        ChatHubService.ServerRoleMembersUpdateReceived += OnServerRoleMembersUpdated;
+        ChatClient.ChannelMessageReceived += OnChannelMessageReceived;
+        ChatClient.MemberUpdateReceived += OnMemberUpdateReceived;
+        ChatClient.ServerRoleUpdateReceived += OnServerRoleUpdated;
+        ChatClient.ServerRoleMembersUpdateReceived += OnServerRoleMembersUpdated;
     }
 
     protected override async Task OnInitializedAsync()
@@ -494,6 +497,12 @@ else
         IsLoading = false;
     }
 
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+        NewMessage.Id ??= Guid.CreateVersion7().ToString();
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -518,7 +527,7 @@ else
 
         return $"{readableSize:0.##} {units[unitIndex]}";
     }
-    
+
     private async Task OnKeyHandleAsync(FluentKeyCodeEventArgs args)
     {
         if (args.Name == "keyup")
@@ -625,7 +634,7 @@ else
         await JS.InvokeVoidAsync("autoGrow", NewMessageRef);
     }
 
-    private async void OnChannelMessageReceived(string serverId, string channelId, ChatMessage message)
+    private async void OnChannelMessageReceived(string channelId, string serverId, ChatMessage message)
     {
         if (Channel != null && channelId == Channel.Id)
         {
@@ -767,7 +776,7 @@ else
             MessageSendingData.Content.Details = Localizer["UploadingFiles"];
         }
         ToastService.ShowProgressToast(MessageSendingData);
-        NewMessage.Id = Guid.CreateVersion7().ToString();
+        NewMessage.Id ??= Guid.CreateVersion7().ToString();
         NewMessage.SentAt = DateTimeOffset.UtcNow;
         NewMessage.PartitionKey = $"ChatMessage-{ServerId}";
         NewMessage.Channel = new () {
@@ -803,7 +812,7 @@ else
                 ToastService.CloseToast(MessageProgressToast);
                 ToastService.ShowError(fileResult.ErrorMessage);
                 ClearUploadProperties();
-
+                MessageSendInProgress = false;
                 return;
             }
         }
@@ -813,18 +822,29 @@ else
         {
             ToastService.ShowError(Localizer["SavingMessageError"]);
             Console.WriteLine(messageResult.ErrorMessage);
+            MessageSendInProgress = false;
             return;
         }
-        var result = await ChatHubService.SendMessageAsync(ServerId, ChannelId, NewMessage);
 
-        if (!result.Succeeded)
+        if (!messageResult.SignalRSucceeded)
         {
             ToastService.ShowError(Localizer["SendingMessageError"]);
-            Console.WriteLine(result.ErrorMessage);
+            Console.WriteLine(messageResult.ErrorMessage);
             ToastService.CloseToast(MessageProgressToast);
+            MessageSendInProgress = false;
             return;
         }
 
+        ClearUploadProperties();
+        await JS.InvokeVoidAsync("resetHeight", NewMessageRef);
+
+        ToastService.CloseToast(MessageProgressToast);
+        NewMessage = new();
+        MessageSendInProgress = false;
+    }
+
+    private void ClearUploadProperties()
+    {
         var tempDir = Path.Combine("wwwroot", "temp", NewMessage.Id);
         if (Directory.Exists(tempDir))
         {
@@ -837,16 +857,6 @@ else
                 Logger.LogError(e, "Error deleting temporary directory: {Directory}", tempDir);
             }
         }
-        ClearUploadProperties();
-        await JS.InvokeVoidAsync("resetHeight", NewMessageRef);
-
-        ToastService.CloseToast(MessageProgressToast);
-        NewMessage = new();
-        MessageSendInProgress = false;
-    }
-
-    private void ClearUploadProperties()
-    {
         Files.Clear();
         FilesUploaded.Clear();
         UploadPercentage = 0;
@@ -901,9 +911,9 @@ else
                 }
             }
         }
-        ChatHubService.ChannelMessageReceived -= OnChannelMessageReceived;
-        ChatHubService.MemberUpdateReceived -= OnMemberUpdateReceived;
-        ChatHubService.ServerRoleUpdateReceived -= OnServerRoleUpdated;
-        ChatHubService.ServerRoleMembersUpdateReceived -= OnServerRoleMembersUpdated;
+        ChatClient.ChannelMessageReceived -= OnChannelMessageReceived;
+        ChatClient.MemberUpdateReceived -= OnMemberUpdateReceived;
+        ChatClient.ServerRoleUpdateReceived -= OnServerRoleUpdated;
+        ChatClient.ServerRoleMembersUpdateReceived -= OnServerRoleMembersUpdated;
     }
 }

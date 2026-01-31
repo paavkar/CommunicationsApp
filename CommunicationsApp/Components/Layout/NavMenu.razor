@@ -6,7 +6,7 @@
 
 @rendermode @(new InteractiveServerRenderMode(prerender: false))
 @inject IStringLocalizer<CommunicationsAppLoc> Localizer
-@inject CommunicationsHubService ChatHubService
+@inject ICommunicationsHubClient ChatClient
 @inject NavigationManager NavigationManager
 @inject IdentityUserAccessor UserAccessor
 @inject AuthenticationStateProvider ASP
@@ -126,7 +126,7 @@
     }
 </FluentStack>
 
-@code {
+    @code {
     private string? currentUrl;
     public ApplicationUser? User { get; set; }
     public bool ChannelView { get; set; }
@@ -145,12 +145,12 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await ChatHubService.StartAsync();
-        ChatHubService.ChannelMessageReceived += OnChannelMessageReceived;
-        ChatHubService.MemberUpdateReceived += OnMemberUpdateReceived;
-        ChatHubService.ChannelClassUpdateReceived += OnChannelClassUpdateReceived;
-        ChatHubService.ChannelUpdateReceived += OnChannelUpdateReceived;
-        ChatHubService.ServerInfoUpdateReceived += OnServerInfoUpdateReceived;
+        await ChatClient.ConnectAsync();
+        ChatClient.ChannelMessageReceived += OnChannelMessageReceived;
+        ChatClient.MemberUpdateReceived += OnMemberUpdateReceived;
+        ChatClient.ChannelClassUpdateReceived += OnChannelClassUpdateReceived;
+        ChatClient.ChannelUpdateReceived += OnChannelUpdateReceived;
+        ChatClient.ServerInfoUpdateReceived += OnServerInfoUpdateReceived;
         var authState = await ASP.GetAuthenticationStateAsync();
         UserId = authState.User.Claims.Where(c => c.Type.Contains("nameidentifier")).First().Value;
 
@@ -160,12 +160,12 @@
 
             foreach (var server in User.Servers)
             {
-                await ChatHubService.JoinBroadcastChannelAsync(server.Id!);
+                await ChatClient.JoinBroadcastChannelAsync(server.Id!);
                 foreach (var channelClass in server.ChannelClasses)
                 {
                     foreach (var channel in channelClass.Channels)
                     {
-                        await ChatHubService.JoinBroadcastChannelAsync(channel.Id!);
+                        await ChatClient.JoinBroadcastChannelAsync(channel.Id!);
                     }
                 }
             }
@@ -196,7 +196,7 @@
         }
     }
 
-    private async void OnChannelMessageReceived(string serverId, string channelId, ChatMessage message)
+    private async void OnChannelMessageReceived(string channelId, string serverId, ChatMessage message)
     {
         var server = await ServerService.GetServerByIdAsync(serverId, UserId);
         if (server != null)
@@ -204,7 +204,7 @@
             var channel = server.ChannelClasses
                                 .SelectMany(cc => cc.Channels)
                                 .FirstOrDefault(c => c.Id == channelId);
-            if (channel != null)
+            if (channel != null && channel.Messages.All(m => m.Id != message.Id))
             {
                 channel.Messages.Add(message);
             }
@@ -246,10 +246,10 @@
                     server.Members.RemoveAll(m => m.Id == member.Id);
                     if (member.UserId == User.Id)
                     {
-                        await ChatHubService.LeaveBroadcastChannelAsync(serverId);
+                        await ChatClient.LeaveBroadcastChannelAsync(serverId);
                         foreach (var channel in server.ChannelClasses.SelectMany(cc => cc.Channels))
                         {
-                            await ChatHubService.LeaveBroadcastChannelAsync(channel.Id!);
+                            await ChatClient.LeaveBroadcastChannelAsync(channel.Id!);
                         }
                         User.Servers.RemoveAll(s => s.Id == serverId);
                     }
@@ -272,7 +272,7 @@
                     {
                         foreach (var channel in cc.Channels)
                         {
-                            await ChatHubService.JoinBroadcastChannelAsync(channel.Id!);
+                            await ChatClient.JoinBroadcastChannelAsync(channel.Id!);
                         }
                     }
                     server.ChannelClasses.Add(cc);
@@ -284,7 +284,7 @@
                 {
                     foreach (var channel in cc.Channels)
                     {
-                        await ChatHubService.LeaveBroadcastChannelAsync(channel.Id!);
+                        await ChatClient.LeaveBroadcastChannelAsync(channel.Id!);
                     }
                     server.ChannelClasses.RemoveAll(m => m.Id == cc.Id);
                     await UserService.UpdateCacheAsync(User);
@@ -301,7 +301,7 @@
             case ServerUpdateType.ChannelAdded:
                 if (channelClass is not null && !channelClass.Channels.Any(m => m.Id == c.Id))
                 {
-                    await ChatHubService.JoinBroadcastChannelAsync(c.Id!);
+                    await ChatClient.JoinBroadcastChannelAsync(c.Id!);
                     channelClass.Channels.Add(c);
                     await UserService.UpdateCacheAsync(User);
                 }
@@ -309,7 +309,7 @@
             case ServerUpdateType.ChannelRemoved:
                 if (channelClass is not null)
                 {
-                    await ChatHubService.LeaveBroadcastChannelAsync(c.Id!);
+                    await ChatClient.LeaveBroadcastChannelAsync(c.Id!);
                     channelClass.Channels.RemoveAll(m => m.Id == c.Id);
                     await UserService.UpdateCacheAsync(User);
                 }
@@ -354,10 +354,10 @@
     public void Dispose()
     {
         NavigationManager.LocationChanged -= OnLocationChanged;
-        ChatHubService.ChannelMessageReceived -= OnChannelMessageReceived;
-        ChatHubService.MemberUpdateReceived -= OnMemberUpdateReceived;
-        ChatHubService.ChannelClassUpdateReceived -= OnChannelClassUpdateReceived;
-        ChatHubService.ChannelUpdateReceived -= OnChannelUpdateReceived;
-        ChatHubService.ServerInfoUpdateReceived -= OnServerInfoUpdateReceived;
+        ChatClient.ChannelMessageReceived -= OnChannelMessageReceived;
+        ChatClient.MemberUpdateReceived -= OnMemberUpdateReceived;
+        ChatClient.ChannelClassUpdateReceived -= OnChannelClassUpdateReceived;
+        ChatClient.ChannelUpdateReceived -= OnChannelUpdateReceived;
+        ChatClient.ServerInfoUpdateReceived -= OnServerInfoUpdateReceived;
     }
 }

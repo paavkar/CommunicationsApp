@@ -1,5 +1,5 @@
-﻿using CommunicationsApp.Core.Models;
-using CommunicationsApp.Infrastructure.CosmosDb.Models;
+﻿using CommunicationsApp.Application.ResultModels;
+using CommunicationsApp.Core.Models;
 
 namespace CommunicationsApp.Infrastructure.CosmosDb
 {

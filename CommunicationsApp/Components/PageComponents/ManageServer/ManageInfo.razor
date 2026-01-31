@@ -3,7 +3,7 @@
 @implements IDisposable
 
 @inject IStringLocalizer<CommunicationsAppLoc> Localizer
-@inject CommunicationsHubService CHS
+@inject ICommunicationsHubClient ChatClient
 @inject IServerService ServerService
 
 <h3>@Localizer["General"]</h3>
@@ -38,7 +38,7 @@
     {
         ServerUpdate.Name = Server.Name;
         ServerUpdate.Description = Server.Description;
-        CHS.ServerInfoUpdateReceived += OnServerInfoUpdateReceived;
+        ChatClient.ServerInfoUpdateReceived += OnServerInfoUpdateReceived;
     }
 
     public void RevertChanges()
@@ -49,12 +49,7 @@
 
     public async Task SaveAsync()
     {
-        var result = await ServerService.UpdateServerNameDescriptionAsync(Server.Id, ServerUpdate);
-
-        if (result.Succeeded)
-        {
-            await CHS.NotifyServerInfoUpdateAsync(Server.Id, ServerUpdateType.ServerNameDescriptionUpdated, ServerUpdate);
-        }
+        await ServerService.UpdateServerNameDescriptionAsync(Server.Id, ServerUpdate);
     }
 
     private async void OnServerInfoUpdateReceived(
@@ -75,6 +70,6 @@
 
     public void Dispose()
     {
-        CHS.ServerInfoUpdateReceived -= OnServerInfoUpdateReceived;
+        ChatClient.ServerInfoUpdateReceived -= OnServerInfoUpdateReceived;
     }
 }

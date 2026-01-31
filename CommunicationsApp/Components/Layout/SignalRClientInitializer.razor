@@ -1,0 +1,8 @@
+﻿@inject ICommunicationsHubClient SignalRClient
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        await SignalRClient.ConnectAsync();
+    }
+}
