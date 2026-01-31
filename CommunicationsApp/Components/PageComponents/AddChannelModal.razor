@@ -1,7 +1,6 @@
 ﻿@implements IDialogContentComponent<Server>
 
 @inject IStringLocalizer<CommunicationsAppLoc> Localizer
-@inject CommunicationsHubService CHS
 @inject IServerService ServerService
 @inject IToastService ToastService
 
@@ -100,12 +99,7 @@
         }
 
         ChannelClass.Channels.Add(Channel);
-        var signalResult = await CHS.NotifyChannelUpdateAsync(Content.Id, ServerUpdateType.ChannelAdded, Channel);
-        if (!signalResult.Succeeded)
-        {
-            Console.WriteLine(signalResult.ErrorMessage);
-            return;
-        }
+       
         var server = await ServerService.GetServerByIdAsync(Content.Id);
         await Dialog.CloseAsync(server);
     }

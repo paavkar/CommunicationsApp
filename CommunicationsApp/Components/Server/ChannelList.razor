@@ -2,7 +2,7 @@
 
 @implements IDisposable
 
-@inject CommunicationsHubService CommunicationsHubService
+@inject ICommunicationsHubClient ChatClient
 @inject IStringLocalizer<CommunicationsAppLoc> Localizer
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider ASP
@@ -114,12 +114,12 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        CommunicationsHubService.ChannelClassUpdateReceived += OnChannelClassUpdateReceived;
-        CommunicationsHubService.ChannelUpdateReceived += OnChannelUpdateReceived;
-        CommunicationsHubService.ServerInfoUpdateReceived += OnServerInfoUpdateReceived;
-        CommunicationsHubService.ServerRoleUpdateReceived += OnServerRoleUpdated;
-        CommunicationsHubService.ServerRoleMembersUpdateReceived += OnServerRoleMembersUpdated;
-        CommunicationsHubService.MemberUpdateReceived += OnMemberUpdateReceived;
+        ChatClient.ChannelClassUpdateReceived += OnChannelClassUpdateReceived;
+        ChatClient.ChannelUpdateReceived += OnChannelUpdateReceived;
+        ChatClient.ServerInfoUpdateReceived += OnServerInfoUpdateReceived;
+        ChatClient.ServerRoleUpdateReceived += OnServerRoleUpdated;
+        ChatClient.ServerRoleMembersUpdateReceived += OnServerRoleMembersUpdated;
+        ChatClient.MemberUpdateReceived += OnMemberUpdateReceived;
         var authState = await ASP.GetAuthenticationStateAsync();
         UserId = authState.User.Claims.Where(c => c.Type.Contains("nameidentifier")).First().Value;
         if (!string.IsNullOrWhiteSpace(ServerId) && !string.IsNullOrWhiteSpace(UserId))
@@ -159,29 +159,26 @@ else
                 Localizer["LeaveServer"]
             );
             var dialogResult = await dialog.Result;
+
             if (dialogResult.Cancelled)
             {
                 return;
             }
-            var result = await ServerService.LeaveServerAsync(Server.Id, UserId);
+
+            var serverProfile = Server.Members.FirstOrDefault(m => m.UserId == UserId);
+            var result = await ServerService.LeaveServerAsync(Server.Id, UserId, serverProfile);
             if (result.Succeeded)
             {
-                var serverProfile = Server.Members.FirstOrDefault(m => m.UserId == UserId);
                 if (serverProfile != null)
                 {
-                    await CommunicationsHubService.LeaveBroadcastChannelAsync(Server.Id);
+                    await ChatClient.LeaveBroadcastChannelAsync(Server.Id);
                     foreach (var channel in Server.ChannelClasses.SelectMany(cc => cc.Channels))
                     {
-                        await CommunicationsHubService.LeaveBroadcastChannelAsync(channel.Id);
+                        await ChatClient.LeaveBroadcastChannelAsync(channel.Id);
                     }
                     User.ServerProfiles.RemoveAll(sp => sp.ServerId == Server.Id);
                     var removed = User.Servers.RemoveAll(s => s.Id == Server.Id);
                     await UserService.UpdateCacheAsync(User);
-                    await CommunicationsHubService.NotifyMemberUpdateAsync(
-                        Server.Id,
-                        ServerUpdateType.MemberLeft,
-                        serverProfile
-                    );
                 }
                 NavigationManager.NavigateTo("/", forceLoad: true);
             }
@@ -427,11 +424,11 @@ else
 
     public void Dispose()
     {
-        CommunicationsHubService.ChannelClassUpdateReceived -= OnChannelClassUpdateReceived;
-        CommunicationsHubService.ChannelUpdateReceived -= OnChannelUpdateReceived;
-        CommunicationsHubService.ServerInfoUpdateReceived -= OnServerInfoUpdateReceived;
-        CommunicationsHubService.ServerRoleUpdateReceived -= OnServerRoleUpdated;
-        CommunicationsHubService.ServerRoleMembersUpdateReceived -= OnServerRoleMembersUpdated;
-        CommunicationsHubService.MemberUpdateReceived -= OnMemberUpdateReceived;
+        ChatClient.ChannelClassUpdateReceived -= OnChannelClassUpdateReceived;
+        ChatClient.ChannelUpdateReceived -= OnChannelUpdateReceived;
+        ChatClient.ServerInfoUpdateReceived -= OnServerInfoUpdateReceived;
+        ChatClient.ServerRoleUpdateReceived -= OnServerRoleUpdated;
+        ChatClient.ServerRoleMembersUpdateReceived -= OnServerRoleMembersUpdated;
+        ChatClient.MemberUpdateReceived -= OnMemberUpdateReceived;
     }
 }

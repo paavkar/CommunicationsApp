@@ -1,4 +1,5 @@
 ﻿using CommunicationsApp.Application.DTOs;
+using CommunicationsApp.Application.ResultModels;
 using CommunicationsApp.Core.Models;
 using static CommunicationsApp.Core.Models.Enums;
 
@@ -6,7 +7,7 @@ namespace CommunicationsApp.Application.Notifications
 {
     public interface ICommunicationsNotificationService
     {
-        Task SendMessageAsync(string serverId, string channelId, ChatMessage message);
+        Task<MessageResult> SendMessageAsync(string serverId, string channelId, ChatMessage message);
         Task NotifyDataReadyAsync(string contextId, string dataType);
         Task NotifyMemberUpdateAsync(string serverId, ServerUpdateType updateType, ServerProfile member);
         Task NotifyChannelClassUpdateAsync(string serverId, ServerUpdateType updateType, ChannelClass cc);

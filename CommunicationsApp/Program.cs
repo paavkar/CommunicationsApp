@@ -1,18 +1,19 @@
 using Asp.Versioning;
-using CommunicationsApp.Application.Interfaces;
+using CommunicationsApp.Application.Notifications;
 using CommunicationsApp.Components;
 using CommunicationsApp.Components.Account;
 using CommunicationsApp.Core.Models;
 using CommunicationsApp.Data;
+using CommunicationsApp.Hubs;
+using CommunicationsApp.Infrastructure;
 using CommunicationsApp.Infrastructure.CosmosDb;
 using CommunicationsApp.Infrastructure.HubClient;
-using CommunicationsApp.Infrastructure.Services;
+using CommunicationsApp.Notifications;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Azure;
-using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.IdentityModel.Tokens;
 using System.Globalization;
@@ -28,9 +29,8 @@ builder.Logging
        .AddConsole()
        .AddDebug();
 
-List<CultureInfo> supportedCultures = new[] { "en-GB", "fi-FI" }
-    .Select(c => new CultureInfo(c))
-    .ToList();
+List<CultureInfo> supportedCultures = [.. new[] { "en-GB", "fi-FI" }
+    .Select(c => new CultureInfo(c))];
 
 builder.Services.AddLocalization(options =>
 {
@@ -50,14 +50,6 @@ builder.Services.Configure<RequestLocalizationOptions>(options =>
 
 builder.Services.AddHttpClient();
 builder.Services.AddFluentUIComponents();
-builder.Services.AddHybridCache(options =>
-{
-    options.DefaultEntryOptions = new HybridCacheEntryOptions
-    {
-        Expiration = TimeSpan.FromMinutes(10),
-        LocalCacheExpiration = TimeSpan.FromMinutes(30)
-    };
-});
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
@@ -109,14 +101,12 @@ builder.Services.AddApiVersioning(options =>
 }).AddMvc();
 
 builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
-builder.Services.AddScoped<IServerRepository, ServerRepository>();
-builder.Services.AddScoped<IServerService, ServerService>();
-builder.Services.AddScoped<IUserService, UserService>();
-builder.Services.AddScoped<CosmosDbFactory>();
-builder.Services.AddScoped<ICosmosDbService, CosmosDbService>();
+builder.Services.AddScoped<ICommunicationsHubContext, CommunicationsHubContextWrapper>();
+
+builder.Services.AddInfrastructure(builder.Configuration);
+
 builder.Services.AddScoped<ICommunicationsHubClient, CommunicationsHubClient>();
-builder.Services.AddScoped<IMediaService, MediaService>();
-builder.Services.AddScoped<IAuthService, AuthService>();
+
 builder.Services.AddAzureClients(clientBuilder =>
 {
     clientBuilder.AddBlobServiceClient(builder.Configuration["StorageConnection:blobServiceUri"]!).WithName("StorageConnection");
@@ -158,6 +148,6 @@ app.UseAuthorization();
 app.MapAdditionalIdentityEndpoints();
 app.MapControllers();
 
-app.MapHub<CommunicationsApp.Infrastructure.Hubs.CommunicationsHub>("/chathub");
+app.MapHub<CommunicationsHub>("/chathub");
 
 app.Run();

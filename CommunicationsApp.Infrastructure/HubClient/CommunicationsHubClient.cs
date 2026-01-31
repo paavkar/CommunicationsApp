@@ -2,14 +2,13 @@
 using CommunicationsApp.Core.Models;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Http.Connections;
-using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging;
 using static CommunicationsApp.Core.Models.Enums;
 
 namespace CommunicationsApp.Infrastructure.HubClient
 {
-    public class CommunicationsHubClient : ICommunicationsHubClient, IAsyncDisposable
+    public class CommunicationsHubClient : ICommunicationsHubClient
     {
         private readonly NavigationManager _navigationManager;
         private readonly ILogger<CommunicationsHubClient> _logger;
@@ -50,10 +49,10 @@ namespace CommunicationsApp.Infrastructure.HubClient
         private void RegisterHandlers()
         {
             HubConnection.On<string, string, ChatMessage>(
-                "ReceiveChannelMessage",
-                (serverId, channelId, message) =>
+                "SendMessageToChannel",
+                (channelId, serverId, message) =>
                 {
-                    ChannelMessageReceived?.Invoke(serverId, channelId, message);
+                    ChannelMessageReceived?.Invoke(channelId, serverId, message);
                 });
 
             HubConnection.On<string, string>("DataReady", (contextId, dataType) =>
@@ -138,7 +137,7 @@ namespace CommunicationsApp.Infrastructure.HubClient
             await _connectionLock.WaitAsync(cancellationToken);
             try
             {
-                if (HubConnection.State == HubConnectionState.Disconnected)
+                if (HubConnection.State != HubConnectionState.Connected)
                 {
                     await HubConnection.StartAsync(cancellationToken);
                 }
@@ -169,34 +168,22 @@ namespace CommunicationsApp.Infrastructure.HubClient
             }
         }
 
-        public async Task JoinBroadcastChannelAsync(string channelId)
+        public async Task JoinBroadcastChannelAsync(string groupName)
         {
             if (HubConnection.State != HubConnectionState.Connected)
             {
                 return;
             }
-            await HubConnection.SendAsync("JoinBroadcastChannel", channelId);
+            await HubConnection.InvokeAsync("JoinBroadcastChannel", groupName);
         }
 
-        public async Task LeaveBroadcastChannelAsync(string channelId)
+        public async Task LeaveBroadcastChannelAsync(string groupName)
         {
             if (HubConnection.State != HubConnectionState.Connected)
             {
                 return;
             }
-            await HubConnection.SendAsync("LeaveBroadcastChannel", channelId);
-        }
-
-        public async ValueTask DisposeAsync()
-        {
-            try
-            {
-                await HubConnection.DisposeAsync();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error disposing hub connection.");
-            }
+            await HubConnection.InvokeAsync("LeaveBroadcastChannel", groupName);
         }
     }
 }

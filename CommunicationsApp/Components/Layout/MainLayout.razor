@@ -1,10 +1,8 @@
 ﻿@inherits LayoutComponentBase
 
-@inject ICommunicationsHubClient SignalRClient
+@inject ICommunicationsHubClient ChatClient
 
 <PageTitle>CA</PageTitle>
-
-<SignalRClientInitializer />
 
 <FluentHeader Style="position: sticky; top: 0; z-index: 1;">
     <FluentAnchor Href="@("/channels/@me")" Appearance="Appearance.Outline" Id="homeLink">
@@ -40,7 +38,7 @@
 @code {
     protected override async Task OnInitializedAsync()
     {
-        SignalRClient.DataReady += OnDataReady;
+        ChatClient.DataReady += OnDataReady;
     }
 
     private void OnDataReady(string contextId, string dataType)
@@ -50,6 +48,6 @@
 
     public void Dispose()
     {
-        SignalRClient.DataReady -= OnDataReady;
+        ChatClient.DataReady -= OnDataReady;
     }
 }

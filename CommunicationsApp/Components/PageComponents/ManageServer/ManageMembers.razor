@@ -1,6 +1,6 @@
 ﻿@inject IStringLocalizer<CommunicationsAppLoc> Localizer
 @inject AuthenticationStateProvider ASP
-@inject CommunicationsHubService CHS
+@inject ICommunicationsHubClient ChatClient
 @inject IServerService ServerService
 
 <h3>@Localizer["ServerMembers"]</h3>
@@ -190,11 +190,10 @@
 
     public async Task KickMember(ServerProfile member)
     {
-        var result = await ServerService.LeaveServerAsync(Server.Id, member.UserId);
+        var result = await ServerService.LeaveServerAsync(Server.Id, member.UserId, member, kicked: true);
 
         if (result.Succeeded)
         {
-            await CHS.NotifyMemberUpdateAsync(Server.Id, ServerUpdateType.MemberKicked, member);
             FilteredMembers.RemoveAll(m => m.UserId == member.UserId);
             Server.Members.RemoveAll(m => m.UserId == member.UserId);
         }
@@ -202,22 +201,19 @@
 
     public async Task KickMembers()
     {
-        var userIds = SelectedProfiles.Select(p => p.UserId).ToList();
-        if (userIds.Count <= 0)
+        var userIds = SelectedProfiles.Select(p => p.UserId);
+        if (SelectedProfiles.Count <= 0)
         {
             return;
         }
-        var result = await ServerService.KickMembersAsync(Server.Id, userIds);
+
+        var result = await ServerService.KickMembersAsync(Server.Id, SelectedProfiles);
 
         if (result.Succeeded)
         {
             FilteredMembers.RemoveAll(m => userIds.Contains(m.UserId));
             Server.Members.RemoveAll(m => userIds.Contains(m.UserId));
 
-            foreach (var member in SelectedProfiles)
-            {
-                await CHS.NotifyMemberUpdateAsync(Server.Id, ServerUpdateType.MemberKicked, member);
-            }
             SelectedProfiles.Clear();
             SelectAll = false;
         }

@@ -1,6 +1,7 @@
 using Asp.Versioning;
 using CommunicationsApp.Application.DTOs;
 using CommunicationsApp.Application.Interfaces;
+using CommunicationsApp.Application.ResultModels;
 using CommunicationsApp.Core.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -29,8 +30,8 @@ namespace CommunicationsApp.Controllers
         public async Task<IActionResult> CreateServer([FromBody] Server server)
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var user = await _userManager.FindByIdAsync(userId);
-            var result = await _serverService.CreateServerAsync(server, user);
+            ApplicationUser? user = await _userManager.FindByIdAsync(userId);
+            Server result = await _serverService.CreateServerAsync(server, user);
             return Ok(result);
         }
 
@@ -38,7 +39,7 @@ namespace CommunicationsApp.Controllers
         public async Task<IActionResult> GetServerById(string serverId)
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var server = await _serverService.GetServerByIdAsync(serverId, userId);
+            Server? server = await _serverService.GetServerByIdAsync(serverId, userId);
             if (server == null)
             {
                 return NotFound();
@@ -57,7 +58,7 @@ namespace CommunicationsApp.Controllers
         [HttpGet("invitation/{invitationCode}")]
         public async Task<IActionResult> GetServerByInvitation(string invitationCode)
         {
-            var result = await _serverService.GetServerByInvitationAsync(invitationCode);
+            ServerResult result = await _serverService.GetServerByInvitationAsync(invitationCode);
             if (!result.Succeeded)
             {
                 return NotFound(result);
@@ -69,7 +70,7 @@ namespace CommunicationsApp.Controllers
         [HttpPost("join")]
         public async Task<IActionResult> JoinServer([FromBody] ServerJoinRequest request)
         {
-            var result = await _serverService.JoinServerAsync(request.Server, request.Profile);
+            ServerResult result = await _serverService.JoinServerAsync(request.Server, request.Profile);
             if (!result.Succeeded)
             {
                 return BadRequest(result);
@@ -79,10 +80,10 @@ namespace CommunicationsApp.Controllers
         }
 
         [HttpPost("leave/{serverId}")]
-        public async Task<IActionResult> LeaveServer(string serverId)
+        public async Task<IActionResult> LeaveServer(string serverId, [FromBody] ServerProfile member)
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var result = await _serverService.LeaveServerAsync(serverId, userId);
+            ServerResult result = await _serverService.LeaveServerAsync(serverId, userId, member);
             if (!result.Succeeded)
             {
                 return BadRequest(result);
@@ -92,9 +93,9 @@ namespace CommunicationsApp.Controllers
         }
 
         [HttpPost("kick/{serverId}")]
-        public async Task<IActionResult> KickMembers(string serverId, [FromBody] List<string> userIds)
+        public async Task<IActionResult> KickMembers(string serverId, [FromBody] List<ServerProfile> members)
         {
-            var result = await _serverService.KickMembersAsync(serverId, userIds);
+            ServerResult result = await _serverService.KickMembersAsync(serverId, members);
             if (!result.Succeeded)
             {
                 return BadRequest(result);
@@ -106,7 +107,7 @@ namespace CommunicationsApp.Controllers
         [HttpPost("channel-class")]
         public async Task<IActionResult> AddChannelClass([FromBody] ChannelClass channelClass)
         {
-            var result = await _serverService.AddChannelClassAsync(channelClass);
+            ChannelClassResult result = await _serverService.AddChannelClassAsync(channelClass);
             if (!result.Succeeded)
             {
                 return BadRequest(result);
@@ -118,7 +119,7 @@ namespace CommunicationsApp.Controllers
         [HttpPost("channel/{channelClassId}")]
         public async Task<IActionResult> AddChannel(string channelClassId, [FromBody] Channel channel)
         {
-            var result = await _serverService.AddChannelAsync(channelClassId, channel);
+            ChannelResult result = await _serverService.AddChannelAsync(channelClassId, channel);
             if (!result.Succeeded)
             {
                 return BadRequest(result);
@@ -130,7 +131,7 @@ namespace CommunicationsApp.Controllers
         [HttpPost("permissions")]
         public async Task<IActionResult> AddServerPermissions()
         {
-            var result = await _serverService.AddServerPermissionsAsync();
+            ServerPermissionResult result = await _serverService.AddServerPermissionsAsync();
             if (!result.Succeeded)
             {
                 return BadRequest(result);
@@ -142,14 +143,14 @@ namespace CommunicationsApp.Controllers
         [HttpGet("permissions")]
         public async Task<IActionResult> GetServerPermissions()
         {
-            var result = await _serverService.GetServerPermissionsAsync();
+            List<ServerPermission> result = await _serverService.GetServerPermissionsAsync();
             return Ok(result);
         }
 
         [HttpPut("update/{serverId}")]
         public async Task<IActionResult> UpdateServerNameDescription(string serverId, [FromBody] ServerInfoUpdate update)
         {
-            var result = await _serverService.UpdateServerNameDescriptionAsync(serverId, update);
+            ResultBaseModel result = await _serverService.UpdateServerNameDescriptionAsync(serverId, update);
             if (!result.Succeeded)
             {
                 return BadRequest(result);
@@ -161,7 +162,7 @@ namespace CommunicationsApp.Controllers
         [HttpPut("role/{serverId}")]
         public async Task<IActionResult> UpdateRole(string serverId, [FromBody] RoleUpdateRequest request)
         {
-            var result = await _serverService.UpdateRoleAsync(serverId, request.Role, request.Linking);
+            ResultBaseModel result = await _serverService.UpdateRoleAsync(serverId, request.Role, request.Linking);
             if (!result.Succeeded)
             {
                 return BadRequest(result);
@@ -173,7 +174,7 @@ namespace CommunicationsApp.Controllers
         [HttpPost("role/{serverId}")]
         public async Task<IActionResult> AddRole(string serverId, [FromBody] ServerRole role)
         {
-            var result = await _serverService.AddRoleAsync(serverId, role);
+            ResultBaseModel result = await _serverService.AddRoleAsync(serverId, role);
             if (!result.Succeeded)
             {
                 return BadRequest(result);

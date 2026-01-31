@@ -1,67 +1,15 @@
-﻿using CommunicationsApp.Application.DTOs;
-using CommunicationsApp.Core.Models;
-using Microsoft.AspNetCore.SignalR;
-using static CommunicationsApp.Core.Models.Enums;
+﻿using Microsoft.AspNetCore.SignalR;
 
 namespace CommunicationsApp.Hubs
 {
     public class CommunicationsHub : Hub
     {
-        public Task JoinBroadcastChannel(string channelId)
+        public Task JoinBroadcastChannel(string groupName)
         {
-            return Groups.AddToGroupAsync(Context.ConnectionId, channelId);
+            return Groups.AddToGroupAsync(Context.ConnectionId, groupName);
         }
 
-        public Task LeaveBroadcastChannel(string channelId) =>
-            Groups.RemoveFromGroupAsync(Context.ConnectionId, channelId);
-
-        public Task SendMessageToChannel(string serverId, string channelId, ChatMessage message)
-        {
-            return Clients.Group(channelId)
-                      .SendAsync("ReceiveChannelMessage",
-                                 serverId, channelId, message);
-        }
-
-        public Task NotifyDataReady(string contextId, string dataType)
-        {
-            return Clients.Group(contextId)
-                          .SendAsync("DataReady", contextId, dataType);
-        }
-
-        public Task NotifyMemberUpdate(string serverId, ServerUpdateType updateType, ServerProfile member)
-        {
-            return Clients.Group(serverId)
-                          .SendAsync("MemberUpdate", serverId, updateType, member);
-        }
-
-        public Task NotifyChannelClassUpdate(string serverId, ServerUpdateType updateType, ChannelClass cc)
-        {
-            return Clients.Group(serverId)
-                          .SendAsync("ChannelClassUpdate", serverId, updateType, cc);
-        }
-
-        public Task NotifyChannelUpdate(string serverId, ServerUpdateType updateType, Channel c)
-        {
-            return Clients.Group(serverId)
-                          .SendAsync("ChannelUpdate", serverId, updateType, c);
-        }
-
-        public Task NotifyServerInfoUpdate(string serverId, ServerUpdateType updateType, ServerInfoUpdate update)
-        {
-            return Clients.Group(serverId)
-                           .SendAsync("ServerInfoUpdate", serverId, updateType, update);
-        }
-
-        public Task NotifyServerRoleUpdate(string serverId, ServerUpdateType updateType, ServerRole role)
-        {
-            return Clients.Group(serverId)
-                           .SendAsync("ServerRoleUpdate", serverId, updateType, role);
-        }
-
-        public Task NotifyServerRoleMembersUpdate(string serverId, ServerRole role, RoleMemberLinking linking)
-        {
-            return Clients.Group(serverId)
-                           .SendAsync("ServerRoleMembersUpdate", serverId, role, linking);
-        }
+        public Task LeaveBroadcastChannel(string groupName) =>
+            Groups.RemoveFromGroupAsync(Context.ConnectionId, groupName);
     }
 }

@@ -1,12 +1,16 @@
-﻿using CommunicationsApp.Core.Models;
-using CommunicationsApp.Infrastructure.CosmosDb.Models;
+﻿using CommunicationsApp.Application.Notifications;
+using CommunicationsApp.Application.ResultModels;
+using CommunicationsApp.Core.Models;
 using Microsoft.Azure.Cosmos;
 
 namespace CommunicationsApp.Infrastructure.CosmosDb
 {
-    public class CosmosDbService(CosmosDbFactory cosmosDbFactory) : ICosmosDbService
+    public class CosmosDbService(
+        CosmosDbFactory cosmosDbFactory,
+        ICommunicationsNotificationService cns) : ICosmosDbService
     {
-        private Container MessageContainer => cosmosDbFactory.CosmosClient.GetContainer(cosmosDbFactory.DatabaseName, "messages");
+        private Container MessageContainer =>
+            cosmosDbFactory.CosmosClient.GetContainer(cosmosDbFactory.DatabaseName, "messages");
 
         public async Task<MessageResult> GetServerMessagesAsync(string serverId)
         {
@@ -16,14 +20,14 @@ namespace CommunicationsApp.Infrastructure.CosmosDb
             }
             try
             {
-                var query = new QueryDefinition("SELECT * FROM messages m WHERE CONTAINS(m.partitionKey, @serverId)")
+                QueryDefinition query = new QueryDefinition("SELECT * FROM messages m WHERE CONTAINS(m.partitionKey, @serverId)")
                     .WithParameter("@serverId", serverId);
-                var messages = new List<ChatMessage>();
-                using (var feedIterator = MessageContainer.GetItemQueryIterator<ChatMessage>(query))
+                List<ChatMessage> messages = [];
+                using (FeedIterator<ChatMessage> feedIterator = MessageContainer.GetItemQueryIterator<ChatMessage>(query))
                 {
                     while (feedIterator.HasMoreResults)
                     {
-                        var response = await feedIterator.ReadNextAsync();
+                        FeedResponse<ChatMessage> response = await feedIterator.ReadNextAsync();
                         messages.AddRange(response);
                     }
                 }
@@ -48,15 +52,23 @@ namespace CommunicationsApp.Infrastructure.CosmosDb
             }
             try
             {
-                var addResponse = await MessageContainer.CreateItemAsync(message, new PartitionKey(message.PartitionKey));
+                ItemResponse<ChatMessage> addResponse = await MessageContainer.CreateItemAsync(message,
+                    new PartitionKey(message.PartitionKey));
 
-                return addResponse.StatusCode != System.Net.HttpStatusCode.Created
-                    ? new MessageResult
+                if (addResponse.StatusCode != System.Net.HttpStatusCode.Created)
+                {
+                    return new MessageResult
                     {
                         Succeeded = false,
                         ErrorMessage = $"Failed to save message. Status code: {addResponse.StatusCode}"
-                    }
-                    : new MessageResult { Succeeded = true };
+                    };
+                }
+
+                MessageResult result = await cns.SendMessageAsync(
+                    message.Channel.ServerId, message.Channel.Id, message);
+                result.Succeeded = true;
+
+                return result;
             }
             catch (Exception)
             {

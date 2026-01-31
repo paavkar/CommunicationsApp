@@ -2,7 +2,7 @@
 @using System.Text.Json;
 @inject IStringLocalizer<CommunicationsAppLoc> Localizer
 @inject IServerService ServerService
-@inject CommunicationsHubService CHS
+@inject ICommunicationsHubClient ChatClient
 @inject IDialogService DialogService
 
 @switch (Page)
@@ -472,7 +472,6 @@
 
         if (addResult.Succeeded)
         {
-            await CHS.NotifyServerRoleUpdateAsync(Server.Id, ServerUpdateType.RoleAdded, Role);
             RoleName = Role.Name;
             var everyoneRole = Server.Roles.FirstOrDefault(r => r.Name == "@everyone");
             everyoneRole.Hierarchy = Roles.Count + 2;
@@ -548,8 +547,6 @@
         }
         else
         {
-            await CHS.NotifyServerRoleUpdateAsync(Server.Id, ServerUpdateType.RoleUpdated, Role);
-            await CHS.NotifyServerRoleMembersUpdateAsync(Server.Id, Role, memberLink);
             FilteredMembers = [.. RoleMembers];
             FilteredMembers.AddRange(NewMembers);
 

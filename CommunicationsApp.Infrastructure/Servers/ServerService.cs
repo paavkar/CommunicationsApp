@@ -1,5 +1,6 @@
 ﻿using CommunicationsApp.Application.DTOs;
 using CommunicationsApp.Application.Interfaces;
+using CommunicationsApp.Application.Notifications;
 using CommunicationsApp.Application.ResultModels;
 using CommunicationsApp.Core.Models;
 using CommunicationsApp.Infrastructure.CosmosDb;
@@ -20,13 +21,14 @@ namespace CommunicationsApp.Infrastructure.Services
         ICosmosDbService cosmosDbService,
         IStringLocalizer<CommunicationsAppLoc> localizer,
         ILogger<ServerService> logger,
-        IServerRepository serverRepository) : IServerService
+        IServerRepository serverRepository,
+        ICommunicationsNotificationService cns) : IServerService
     {
         public async Task<Server> CreateServerAsync(Server server, ApplicationUser user)
         {
             server.CreatedAt = DateTimeOffset.UtcNow;
 
-            using var scope = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);
+            using TransactionScope scope = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);
             var rowsAffected = await serverRepository.InsertServerAsync(server);
             if (rowsAffected == 0)
             {
@@ -64,10 +66,10 @@ namespace CommunicationsApp.Infrastructure.Services
             {
                 return null!;
             }
-            var serverPermissions = await GetServerPermissionsAsync();
+            List<ServerPermission> serverPermissions = await GetServerPermissionsAsync();
             List<ServerPermission> defaultPermissions = [];
 
-            foreach (var permission in serverPermissions)
+            foreach (ServerPermission permission in serverPermissions)
             {
                 switch (permission.PermissionType)
                 {
@@ -106,7 +108,7 @@ namespace CommunicationsApp.Infrastructure.Services
                 }
             }
 
-            foreach (var permission in defaultPermissions)
+            foreach (ServerPermission permission in defaultPermissions)
             {
                 rowsAffected = await serverRepository.UpsertServerRolePermissionsAsync(serverRole.Id, [permission.Id]);
             }
@@ -158,7 +160,7 @@ namespace CommunicationsApp.Infrastructure.Services
 
         public async Task<Server?> GetServerByIdAsync(string serverId, string userId = "")
         {
-            var cachedServer = await cache.GetOrCreateAsync<Server>(
+            Server? cachedServer = await cache.GetOrCreateAsync<Server>(
                 $"server_{serverId}",
                 factory: async entry =>
                 {
@@ -176,16 +178,16 @@ namespace CommunicationsApp.Infrastructure.Services
 
         public async Task<Server?> GetServerFromDatabaseAsync(string serverId)
         {
-            var server = await serverRepository.GetServerByIdAsync(serverId);
+            Server? server = await serverRepository.GetServerByIdAsync(serverId);
             if (server != null)
             {
                 server.ChannelClasses = [.. server.ChannelClasses.OrderBy(cc => cc.OrderNumber)];
-                foreach (var channelClass in server.ChannelClasses)
+                foreach (ChannelClass channelClass in server.ChannelClasses)
                 {
                     channelClass.Channels = [.. channelClass.Channels.OrderBy(c => c.OrderNumber)];
                 }
 
-                await GetMessagesAsync(server, serverId!);
+                await GetMessagesAsync(server);
             }
 
             return server ?? null;
@@ -193,7 +195,7 @@ namespace CommunicationsApp.Infrastructure.Services
 
         public async Task<ServerResult> GetServerByInvitationAsync(string invitationCode)
         {
-            var server = await serverRepository.GetServerByInvitationAsync(invitationCode);
+            Server? server = await serverRepository.GetServerByInvitationAsync(invitationCode);
             return server is null
                 ? new ServerResult { Succeeded = false, ErrorMessage = "There is no server associated with given invitation." }
                 : new ServerResult { Succeeded = true, Server = server };
@@ -213,21 +215,30 @@ namespace CommunicationsApp.Infrastructure.Services
                 return new ServerResult { Succeeded = false, ErrorMessage = localizer["FetchServerError"] };
             }
 
-            await GetMessagesAsync(server, server.Id!);
-            await UpdateCacheAsync(server.Id, server);
+            await GetMessagesAsync(server);
+
+            _ = Task.Run(async () =>
+            {
+                await UpdateCacheAsync(server.Id, server);
+                await cns.NotifyMemberUpdateAsync(
+                        server.Id!,
+                        ServerUpdateType.MemberJoined,
+                        profile
+                    );
+            });
 
             return new ServerResult { Succeeded = true, Server = server };
         }
 
-        public async Task GetMessagesAsync(Server server, string serverId)
+        public async Task GetMessagesAsync(Server server)
         {
-            var messagesResponse = await cosmosDbService.GetServerMessagesAsync(server.Id);
+            MessageResult messagesResponse = await cosmosDbService.GetServerMessagesAsync(server.Id);
             if (messagesResponse.Succeeded)
             {
-                var serverMessages = messagesResponse.Messages as List<ChatMessage>;
-                foreach (var message in serverMessages)
+                List<ChatMessage>? serverMessages = messagesResponse.Messages;
+                foreach (ChatMessage message in serverMessages)
                 {
-                    var channel = server.ChannelClasses
+                    Channel? channel = server.ChannelClasses
                         .SelectMany(cc => cc.Channels)
                         .FirstOrDefault(c => c.Id == message.Channel.Id);
                     if (channel != null)
@@ -248,14 +259,35 @@ namespace CommunicationsApp.Infrastructure.Services
             await cache.SetAsync($"server_{serverId}", server);
         }
 
-        public async Task<ServerResult> LeaveServerAsync(string serverId, string userId)
+        public async Task<ServerResult> LeaveServerAsync(string serverId, string userId,
+            ServerProfile serverProfile, bool kicked = false)
         {
             var rowsAffected = await serverRepository.DeleteServerProfileAsync(serverId, userId);
             if (rowsAffected > 0)
             {
-                var server = await GetServerFromDatabaseAsync(serverId);
+                Server? server = await GetServerFromDatabaseAsync(serverId);
                 server.Members.RemoveAll(m => m.UserId == userId);
-                await UpdateCacheAsync(serverId, server);
+
+                _ = Task.Run(async () =>
+                {
+                    await UpdateCacheAsync(serverId, server);
+                    if (!kicked)
+                    {
+                        await cns.NotifyMemberUpdateAsync(
+                                serverId,
+                                ServerUpdateType.MemberLeft,
+                                serverProfile
+                            );
+                    }
+                    else
+                    {
+                        await cns.NotifyMemberUpdateAsync(
+                            serverId,
+                            ServerUpdateType.MemberKicked,
+                            serverProfile);
+                    }
+                });
+
                 return new ServerResult { Succeeded = true };
             }
             else
@@ -264,34 +296,58 @@ namespace CommunicationsApp.Infrastructure.Services
             }
         }
 
-        public async Task<ServerResult> KickMembersAsync(string serverId, List<string> userIds)
+        public async Task<ServerResult> KickMembersAsync(string serverId, List<ServerProfile> members)
         {
-            using var scope = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);
+            IEnumerable<string> userIds = members.Select(p => p.UserId);
+            using TransactionScope scope = new(TransactionScopeAsyncFlowOption.Enabled);
             var rowsAffected = await serverRepository.DeleteServerProfilesAsync(serverId, userIds);
+
             if (rowsAffected > 0)
             {
+                Server? server = await GetServerFromDatabaseAsync(serverId);
                 scope.Complete();
-                var server = await GetServerFromDatabaseAsync(serverId);
                 server.Members.RemoveAll(m => userIds.Contains(m.UserId));
-                await UpdateCacheAsync(serverId, server);
+
+                _ = Task.Run(async () =>
+                {
+                    await UpdateCacheAsync(serverId, server);
+                    foreach (ServerProfile member in members)
+                    {
+                        await cns.NotifyMemberUpdateAsync(
+                            serverId,
+                            ServerUpdateType.MemberKicked,
+                            member);
+                    }
+                });
+
                 return new ServerResult { Succeeded = true };
             }
             else
             {
-                return new ServerResult { Succeeded = false, ErrorMessage = "Failed to leave server." };
+                return new ServerResult { Succeeded = false, ErrorMessage = "Failed to kick members." };
             }
         }
 
         public async Task<ChannelClassResult> AddChannelClassAsync(ChannelClass channelClass)
         {
-            using var scope = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);
+            using TransactionScope scope = new(TransactionScopeAsyncFlowOption.Enabled);
             var rowsAffected = await serverRepository.InsertChannelClassAsync(channelClass);
             if (rowsAffected > 0)
             {
+                Server? server = await GetServerByIdAsync(channelClass.ServerId);
                 scope.Complete();
-                var server = await GetServerByIdAsync(channelClass.ServerId);
                 server.ChannelClasses.Add(channelClass);
-                await UpdateCacheAsync(server.Id!, server);
+
+                _ = Task.Run(async () =>
+                {
+                    await UpdateCacheAsync(server.Id!, server);
+                    await cns.NotifyChannelClassUpdateAsync(
+                            channelClass.ServerId!,
+                            ServerUpdateType.ChannelClassAdded,
+                            channelClass
+                        );
+                });
+
                 return new ChannelClassResult { Succeeded = true, ChannelClass = channelClass };
             }
             else
@@ -302,17 +358,29 @@ namespace CommunicationsApp.Infrastructure.Services
 
         public async Task<ChannelResult> AddChannelAsync(string channelClassId, Channel channel)
         {
-            var server = await GetServerByIdAsync(channel.ServerId);
-            var channelClass = server.ChannelClasses.FirstOrDefault(cc => cc.Id == channelClassId);
+            Server? server = await GetServerByIdAsync(channel.ServerId);
+            ChannelClass? channelClass = server.ChannelClasses.FirstOrDefault(cc => cc.Id == channelClassId);
+
             if (channelClass == null)
             {
                 return new ChannelResult { Succeeded = false, ErrorMessage = "Channel class not found." };
             }
+
             channelClass.Channels.Add(channel);
             var rowsAffected = await serverRepository.InsertChannelAsync(channel);
+
             if (rowsAffected > 0)
             {
-                await UpdateCacheAsync(server.Id!, server);
+                _ = Task.Run(async () =>
+                {
+                    await UpdateCacheAsync(server.Id!, server);
+                    await cns.NotifyChannelUpdateAsync(
+                            channel.ServerId!,
+                            ServerUpdateType.ChannelAdded,
+                            channel
+                        );
+                });
+
                 return new ChannelResult { Succeeded = true, Channel = channel };
             }
             else
@@ -323,7 +391,7 @@ namespace CommunicationsApp.Infrastructure.Services
 
         public async Task<ServerPermissionResult> AddServerPermissionsAsync()
         {
-            using var scope = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);
+            using TransactionScope scope = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);
             foreach (Enums.ServerPermissionType permission in Enum.GetValues<Enums.ServerPermissionType>())
             {
                 ServerPermission p = new()
@@ -341,21 +409,30 @@ namespace CommunicationsApp.Infrastructure.Services
 
         public async Task<List<ServerPermission>> GetServerPermissionsAsync()
         {
-            var serverPermissions = await serverRepository.GetAllPermissionsAsync();
+            IEnumerable<ServerPermission> serverPermissions = await serverRepository.GetAllPermissionsAsync();
             return [.. serverPermissions];
         }
 
-        public async Task<ResultBaseModel> UpdateServerNameDescriptionAsync(string serverId, ServerInfoUpdate update)
+        public async Task<ResultBaseModel> UpdateServerNameDescriptionAsync(string serverId,
+            ServerInfoUpdate update)
         {
             var rowsAffected = await serverRepository.UpdateServerInfoAsync(serverId, update);
             if (rowsAffected > 0)
             {
-                var server = await GetServerByIdAsync(serverId);
+                Server? server = await GetServerByIdAsync(serverId);
                 if (server != null)
                 {
                     server.Name = update.Name;
                     server.Description = update.Description;
-                    await UpdateCacheAsync(serverId, server);
+                    _ = Task.Run(async () =>
+                    {
+                        await UpdateCacheAsync(serverId, server);
+                        await cns.NotifyServerInfoUpdateAsync(
+                                serverId,
+                                ServerUpdateType.ServerNameDescriptionUpdated,
+                                update
+                            );
+                    });
                 }
                 return new ResultBaseModel { Succeeded = true };
             }
@@ -369,31 +446,32 @@ namespace CommunicationsApp.Infrastructure.Services
             }
         }
 
-        public async Task<ResultBaseModel> UpdateRoleAsync(string serverId, ServerRole role, RoleMemberLinking linking)
+        public async Task<ResultBaseModel> UpdateRoleAsync(string serverId, ServerRole role,
+            RoleMemberLinking linking)
         {
-            var permissionIds = role.Permissions.Select(p => p.Id);
-            using var scope = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);
+            IEnumerable<string> permissionIds = role.Permissions.Select(p => p.Id);
+            using TransactionScope scope = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);
             try
             {
                 await serverRepository.UpdateServerRoleAsync(role);
                 await serverRepository.UpsertServerRolePermissionsAsync(role.Id, permissionIds);
                 await serverRepository.DeleteServerRolePermissionsNotInAsync(role.Id, permissionIds);
 
-                foreach (var member in linking.NewMembers)
+                foreach (ServerProfile member in linking.NewMembers)
                 {
                     await serverRepository.InsertUserServerRoleAsync(member.UserId, serverId, role.Id);
                 }
 
-                foreach (var member in linking.RemovedMembers)
+                foreach (ServerProfile member in linking.RemovedMembers)
                 {
                     await serverRepository.DeleteUserServerRoleAsync(member.UserId, serverId, role.Id);
                 }
                 scope.Complete();
 
-                var server = await GetServerByIdAsync(serverId);
+                Server? server = await GetServerByIdAsync(serverId);
                 if (server != null)
                 {
-                    var existingRole = server.Roles.FirstOrDefault(r => r.Id == role.Id);
+                    ServerRole? existingRole = server.Roles.FirstOrDefault(r => r.Id == role.Id);
                     if (existingRole != null)
                     {
                         existingRole.Name = role.Name;
@@ -402,11 +480,11 @@ namespace CommunicationsApp.Infrastructure.Services
                         existingRole.DisplaySeparately = role.DisplaySeparately;
                         existingRole.Permissions = [.. role.Permissions];
                     }
-                    var userServerRoles = server.Members
+                    List<ServerRole> userServerRoles = server.Members
                         .SelectMany(m => m.Roles)
                         .Where(r => r.Id == role.Id)
                         .ToList();
-                    foreach (var userServerRole in userServerRoles)
+                    foreach (ServerRole userServerRole in userServerRoles)
                     {
                         userServerRole.Name = role.Name;
                         userServerRole.HexColour = role.HexColour;
@@ -415,11 +493,11 @@ namespace CommunicationsApp.Infrastructure.Services
                         userServerRole.Permissions = [.. role.Permissions];
                     }
 
-                    var addedMemberIds = linking.NewMembers.Select(m => m.UserId).ToList();
-                    var removedMemberIds = linking.RemovedMembers.Select(m => m.UserId).ToList();
-                    var membersToUpdate = server.Members.Where(m => addedMemberIds.Contains(m.UserId)).ToList();
+                    List<string> addedMemberIds = linking.NewMembers.Select(m => m.UserId).ToList();
+                    List<string> removedMemberIds = linking.RemovedMembers.Select(m => m.UserId).ToList();
+                    List<ServerProfile> membersToUpdate = server.Members.Where(m => addedMemberIds.Contains(m.UserId)).ToList();
                     membersToUpdate.AddRange(server.Members.Where(m => removedMemberIds.Contains(m.UserId)));
-                    foreach (var member in membersToUpdate)
+                    foreach (ServerProfile member in membersToUpdate)
                     {
                         if (addedMemberIds.Contains(member.UserId) && member.Roles.All(r => r.Id != role.Id))
                         {
@@ -432,7 +510,18 @@ namespace CommunicationsApp.Infrastructure.Services
                         member.Roles = [.. member.Roles.OrderBy(r => r.Hierarchy)];
                     }
 
-                    await UpdateCacheAsync(serverId, server);
+                    _ = Task.Run(async () =>
+                    {
+                        await UpdateCacheAsync(serverId, server);
+                        await cns.NotifyServerRoleUpdateAsync(
+                            serverId,
+                            ServerUpdateType.RoleUpdated,
+                            role);
+                        await cns.NotifyServerRoleMembersUpdateAsync(
+                            serverId,
+                            role,
+                            linking);
+                    });
                 }
                 return new ResultBaseModel { Succeeded = true };
             }
@@ -445,16 +534,16 @@ namespace CommunicationsApp.Infrastructure.Services
 
         public async Task<ResultBaseModel> AddRoleAsync(string serverId, ServerRole role)
         {
-            using var scope = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);
+            using TransactionScope scope = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);
             var rowsAffected = await serverRepository.InsertServerRoleAsync(role);
 
             if (rowsAffected > 0)
             {
-                var server = await GetServerByIdAsync(serverId);
+                Server? server = await GetServerByIdAsync(serverId);
                 if (server != null)
                 {
                     server.Roles.Add(role);
-                    var everyoneRole = server.Roles.FirstOrDefault(r => r.Name == "@everyone");
+                    ServerRole? everyoneRole = server.Roles.FirstOrDefault(r => r.Name == "@everyone");
                     everyoneRole.Hierarchy = server.Roles.Count;
 
                     rowsAffected = await serverRepository.UpdateServerRoleHierarchyAsync(role);
@@ -463,7 +552,16 @@ namespace CommunicationsApp.Infrastructure.Services
                         return new ResultBaseModel { Succeeded = false, ErrorMessage = localizer["AddRoleError"] };
                     }
                     scope.Complete();
-                    await UpdateCacheAsync(serverId, server);
+
+                    _ = Task.Run(async () =>
+                    {
+                        await UpdateCacheAsync(serverId, server);
+                        await cns.NotifyServerRoleUpdateAsync(
+                            serverId,
+                            ServerUpdateType.RoleAdded,
+                            role);
+                    });
+
                 }
                 return new ResultBaseModel { Succeeded = true };
             }

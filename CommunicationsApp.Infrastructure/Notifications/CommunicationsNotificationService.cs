@@ -1,5 +1,6 @@
 ﻿using CommunicationsApp.Application.DTOs;
 using CommunicationsApp.Application.Notifications;
+using CommunicationsApp.Application.ResultModels;
 using CommunicationsApp.Core.Models;
 using Microsoft.Extensions.Logging;
 using System.Text;
@@ -12,17 +13,34 @@ namespace CommunicationsApp.Infrastructure.Notifications
         ICommunicationsHubContext hubContext,
         ILogger<CommunicationsNotificationService> logger) : ICommunicationsNotificationService
     {
-        public async Task SendMessageAsync(string serverId, string channelId, ChatMessage message)
+        public async Task<MessageResult> SendMessageAsync(string serverId, string channelId, ChatMessage message)
         {
             try
             {
                 var messageSize = Encoding.UTF8.GetByteCount(JsonSerializer.Serialize(message));
                 logger.LogInformation("Received message of size {messageSize} B.", messageSize);
-                await hubContext.SendToGroupAsync(serverId, "SendMessageToChannel", channelId, message);
+                ResultBaseModel result = await hubContext.SendToGroupAsync(channelId,
+                    "SendMessageToChannel", serverId, message);
+
+                return result.Succeeded
+                    ? new MessageResult
+                    {
+                        SignalRSucceeded = true,
+                    }
+                    : new MessageResult
+                    {
+                        SignalRSucceeded = false,
+                        ErrorMessage = result.ErrorMessage
+                    };
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error sending message to channel {channelId} in server {serverId}.", channelId, serverId);
+                logger.LogError(ex, "Error sending message to channel {channelId} in server {serverId}.",
+                    channelId, serverId);
+                return new MessageResult
+                {
+                    SignalRSucceeded = false,
+                };
             }
         }
 
@@ -43,7 +61,7 @@ namespace CommunicationsApp.Infrastructure.Notifications
         {
             try
             {
-                await hubContext.SendToGroupAsync(serverId, "NotifyMemberUpdate", updateType, member);
+                await hubContext.SendToGroupAsync(serverId, "MemberUpdate", updateType, member);
             }
             catch (Exception)
             {
@@ -56,7 +74,7 @@ namespace CommunicationsApp.Infrastructure.Notifications
         {
             try
             {
-                await hubContext.SendToGroupAsync(serverId, "NotifyChannelClassUpdate", updateType, cc);
+                await hubContext.SendToGroupAsync(serverId, "ChannelClassUpdate", updateType, cc);
             }
             catch (Exception)
             {
@@ -69,7 +87,7 @@ namespace CommunicationsApp.Infrastructure.Notifications
         {
             try
             {
-                await hubContext.SendToGroupAsync(serverId, "NotifyChannelUpdate", updateType, c);
+                await hubContext.SendToGroupAsync(serverId, "ChannelUpdate", updateType, c);
             }
             catch (Exception)
             {
@@ -82,7 +100,7 @@ namespace CommunicationsApp.Infrastructure.Notifications
         {
             try
             {
-                await hubContext.SendToGroupAsync(serverId, "NotifyServerInfoUpdate", updateType, update);
+                await hubContext.SendToGroupAsync(serverId, "ServerInfoUpdate", updateType, update);
             }
             catch (Exception)
             {
@@ -95,7 +113,7 @@ namespace CommunicationsApp.Infrastructure.Notifications
         {
             try
             {
-                await hubContext.SendToGroupAsync(serverId, "NotifyServerRoleUpdate", updateType, role);
+                await hubContext.SendToGroupAsync(serverId, "ServerRoleUpdate", updateType, role);
             }
             catch (Exception)
             {
@@ -108,7 +126,7 @@ namespace CommunicationsApp.Infrastructure.Notifications
         {
             try
             {
-                await hubContext.SendToGroupAsync(serverId, "NotifyServerRoleMembersUpdate", role, linking);
+                await hubContext.SendToGroupAsync(serverId, "ServerRoleMembersUpdate", role, linking);
             }
             catch (Exception)
             {
